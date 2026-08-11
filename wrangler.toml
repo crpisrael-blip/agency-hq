@@ -14,5 +14,5 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "agency-hq-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "81a73754-cd5a-498b-a4d2-79c70d29fa02"
 migrations_dir = "migrations"
