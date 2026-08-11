@@ -1,0 +1,18 @@
+# Cloudflare Pages + D1 configuration
+# ---------------------------------------------------------------
+# name: שם פרויקט ה-Pages (אפשר לשנות)
+name = "agency-hq"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# תיקיית הפלט הסטטי שמוגשת ע"י Pages (האתר). ה-API יושב ב-/functions
+pages_build_output_dir = "public"
+
+# --- בסיס הנתונים D1 ---
+# database_id יוחלף בערך האמיתי אחרי שתיצור את מסד הנתונים ב-Cloudflare:
+#   npx wrangler d1 create agency-hq-db
+[[d1_databases]]
+binding = "DB"
+database_name = "agency-hq-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"

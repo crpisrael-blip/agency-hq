@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agency HQ — מרכז הבקרה של בית התוכנה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1424;--bg-2:#171d33;--card:#1b2340;--card-2:#212a4d;--line:#2c3760;
+    --txt:#eaf0ff;--muted:#93a0c8;--accent:#6c5ce7;--accent-2:#00d1b2;--amber:#f6b73c;
+    --green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Heebo',system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;padding-bottom:40px}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer}
+  /* ---- topbar / nav ---- */
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(15,20,36,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .topbar-in{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;max-width:1180px;margin:0 auto}
+  .brand{font-weight:900;font-size:1.08rem;display:flex;align-items:center;gap:9px}
+  .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1rem;color:#fff}
+  .brand span{color:var(--accent-2)}
+  .nav{display:flex;gap:4px;overflow-x:auto;padding:0 14px 9px;max-width:1180px;margin:0 auto;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav button{flex:0 0 auto;padding:7px 15px;border-radius:999px;font-size:.87rem;font-weight:700;color:var(--muted);border:1px solid transparent;white-space:nowrap;background:none}
+  .nav button.on{background:var(--card);color:var(--txt);border-color:var(--line)}
+  .nav button:hover{color:var(--txt)}
+  /* ---- layout ---- */
+  .wrap{max-width:1180px;margin:0 auto;padding:18px}
+  h2{font-size:1.32rem;font-weight:900;margin-bottom:3px}
+  .sub{color:var(--muted);font-size:.87rem;margin-bottom:16px}
+  .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .grow{flex:1}
+  .spread{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  /* ---- buttons ---- */
+  .btn{background:var(--card);border:1.5px solid var(--line);color:var(--txt);font-weight:700;padding:8px 16px;border-radius:999px;font-size:.88rem}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#5a4bd6}
+  .btn.teal{background:var(--accent-2);border-color:var(--accent-2);color:#04201c}
+  .btn.small{padding:5px 12px;font-size:.8rem}
+  .btn.ghost{background:transparent}
+  .btn.danger{color:var(--red);border-color:transparent}
+  .btn.danger:hover{border-color:var(--red)}
+  /* ---- inputs ---- */
+  input,select,textarea{background:var(--bg-2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;font-family:inherit;font-size:.92rem;width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  input::placeholder,textarea::placeholder{color:#5e6c96}
+  .search{max-width:280px}
+  /* ---- kpis ---- */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px;margin:6px 0 18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px}
+  .kpi b{font-size:1.5rem;font-weight:900;display:block;line-height:1.2}
+  .kpi small{color:var(--muted);font-size:.78rem}
+  .kpi.accent b{color:var(--accent-2)}
+  .kpi.amber b{color:var(--amber)}
+  .kpi.green b{color:var(--green)}
+  /* ---- cards ---- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 17px;margin-bottom:13px}
+  .card h3{font-size:1.02rem;font-weight:800;margin-bottom:11px}
+  .list-item{display:flex;justify-content:space-between;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .list-item:last-child{border-bottom:0}
+  .li-main{min-width:0}
+  .li-main b{display:block;font-size:.96rem}
+  .li-main small{color:var(--muted);font-size:.8rem}
+  .li-val{text-align:left;white-space:nowrap;font-weight:800}
+  /* ---- pills ---- */
+  .pill{padding:2px 11px;border-radius:999px;font-size:.74rem;font-weight:700;border:1px solid;white-space:nowrap;display:inline-block}
+  .p-blue{background:rgba(59,130,246,.14);color:#8fbcff;border-color:rgba(59,130,246,.4)}
+  .p-green{background:rgba(34,197,94,.14);color:#7ee2a8;border-color:rgba(34,197,94,.4)}
+  .p-amber{background:rgba(246,183,60,.14);color:#f7cd78;border-color:rgba(246,183,60,.4)}
+  .p-red{background:rgba(239,68,68,.14);color:#f6a1a1;border-color:rgba(239,68,68,.4)}
+  .p-purple{background:rgba(168,85,247,.14);color:#d3aef7;border-color:rgba(168,85,247,.4)}
+  .p-gray{background:rgba(147,160,200,.12);color:var(--muted);border-color:var(--line)}
+  .p-teal{background:rgba(0,209,178,.14);color:#6ee7d3;border-color:rgba(0,209,178,.4)}
+  .empty{color:var(--muted);text-align:center;padding:34px 10px;font-size:.9rem}
+  .muted{color:var(--muted)}
+  .tag{display:inline-block;background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:.74rem;color:var(--muted);margin-inline-end:4px}
+  /* ---- progress ---- */
+  .bar{height:7px;background:var(--bg-2);border-radius:999px;overflow:hidden;margin-top:6px}
+  .bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  /* ---- table ---- */
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th,td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:700;font-size:.78rem}
+  td.num,th.num{text-align:left;font-variant-numeric:tabular-nums}
+  .tbl-wrap{overflow-x:auto}
+  tr.hot td{background:rgba(108,92,231,.08)}
+  /* ---- modal ---- */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+  @media(min-width:640px){.overlay{align-items:center}}
+  .modal{background:var(--bg-2);border:1px solid var(--line);border-radius:18px 18px 0 0;width:100%;max-width:600px;max-height:93vh;overflow-y:auto;padding:20px}
+  @media(min-width:640px){.modal{border-radius:18px}}
+  .modal.wide{max-width:820px}
+  .modal h3{font-size:1.15rem;font-weight:900;margin-bottom:15px}
+  .f{margin-bottom:12px}
+  .f label{display:block;font-size:.8rem;color:var(--muted);font-weight:700;margin-bottom:4px}
+  .f2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+  @media(max-width:560px){.f2,.f3{grid-template-columns:1fr}}
+  .modal-actions{display:flex;gap:9px;justify-content:flex-start;margin-top:18px;flex-wrap:wrap}
+  /* ---- login ---- */
+  #login{position:fixed;inset:0;z-index:100;background:radial-gradient(900px 500px at 80% -10%,rgba(108,92,231,.25),transparent 60%),var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px 26px;max-width:380px;width:100%;text-align:center}
+  .login-card .mark{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1.7rem;margin:0 auto 14px}
+  .login-card h1{font-size:1.4rem;font-weight:900;margin-bottom:4px}
+  .login-card p{color:var(--muted);font-size:.88rem;margin-bottom:20px}
+  .login-card input{text-align:center;letter-spacing:.3em;font-size:1.1rem;margin-bottom:12px}
+  .err{color:var(--red);font-size:.82rem;min-height:18px;margin-bottom:6px}
+  /* ---- toast ---- */
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .toast{background:var(--card-2);border:1px solid var(--line);border-radius:11px;padding:10px 18px;font-size:.88rem;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .toast.ok{border-color:var(--green)}.toast.bad{border-color:var(--red)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:.9rem}
+  .stat-row:last-child{border-bottom:0}
+  .stat-row b{font-variant-numeric:tabular-nums}
+  .big{font-size:1.9rem;font-weight:900;line-height:1.1}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:3px}
+  .seg{display:flex;gap:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:4px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:70px;border:0;background:none;color:var(--muted);font-weight:700;padding:7px 8px;border-radius:8px;font-size:.83rem}
+  .seg button.on{background:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+
+<!-- מסך כניסה -->
+<div id="login">
+  <div class="login-card">
+    <div class="mark">◆</div>
+    <h1>Agency <span style="color:var(--accent-2)">HQ</span></h1>
+    <p id="loginSub">מרכז הבקרה של בית התוכנה</p>
+    <div class="err" id="loginErr"></div>
+    <input type="password" id="pin" inputmode="numeric" placeholder="••••" autocomplete="current-password" />
+    <button class="btn primary" style="width:100%" id="loginBtn" onclick="doLogin()">כניסה</button>
+  </div>
+</div>
+
+<!-- אפליקציה -->
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div class="topbar-in">
+      <div class="brand"><span class="mark">◆</span>Agency <span>HQ</span></div>
+      <button class="btn small ghost" onclick="logout()">יציאה</button>
+    </div>
+    <div class="nav" id="nav"></div>
+  </div>
+  <div class="wrap" id="view"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============ תשתית ============
+const TOKEN_KEY = 'agencyhq_token';
+let TOKEN = localStorage.getItem(TOKEN_KEY) || '';
+let CURRENT = 'dashboard';
+const $ = (id) => document.getElementById(id);
+
+const money = (n) => new Intl.NumberFormat('he-IL',{style:'currency',currency:'ILS',maximumFractionDigits:0}).format(Math.round(n||0));
+const money1 = (n) => new Intl.NumberFormat('he-IL',{maximumFractionDigits:0}).format(Math.round(n||0));
+const esc = (s) => String(s??'').replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const j = (o) => esc(JSON.stringify(o)); // JSON בטוח ל-attribute עם גרשיים בעברית
+const todayISO = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem'}).format(new Date());
+
+async function api(path, opts={}){
+  const res = await fetch('/api'+path, {
+    ...opts,
+    headers:{'Content-Type':'application/json','x-admin-token':TOKEN, ...(opts.headers||{})},
+  });
+  if(res.status===401){ TOKEN=''; localStorage.removeItem(TOKEN_KEY); showLogin(); throw new Error('unauthorized'); }
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||('http_'+res.status));
+  return data;
+}
+const apiGet = (p)=>api(p);
+const apiPost = (p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
+const apiPatch = (p,b)=>api(p,{method:'PATCH',body:JSON.stringify(b||{})});
+const apiDel = (p)=>api(p,{method:'DELETE'});
+
+function toast(msg, kind='ok'){
+  const el = document.createElement('div');
+  el.className='toast '+kind; el.textContent=msg;
+  $('toast').appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='.3s';setTimeout(()=>el.remove(),300);},2200);
+}
+
+// ============ כניסה ============
+async function boot(){
+  if(TOKEN){
+    try{ await apiGet('/dashboard'); showApp(); return; }catch(e){ /* ננסה מסך כניסה */ }
+  }
+  showLogin();
+}
+async function showLogin(){
+  $('app').style.display='none'; $('login').style.display='flex';
+  try{
+    const s = await fetch('/api/auth/status').then(r=>r.json());
+    $('loginSub').textContent = s.setup ? 'מרכז הבקרה של בית התוכנה' : 'הגדרת קוד גישה ראשוני (4 ספרות ומעלה)';
+    $('loginBtn').textContent = s.setup ? 'כניסה' : 'הגדרת קוד וכניסה';
+    $('login').dataset.setup = s.setup ? '1':'0';
+  }catch(e){ $('loginErr').textContent='שגיאת חיבור לשרת'; }
+  $('pin').focus();
+}
+async function doLogin(){
+  const pin = $('pin').value.trim();
+  const isSetup = $('login').dataset.setup==='0';
+  $('loginErr').textContent='';
+  if(pin.length<4){ $('loginErr').textContent='קוד קצר מדי'; return; }
+  try{
+    const r = await apiPost(isSetup?'/auth/setup':'/auth/login',{pin});
+    TOKEN=r.token; localStorage.setItem(TOKEN_KEY,TOKEN);
+    showApp();
+  }catch(e){
+    $('loginErr').textContent = e.message==='wrong_pin'?'קוד שגוי': e.message==='pin_too_short'?'קוד קצר מדי':'שגיאה, נסה שוב';
+  }
+}
+$('pin')?.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+async function logout(){ try{ await apiPost('/auth/logout'); }catch(e){} TOKEN=''; localStorage.removeItem(TOKEN_KEY); showLogin(); }
+
+function showApp(){
+  $('login').style.display='none'; $('app').style.display='block';
+  buildNav(); go(CURRENT);
+}
+
+// ============ ניווט ============
+const PAGES = [
+  ['dashboard','לוח בקרה'],
+  ['clients','לקוחות'],
+  ['systems','מערכות'],
+  ['engagements','התקשרויות'],
+  ['calculator','מחשבון חיוב'],
+  ['cashflow','תזרים'],
+  ['ideas','מרכזי רווח'],
+  ['processes','תהליכים'],
+  ['tasks','משימות'],
+];
+function buildNav(){
+  $('nav').innerHTML = PAGES.map(([k,l])=>`<button data-p="${k}" class="${k===CURRENT?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+}
+function go(page){
+  CURRENT=page;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===page));
+  $('view').innerHTML='<div class="empty">טוען…</div>';
+  (RENDER[page]||(()=> $('view').innerHTML='<div class="empty">בקרוב</div>'))();
+  window.scrollTo(0,0);
+}
+
+// ============ מודאל ============
+function openModal(html, wide){
+  closeModal();
+  const ov=document.createElement('div'); ov.className='overlay'; ov.id='modal';
+  ov.innerHTML=`<div class="modal ${wide?'wide':''}">${html}</div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeModal(); });
+  document.body.appendChild(ov);
+}
+function closeModal(){ $('modal')?.remove(); }
+const val = (id)=> $(id)?.value?.trim() ?? '';
+const valN = (id)=> Number($(id)?.value||0);
+
+// ============ תוויות ============
+const CLIENT_STATUS={prospect:['ליד','p-amber'],active:['פעיל','p-green'],paused:['בהמתנה','p-gray'],churned:['נטש','p-red']};
+const CLIENT_STAGE={lead:'ליד',discovery:'אפיון',proposal:'הצעה',building:'בבנייה',live:'עלה לאוויר',retainer:'ריטיינר'};
+const SYS_STATUS={discovery:['אפיון','p-amber'],design:['עיצוב','p-purple'],building:['בבנייה','p-blue'],live:['חי','p-green'],maintenance:['תחזוקה','p-teal'],retired:['הוקפא','p-gray']};
+const ENG_MODEL={one_time:'חד-פעמי',retainer:'ריטיינר',hourly:'שעתי',revshare:'אחוז ממחזור',value:'מבוסס-ערך',hybrid:'היברידי'};
+const ENG_STATUS={proposed:['מוצע','p-amber'],active:['פעיל','p-green'],paused:['מושהה','p-gray'],ended:['הסתיים','p-red']};
+const HEALTH={green:['🟢','p-green'],yellow:['🟡','p-amber'],red:['🔴','p-red']};
+const EFFORT={low:'נמוך',medium:'בינוני',high:'גבוה'};
+const IDEA_STATUS={idea:['רעיון','p-gray'],exploring:['בבדיקה','p-amber'],pitched:['הוצע','p-blue'],active:['פעיל','p-green'],dropped:['נזנח','p-red']};
+const pill=(map,k)=>{const m=map[k]||[k,'p-gray'];return `<span class="pill ${m[1]}">${m[0]}</span>`;};
+
+// ============ מסכים ============
+const RENDER={};
+let CACHE={clients:[],systems:[],engagements:[]};
+async function loadRefs(){
+  const [cl,sy,en]=await Promise.all([apiGet('/clients'),apiGet('/systems'),apiGet('/engagements')]);
+  CACHE={clients:cl,systems:sy,engagements:en};
+}
+const clientOptions=(sel)=>`<option value="">— ללא —</option>`+CACHE.clients.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('');
+const systemOptions=(sel,clientId)=>`<option value="">— ללא —</option>`+CACHE.systems.filter(s=>!clientId||s.clientId===clientId).map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${esc(s.name)}</option>`).join('');
+
+// ---------- לוח בקרה ----------
+RENDER.dashboard=async()=>{
+  const d=await apiGet('/dashboard');
+  const k=d.kpis;
+  const modelRows=Object.entries(d.byModel||{}).sort((a,b)=>b[1]-a[1]);
+  const modelTotal=modelRows.reduce((a,[,v])=>a+v,0)||1;
+  $('view').innerHTML=`
+    <h2>לוח בקרה</h2>
+    <div class="sub">התמונה הכוללת של בית התוכנה — ${todayISO()}</div>
+    <div class="kpis">
+      <div class="kpi accent"><b>${money(k.mrr)}</b><small>הכנסה חוזרת חודשית (MRR)</small></div>
+      <div class="kpi"><b>${money(k.arr)}</b><small>הכנסה שנתית (ARR)</small></div>
+      <div class="kpi amber"><b>${money(k.pipeline)}</b><small>בצנרת (הצעות פתוחות)</small></div>
+      <div class="kpi"><b>${k.clientsActive}</b><small>לקוחות פעילים${k.clientsProspect?` · ${k.clientsProspect} לידים`:''}</small></div>
+      <div class="kpi green"><b>${k.systemsLive}</b><small>מערכות חיות מתוך ${k.systemsTotal}</small></div>
+      <div class="kpi"><b>${k.systemsBuilding}</b><small>מערכות בפיתוח</small></div>
+      <div class="kpi"><b>${k.openTasks}</b><small>משימות פתוחות</small></div>
+      <div class="kpi amber"><b>${money(k.ideasWeighted)}</b><small>פוטנציאל מרכזי רווח (משוקלל)</small></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>MRR לפי לקוח</h3>
+        ${d.mrrByClient.length?d.mrrByClient.map(c=>`
+          <div class="list-item" onclick="openClient('${c.id}')">
+            <div class="li-main"><b>${esc(c.name)}</b></div>
+            <div class="li-val" style="color:var(--accent-2)">${money(c.mrr)}</div>
+          </div>`).join(''):'<div class="empty">אין עדיין התקשרויות פעילות</div>'}
+      </div>
+      <div class="card">
+        <h3>תמהיל הכנסה לפי מודל חיוב</h3>
+        ${modelRows.length?modelRows.map(([m,v])=>`
+          <div style="margin-bottom:11px">
+            <div class="row" style="justify-content:space-between"><b>${ENG_MODEL[m]||m}</b><span style="color:var(--accent-2);font-weight:800">${money(v)}</span></div>
+            <div class="bar"><span style="width:${Math.round(v/modelTotal*100)}%"></span></div>
+          </div>`).join(''):'<div class="empty">אין נתונים</div>'}
+        <div class="hint">בריאות לקוחות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>מערכות בפיתוח</h3>
+        ${d.activeSystems.length?d.activeSystems.map(s=>`
+          <div class="list-item" onclick="go('systems')">
+            <div class="li-main"><b>${esc(s.name)}</b><small>${esc(s.clientName)} · ${(SYS_STATUS[s.status]||[s.status])[0]}</small>
+              <div class="bar" style="width:130px"><span style="width:${s.progress}%"></span></div></div>
+            <div class="li-val muted">${s.progress}%</div>
+          </div>`).join(''):'<div class="empty">אין מערכות בפיתוח כרגע</div>'}
+      </div>
+      <div class="card">
+        <h3>משימות קרובות</h3>
+        ${d.recentTasks.length?d.recentTasks.map(t=>`
+          <div class="list-item" onclick="go('tasks')">
+            <div class="li-main"><b>${esc(t.title)}</b><small>${t.dueDate?('יעד: '+t.dueDate):'ללא יעד'} · ${t.priority==='urgent'?'דחוף':t.priority==='high'?'גבוה':'רגיל'}</small></div>
+            <div class="li-val">${pill({todo:['לביצוע','p-gray'],doing:['בעבודה','p-blue']},t.status)}</div>
+          </div>`).join(''):'<div class="empty">אין משימות פתוחות 🎉</div>'}
+      </div>
+    </div>`;
+};
+
+// ---------- לקוחות ----------
+RENDER.clients=async()=>{
+  const list=await apiGet('/clients'); CACHE.clients=list;
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>לקוחות</h2><div class="sub">${list.length} לקוחות · ${money(list.reduce((a,c)=>a+(c.mrr||0),0))} MRR כולל</div></div>
+      <div class="row"><input class="search" id="clSearch" placeholder="חיפוש…" oninput="filterList('clSearch','clRow')"><button class="btn primary" onclick="clientForm()">+ לקוח</button></div></div>
+    <div class="card" style="padding:6px 17px">
+      ${list.length?list.map(c=>{const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];return `
+        <div class="list-item clRow" data-s="${esc(c.name+' '+(c.industry||''))}" onclick="openClient('${c.id}')">
+          <div class="li-main"><b>${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</b>
+            <small>${esc(c.industry||'')} · ${c.systemsCount} מערכות · ${CLIENT_STAGE[c.stage]||c.stage}</small></div>
+          <div class="row" style="gap:8px"><span class="pill ${st[1]}">${st[0]}</span><b class="li-val" style="color:var(--accent-2)">${c.mrr?money(c.mrr):''}</b></div>
+        </div>`;}).join(''):'<div class="empty">אין עדיין לקוחות. הוסף את הראשון!</div>'}
+    </div>`;
+};
+function filterList(inputId,rowClass){
+  const q=$(inputId).value.trim().toLowerCase();
+  document.querySelectorAll('.'+rowClass).forEach(r=>{ r.style.display=(r.dataset.s||'').toLowerCase().includes(q)?'':'none'; });
+}
+function clientForm(c={}){
+  openModal(`<h3>${c.id?'עריכת לקוח':'לקוח חדש'}</h3>
+    <div class="f"><label>שם העסק *</label><input id="f_name" value="${esc(c.name||'')}"></div>
+    <div class="f2"><div class="f"><label>תחום</label><input id="f_industry" value="${esc(c.industry||'')}"></div>
+      <div class="f"><label>גודל</label><select id="f_size">${opts({solo:'עצמאי',micro:'זעיר',small:'קטן',medium:'בינוני'},c.size||'solo')}</select></div></div>
+    <div class="f2"><div class="f"><label>איש קשר</label><input id="f_contactName" value="${esc(c.contactName||'')}"></div>
+      <div class="f"><label>טלפון</label><input id="f_phone" value="${esc(c.phone||'')}"></div></div>
+    <div class="f"><label>אימייל</label><input id="f_email" value="${esc(c.email||'')}"></div>
+    <div class="f3"><div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(CLIENT_STATUS),c.status||'prospect')}</select></div>
+      <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(CLIENT_STAGE,c.stage||'lead')}</select></div>
+      <div class="f"><label>בריאות</label><select id="f_health">${opts({green:'🟢 תקין',yellow:'🟡 לב לב',red:'🔴 סיכון'},c.health||'green')}</select></div></div>
+    <div class="f"><label>הערות</label><textarea id="f_notes" rows="2">${esc(c.notes||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveClient('${c.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${c.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delClient('${c.id}')">מחיקה</button>`:''}</div>`);
+}
+const opts=(map,sel)=>Object.entries(map).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
+const mapLabels=(m)=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,v[0]]));
+async function saveClient(id){
+  const body={name:val('f_name'),industry:val('f_industry'),size:val('f_size'),contactName:val('f_contactName'),
+    phone:val('f_phone'),email:val('f_email'),status:val('f_status'),stage:val('f_stage'),health:val('f_health'),notes:val('f_notes')};
+  if(!body.name){toast('חסר שם','bad');return;}
+  try{ id?await apiPatch('/clients/'+id,body):await apiPost('/clients',body); closeModal(); toast('נשמר'); go('clients'); }
+  catch(e){toast('שגיאה: '+e.message,'bad');}
+}
+async function delClient(id){
+  if(!confirm('למחוק את הלקוח? (יש להסיר קודם מערכות והתקשרויות)'))return;
+  try{ await apiDel('/clients/'+id); closeModal(); toast('נמחק'); go('clients'); }
+  catch(e){toast(e.message==='has_systems'?'יש מערכות מקושרות':e.message==='has_engagements'?'יש התקשרויות מקושרות':'שגיאה','bad');}
+}
+async function openClient(id){
+  const d=await apiGet('/clients/'+id); const c=d.client; const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
+  openModal(`<div class="spread"><h3 style="margin:0">${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</h3><span class="pill ${st[1]}">${st[0]}</span></div>
+    <div class="sub">${esc(c.industry||'')} ${c.contactName?'· '+esc(c.contactName):''} ${c.phone?'· '+esc(c.phone):''}</div>
+    <div class="kpis" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="kpi accent"><b>${money(d.mrr)}</b><small>MRR</small></div>
+      <div class="kpi"><b>${d.systems.length}</b><small>מערכות</small></div>
+      <div class="kpi"><b>${d.engagements.filter(e=>e.status==='active').length}</b><small>התקשרויות פעילות</small></div>
+    </div>
+    <div class="card"><h3>מערכות</h3>${d.systems.length?d.systems.map(s=>`<div class="stat-row"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}</div>
+    <div class="card"><h3>התקשרויות</h3>${d.engagements.length?d.engagements.map(e=>`<div class="stat-row"><span>${esc(e.title)} <span class="tag">${ENG_MODEL[e.model]||e.model}</span></span><b>${money(engMonthly(e))}/ח'</b></div>`).join(''):'<div class="muted">—</div>'}</div>
+    ${d.ideas.length?`<div class="card"><h3>מרכזי רווח</h3>${d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><b>${money(i.potentialMonthly)}/ח'</b></div>`).join('')}</div>`:''}
+    ${c.notes?`<div class="card"><h3>הערות</h3><div class="muted">${esc(c.notes)}</div></div>`:''}
+    <div class="modal-actions"><button class="btn primary" onclick='clientForm(${j(c)})'>עריכה</button>
+      <button class="btn teal" onclick="closeModal();engagementForm({clientId:'${id}'})">+ התקשרות</button>
+      <button class="btn ghost" onclick="closeModal();systemForm({clientId:'${id}'})">+ מערכת</button>
+      <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+// חישוב MRR בצד לקוח (תואם לשרת)
+function engMonthly(e){
+  const r=+e.monthlyFee||0,h=(+e.hourlyRate||0)*(+e.monthlyHours||0),rv=(+e.revshareBase||0)*((+e.revsharePercent||0)/100);
+  switch(e.model){case 'retainer':case 'value':return r;case 'hourly':return h;case 'revshare':return rv;case 'one_time':return 0;case 'hybrid':return r+h+rv;default:return r;}
+}
+
+// ---------- מערכות ----------
+RENDER.systems=async()=>{
+  await loadRefs(); const list=CACHE.systems;
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מערכות</h2><div class="sub">${list.length} מערכות · ${list.filter(s=>s.status==='live').length} חיות</div></div>
+      <div class="row"><input class="search" id="syS" placeholder="חיפוש…" oninput="filterList('syS','syRow')"><button class="btn primary" onclick="systemForm()">+ מערכת</button></div></div>
+    <div class="card" style="padding:6px 17px">
+      ${list.length?list.map(s=>{const st=SYS_STATUS[s.status]||[s.status,'p-gray'];return `
+        <div class="list-item syRow" data-s="${esc(s.name+' '+s.clientName+' '+(s.stack||''))}" onclick='systemForm(${j(s)})'>
+          <div class="li-main"><b>${esc(s.name)}</b><small>${esc(s.clientName)} ${s.stack?'· '+esc(s.stack):''} ${s.url?'· 🔗':''}</small>
+            <div class="bar" style="max-width:200px"><span style="width:${s.progress}%"></span></div></div>
+          <div class="row" style="gap:8px"><span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b></div>
+        </div>`;}).join(''):'<div class="empty">אין עדיין מערכות</div>'}
+    </div>`;
+};
+function systemForm(s={}){
+  openModal(`<h3>${s.id?'עריכת מערכת':'מערכת חדשה'}</h3>
+    <div class="f2"><div class="f"><label>שם המערכת *</label><input id="f_name" value="${esc(s.name||'')}"></div>
+      <div class="f"><label>לקוח *</label><select id="f_clientId">${clientOptions(s.clientId)}</select></div></div>
+    <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({web_app:'אפליקציית ווב',crm:'CRM',automation:'אוטומציה',website:'אתר',dashboard:'דשבורד',other:'אחר'},s.kind||'web_app')}</select></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(SYS_STATUS),s.status||'discovery')}</select></div></div>
+    <div class="f"><label>Stack טכנולוגי</label><input id="f_stack" value="${esc(s.stack||'')}" placeholder="Cloudflare, D1, Hono…"></div>
+    <div class="f2"><div class="f"><label>כתובת חיה</label><input id="f_url" value="${esc(s.url||'')}"></div>
+      <div class="f"><label>Repo</label><input id="f_repoUrl" value="${esc(s.repoUrl||'')}"></div></div>
+    <div class="f3"><div class="f"><label>תחילת עבודה</label><input type="date" id="f_startDate" value="${esc(s.startDate||'')}"></div>
+      <div class="f"><label>עלייה לאוויר</label><input type="date" id="f_launchDate" value="${esc(s.launchDate||'')}"></div>
+      <div class="f"><label>התקדמות %</label><input type="number" id="f_progress" min="0" max="100" value="${s.progress||0}"></div></div>
+    <div class="f"><label>תיאור / הערות</label><textarea id="f_description" rows="2">${esc(s.description||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveSystem('${s.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${s.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delSystem('${s.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveSystem(id){
+  const body={name:val('f_name'),clientId:val('f_clientId'),kind:val('f_kind'),status:val('f_status'),stack:val('f_stack'),
+    url:val('f_url'),repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
+  if(!body.name||!body.clientId){toast('חסר שם או לקוח','bad');return;}
+  try{ id?await apiPatch('/systems/'+id,body):await apiPost('/systems',body); closeModal(); toast('נשמר'); go('systems'); }
+  catch(e){toast('שגיאה: '+e.message,'bad');}
+}
+async function delSystem(id){ if(!confirm('למחוק מערכת?'))return; await apiDel('/systems/'+id); closeModal(); toast('נמחק'); go('systems'); }
+
+// ---------- התקשרויות ----------
+RENDER.engagements=async()=>{
+  await loadRefs(); const list=CACHE.engagements;
+  const activeMrr=list.filter(e=>e.status==='active').reduce((a,e)=>a+(e.monthlyValue||0),0);
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>התקשרויות</h2><div class="sub">${money(activeMrr)} MRR מ-${list.filter(e=>e.status==='active').length} התקשרויות פעילות</div></div>
+      <button class="btn primary" onclick="engagementForm()">+ התקשרות</button></div>
+    <div class="card" style="padding:6px 17px">
+      ${list.length?list.map(e=>{const st=ENG_STATUS[e.status]||[e.status,'p-gray'];return `
+        <div class="list-item" onclick='engagementForm(${j(e)})'>
+          <div class="li-main"><b>${esc(e.title)}</b><small>${esc(e.clientName)} · ${ENG_MODEL[e.model]||e.model}${e.setupValue?` · הקמה ${money(e.setupValue)}`:''}</small></div>
+          <div class="row" style="gap:8px"><span class="pill ${st[1]}">${st[0]}</span><b class="li-val" style="color:var(--accent-2)">${money(e.monthlyValue)}/ח'</b></div>
+        </div>`;}).join(''):'<div class="empty">אין עדיין התקשרויות</div>'}
+    </div>`;
+};
+function engagementForm(e={}){
+  const m=e.model||'retainer';
+  openModal(`<h3>${e.id?'עריכת התקשרות':'התקשרות חדשה'}</h3>
+    <div class="f2"><div class="f"><label>כותרת *</label><input id="f_title" value="${esc(e.title||'')}"></div>
+      <div class="f"><label>לקוח *</label><select id="f_clientId">${clientOptions(e.clientId)}</select></div></div>
+    <div class="f"><label>מודל חיוב</label><select id="f_model" onchange="engModelHint()">${opts(ENG_MODEL,m)}</select><div class="hint" id="engHint"></div></div>
+    <div class="f3">
+      <div class="f"><label>הקמה/מקדמה ₪</label><input type="number" id="f_setupFee" value="${e.setupFee||0}"></div>
+      <div class="f"><label>ריטיינר חודשי ₪</label><input type="number" id="f_monthlyFee" value="${e.monthlyFee||0}"></div>
+      <div class="f"><label>יום חיוב</label><input type="number" id="f_billingDay" min="1" max="28" value="${e.billingDay||1}"></div>
+    </div>
+    <div class="f3">
+      <div class="f"><label>תעריף שעה ₪</label><input type="number" id="f_hourlyRate" value="${e.hourlyRate||0}"></div>
+      <div class="f"><label>שעות בחודש</label><input type="number" id="f_monthlyHours" value="${e.monthlyHours||0}"></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(ENG_STATUS),e.status||'proposed')}</select></div>
+    </div>
+    <div class="f3">
+      <div class="f"><label>% ממחזור</label><input type="number" id="f_revsharePercent" value="${e.revsharePercent||0}"></div>
+      <div class="f"><label>מחזור לקוח ₪/ח'</label><input type="number" id="f_revshareBase" value="${e.revshareBase||0}"></div>
+      <div class="f"><label>תאריך התחלה</label><input type="date" id="f_startDate" value="${esc(e.startDate||'')}"></div>
+    </div>
+    <div class="f"><label>מערכת מקושרת</label><select id="f_systemId">${systemOptions(e.systemId,e.clientId)}</select></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveEngagement('${e.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="go('calculator')">פתח במחשבון</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${e.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delEngagement('${e.id}')">מחיקה</button>`:''}</div>`);
+  engModelHint();
+}
+function engModelHint(){
+  const m=val('f_model');
+  const hints={one_time:'פרויקט חד-פעמי — מלא רק "הקמה/מקדמה".',retainer:'ריטיינר חודשי קבוע.',hourly:'תעריף שעה × שעות בחודש.',revshare:'% ממחזור × מחזור לקוח.',value:'מבוסס-ערך — הזן את הסכום ב"ריטיינר חודשי".',hybrid:'שילוב: ריטיינר + שעות + % ממחזור.'};
+  const el=$('engHint'); if(el)el.textContent=hints[m]||'';
+}
+async function saveEngagement(id){
+  const body={title:val('f_title'),clientId:val('f_clientId'),model:val('f_model'),status:val('f_status'),
+    setupFee:valN('f_setupFee'),monthlyFee:valN('f_monthlyFee'),hourlyRate:valN('f_hourlyRate'),monthlyHours:valN('f_monthlyHours'),
+    revsharePercent:valN('f_revsharePercent'),revshareBase:valN('f_revshareBase'),billingDay:valN('f_billingDay'),
+    startDate:val('f_startDate'),systemId:val('f_systemId')};
+  if(!body.title||!body.clientId){toast('חסר כותרת או לקוח','bad');return;}
+  try{ id?await apiPatch('/engagements/'+id,body):await apiPost('/engagements',body); closeModal(); toast('נשמר'); go('engagements'); }
+  catch(e){toast('שגיאה: '+e.message,'bad');}
+}
+async function delEngagement(id){ if(!confirm('למחוק התקשרות?'))return; await apiDel('/engagements/'+id); closeModal(); toast('נמחק'); go('engagements'); }
+
+// ---------- מחשבון מודלי חיוב ----------
+const CALC_MODELS=['one_time','retainer','hourly','revshare','value','hybrid'];
+function calcInputs(){
+  return {
+    buildHours:valN('c_buildHours'), costRate:valN('c_costRate'), sellRate:valN('c_sellRate'),
+    setupFee:valN('c_setupFee'), monthlyFee:valN('c_monthlyFee'), monthlyHours:valN('c_monthlyHours'),
+    clientRevenue:valN('c_clientRevenue'), sharePct:valN('c_sharePct'),
+    clientValue:valN('c_clientValue'), capturePct:valN('c_capturePct'),
+    monthlyCost:valN('c_monthlyCost'), months:valN('c_months')||12, vat:$('c_vat')?.checked,
+  };
+}
+// חישוב מודל בודד לפי אותם משתני קלט
+function computeModel(model,I){
+  const build = I.setupFee>0 ? I.setupFee : I.buildHours*I.sellRate;
+  let setup=0, monthly=0;
+  switch(model){
+    case 'one_time': setup=build; monthly=0; break;
+    case 'retainer': setup=build; monthly=I.monthlyFee; break;
+    case 'hourly':   setup=I.setupFee; monthly=I.sellRate*I.monthlyHours; break;
+    case 'revshare': setup=I.setupFee; monthly=I.clientRevenue*I.sharePct/100; break;
+    case 'value':    setup=I.setupFee; monthly=I.clientValue*I.capturePct/100; break;
+    case 'hybrid':   setup=build; monthly=I.monthlyFee + I.clientRevenue*I.sharePct/100; break;
+  }
+  const months=I.months;
+  const buildCost=I.buildHours*I.costRate;
+  const deliverCost=I.monthlyHours*I.costRate;               // עלות שעות תמיכה חודשיות
+  const monthlyCostTotal=I.monthlyCost + deliverCost;
+  const totalRevenue=setup + monthly*months;
+  const totalCost=buildCost + monthlyCostTotal*months;
+  const profit=totalRevenue-totalCost;
+  const margin=totalRevenue>0?profit/totalRevenue:0;
+  const totalHours=I.buildHours + I.monthlyHours*months;
+  const effHourly=totalHours>0?totalRevenue/totalHours:0;
+  const monthlyNet=monthly-monthlyCostTotal;
+  const breakEven = monthlyNet>0 ? Math.ceil(Math.max(0,(buildCost-setup))/monthlyNet) : null;
+  return {model,setup,monthly,buildCost,monthlyCostTotal,totalRevenue,totalCost,profit,margin,effHourly,breakEven};
+}
+const marginPill=(m)=>{const c=m>=0.5?'p-green':m>=0.3?'p-amber':'p-red';return `<span class="pill ${c}">${Math.round(m*100)}%</span>`;};
+
+RENDER.calculator=async()=>{
+  await loadRefs();
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מחשבון מודלי חיוב</h2><div class="sub">כל המשתנים במקום אחד — השווה מודלים ובחר את הרווחי ביותר ללקוח ולך</div></div>
+      <button class="btn ghost small" onclick="loadScenarios()">תרחישים שמורים</button></div>
+    <div class="grid2">
+      <div class="card">
+        <h3>משתני הקלט</h3>
+        <div class="f2">
+          <div class="f"><label>שעות בנייה (פרויקט)</label><input type="number" id="c_buildHours" value="80" oninput="calcOut()"></div>
+          <div class="f"><label>אורך התקשרות (חודשים)</label><input type="number" id="c_months" value="12" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>עלות שעה שלי ₪</label><input type="number" id="c_costRate" value="120" oninput="calcOut()"><div class="hint">כמה שעת עבודה עולה לך</div></div>
+          <div class="f"><label>תעריף שעה ללקוח ₪</label><input type="number" id="c_sellRate" value="350" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>הקמה/מקדמה ₪ <span class="muted">(0=לפי שעות)</span></label><input type="number" id="c_setupFee" value="0" oninput="calcOut()"></div>
+          <div class="f"><label>ריטיינר חודשי ₪</label><input type="number" id="c_monthlyFee" value="1500" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>שעות תמיכה בחודש</label><input type="number" id="c_monthlyHours" value="4" oninput="calcOut()"></div>
+          <div class="f"><label>עלות חודשית שלי ₪ <span class="muted">(כלים/קבלני משנה)</span></label><input type="number" id="c_monthlyCost" value="150" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>מחזור חודשי צפוי אצל הלקוח ₪</label><input type="number" id="c_clientRevenue" value="40000" oninput="calcOut()"></div>
+          <div class="f"><label>% ממחזור</label><input type="number" id="c_sharePct" value="5" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>ערך חודשי שאני מייצר ₪</label><input type="number" id="c_clientValue" value="8000" oninput="calcOut()"></div>
+          <div class="f"><label>% מהערך (capture)</label><input type="number" id="c_capturePct" value="25" oninput="calcOut()"></div>
+        </div>
+        <label class="row" style="gap:7px;cursor:pointer"><input type="checkbox" id="c_vat" style="width:auto" onchange="calcOut()"> הצג כולל מע"מ (18%)</label>
+      </div>
+      <div id="calcOut"></div>
+    </div>`;
+  calcOut();
+};
+function calcOut(){
+  const I=calcInputs();
+  const results=CALC_MODELS.map(m=>computeModel(m,I));
+  const vat=I.vat?1.18:1;
+  const vlabel=I.vat?' <span class="muted" style="font-size:.7rem">כולל מע"מ</span>':'';
+  // המודל עם הרווח הגבוה ביותר
+  const best=results.reduce((a,b)=>b.profit>a.profit?b:a,results[0]);
+  $('calcOut').innerHTML=`
+    <div class="card" style="border-color:var(--accent-2)">
+      <div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מומלץ: ${ENG_MODEL[best.model]}</h3>${marginPill(best.margin)}</div>
+      <div class="split" style="margin-bottom:10px">
+        <div><div class="muted hint">חד-פעמי (הקמה)</div><div class="big">${money(best.setup*vat)}</div></div>
+        <div><div class="muted hint">חודשי</div><div class="big" style="color:var(--accent-2)">${money(best.monthly*vat)}</div></div>
+      </div>
+      <div class="stat-row"><span>סה"כ הכנסה (${I.months} ח')${vlabel}</span><b>${money(best.totalRevenue*vat)}</b></div>
+      <div class="stat-row"><span>עלות כוללת שלי</span><b>${money(best.totalCost)}</b></div>
+      <div class="stat-row"><span>רווח</span><b style="color:${best.profit>=0?'var(--green)':'var(--red)'}">${money(best.profit)}</b></div>
+      <div class="stat-row"><span>תעריף אפקטיבי לשעה</span><b>${money(best.effHourly)}</b></div>
+      <div class="stat-row"><span>החזר השקעה (break-even)</span><b>${best.breakEven!=null?best.breakEven+" ח'":'—'}</b></div>
+    </div>
+    <div class="card">
+      <h3>השוואת מודלים</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th>מודל</th><th class="num">הקמה</th><th class="num">חודשי</th><th class="num">סה"כ</th><th class="num">רווח</th><th>שוליים</th></tr>
+        ${results.map(r=>`<tr class="${r.model===best.model?'hot':''}">
+          <td>${ENG_MODEL[r.model]}</td>
+          <td class="num">${money1(r.setup*vat)}</td>
+          <td class="num">${money1(r.monthly*vat)}</td>
+          <td class="num">${money1(r.totalRevenue*vat)}</td>
+          <td class="num" style="color:${r.profit>=0?'var(--green)':'var(--red)'}">${money1(r.profit)}</td>
+          <td>${marginPill(r.margin)}</td></tr>`).join('')}
+      </table></div>
+      <div class="hint">השוליים מחושבים על בסיס עלות עבודה (${money(I.costRate)}/שעה) + עלות חודשית. תעריף אפקטיבי לשעה מגלם את כל ההכנסה חלקי כל השעות.</div>
+      <div class="modal-actions"><button class="btn primary small" onclick="saveScenario()">שמירת תרחיש</button>
+        <button class="btn teal small" onclick="scenarioToEngagement()">צור התקשרות מהמומלץ</button></div>
+    </div>`;
+}
+async function saveScenario(){
+  const name=prompt('שם התרחיש:'); if(!name)return;
+  const I=calcInputs(); const results=CALC_MODELS.map(m=>computeModel(m,I));
+  const best=results.reduce((a,b)=>b.profit>a.profit?b:a,results[0]);
+  try{ await apiPost('/finance/scenarios',{name,model:best.model,inputs:I,results:{best,all:results}}); toast('התרחיש נשמר'); }
+  catch(e){toast('שגיאה','bad');}
+}
+async function loadScenarios(){
+  const list=await apiGet('/finance/scenarios');
+  openModal(`<h3>תרחישים שמורים</h3>${list.length?list.map(s=>{const r=JSON.parse(s.results||'{}').best||{};return `
+    <div class="list-item"><div class="li-main"><b>${esc(s.name)}</b><small>${ENG_MODEL[s.model]||s.model} ${s.clientName?'· '+esc(s.clientName):''} · רווח ${money(r.profit||0)}</small></div>
+      <button class="btn danger small" onclick="delScenario('${s.id}')">מחק</button></div>`;}).join(''):'<div class="empty">אין תרחישים שמורים</div>'}
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">סגירה</button></div>`);
+}
+async function delScenario(id){ await apiDel('/finance/scenarios/'+id); loadScenarios(); toast('נמחק'); }
+function scenarioToEngagement(){
+  const I=calcInputs(); const best=CALC_MODELS.map(m=>computeModel(m,I)).reduce((a,b)=>b.profit>a.profit?b:a);
+  go('engagements');
+  setTimeout(()=>engagementForm({model:best.model,setupFee:Math.round(best.setup),monthlyFee:best.model==='retainer'||best.model==='hybrid'||best.model==='value'?Math.round(best.monthly):0,
+    hourlyRate:I.sellRate,monthlyHours:I.monthlyHours,revsharePercent:I.sharePct,revshareBase:I.clientRevenue}),150);
+}
+
+// ---------- תזרים ----------
+let CF_MONTHS=12;
+RENDER.cashflow=async()=>{
+  await loadRefs();
+  const [f,ledger,opening]=await Promise.all([apiGet('/finance/forecast?months='+CF_MONTHS),apiGet('/finance/cashflow'),apiGet('/finance/opening')]);
+  const s=f.summary; const maxAbs=Math.max(1,...f.buckets.map(b=>Math.max(b.income,b.expense)));
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>תזרים</h2><div class="sub">תחזית מבוססת התקשרויות פעילות + תנועות ידניות</div></div>
+      <div class="row"><div class="seg">${[6,12,24].map(n=>`<button class="${n===CF_MONTHS?'on':''}" onclick="CF_MONTHS=${n};go('cashflow')">${n} ח'</button>`).join('')}</div>
+        <button class="btn primary" onclick="cfForm()">+ תנועה</button></div></div>
+    <div class="kpis">
+      <div class="kpi accent"><b>${money(s.mrr)}</b><small>MRR נוכחי</small></div>
+      <div class="kpi green"><b>${money(s.totalIncome)}</b><small>סה"כ הכנסות (${CF_MONTHS} ח')</small></div>
+      <div class="kpi amber"><b>${money(s.totalExpense)}</b><small>סה"כ הוצאות</small></div>
+      <div class="kpi"><b>${money(s.net)}</b><small>נטו</small></div>
+      <div class="kpi ${s.endBalance>=0?'green':''}"><b>${money(s.endBalance)}</b><small>מאזן צפוי בסוף</small></div>
+    </div>
+    <div class="card">
+      <div class="spread"><h3 style="margin:0">תחזית חודשית</h3>
+        <button class="btn ghost small" onclick="openingForm(${opening.value})">יתרת פתיחה: ${money(opening.value)}</button></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>חודש</th><th class="num">הכנסה</th><th class="num">הוצאה</th><th class="num">נטו</th><th class="num">מאזן מצטבר</th><th style="width:130px"></th></tr>
+        ${f.buckets.map(b=>`<tr>
+          <td>${b.label}</td>
+          <td class="num" style="color:var(--green)">${money1(b.income)}</td>
+          <td class="num" style="color:var(--amber)">${money1(b.expense)}</td>
+          <td class="num">${money1(b.net)}</td>
+          <td class="num" style="color:${b.balance>=0?'var(--txt)':'var(--red)'};font-weight:800">${money1(b.balance)}</td>
+          <td><div class="bar" style="height:9px"><span style="width:${Math.round(b.income/maxAbs*100)}%"></span></div></td>
+        </tr>`).join('')}
+      </table></div>
+    </div>
+    <div class="card">
+      <h3>תנועות ידניות (${ledger.length})</h3>
+      ${ledger.length?ledger.map(r=>`<div class="list-item" onclick='cfForm(${j(r)})'>
+        <div class="li-main"><b>${r.kind==='income'?'⬆️':'⬇️'} ${esc(r.label)}</b><small>${r.startDate} · ${r.recurring==='monthly'?'חודשי':'חד-פעמי'}${r.clientName?' · '+esc(r.clientName):''}${r.category?' · '+esc(r.category):''}</small></div>
+        <b class="li-val" style="color:${r.kind==='income'?'var(--green)':'var(--amber)'}">${r.kind==='income'?'+':'−'}${money(r.amount)}</b></div>`).join(''):'<div class="empty">אין תנועות ידניות. ההכנסות מההתקשרויות מחושבות אוטומטית.</div>'}
+    </div>`;
+};
+function cfForm(r={}){
+  openModal(`<h3>${r.id?'עריכת תנועה':'תנועת תזרים'}</h3>
+    <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({income:'הכנסה',expense:'הוצאה'},r.kind||'expense')}</select></div>
+      <div class="f"><label>סכום ₪ *</label><input type="number" id="f_amount" value="${r.amount||''}"></div></div>
+    <div class="f"><label>תיאור *</label><input id="f_label" value="${esc(r.label||'')}"></div>
+    <div class="f2"><div class="f"><label>חזרתיות</label><select id="f_recurring">${opts({once:'חד-פעמי',monthly:'חודשי'},r.recurring||'once')}</select></div>
+      <div class="f"><label>קטגוריה</label><input id="f_category" value="${esc(r.category||'')}" placeholder="כלים, שכ""ד, קבלן…"></div></div>
+    <div class="f2"><div class="f"><label>תאריך התחלה</label><input type="date" id="f_startDate" value="${esc(r.startDate||todayISO())}"></div>
+      <div class="f"><label>עד (לחודשי, אופציונלי)</label><input type="date" id="f_endDate" value="${esc(r.endDate||'')}"></div></div>
+    <div class="f"><label>לקוח מקושר</label><select id="f_clientId">${clientOptions(r.clientId)}</select></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveCf('${r.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${r.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delCf('${r.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveCf(id){
+  const body={kind:val('f_kind'),amount:valN('f_amount'),label:val('f_label'),recurring:val('f_recurring'),
+    category:val('f_category'),startDate:val('f_startDate'),endDate:val('f_endDate')||null,clientId:val('f_clientId')||null};
+  if(!body.label||!body.amount){toast('חסר תיאור או סכום','bad');return;}
+  try{ id?await apiPatch('/finance/cashflow/'+id,body):await apiPost('/finance/cashflow',body); closeModal(); toast('נשמר'); go('cashflow'); }
+  catch(e){toast('שגיאה','bad');}
+}
+async function delCf(id){ if(!confirm('למחוק תנועה?'))return; await apiDel('/finance/cashflow/'+id); closeModal(); toast('נמחק'); go('cashflow'); }
+function openingForm(v){
+  openModal(`<h3>יתרת פתיחה</h3><div class="f"><label>יתרת מזומן נוכחית ₪</label><input type="number" id="f_open" value="${v||0}"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveOpening()">שמירה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+}
+async function saveOpening(){ await apiPost('/finance/opening',{value:valN('f_open')}); closeModal(); toast('נשמר'); go('cashflow'); }
+
+// ---------- מרכזי רווח ----------
+RENDER.ideas=async()=>{
+  await loadRefs(); const list=await apiGet('/ideas');
+  const totalWeighted=list.filter(i=>!['dropped','active'].includes(i.status)).reduce((a,i)=>a+(i.weighted||0),0);
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מרכזי רווח</h2><div class="sub">רעיונות והכנסות חדשות · ${money(totalWeighted)} פוטנציאל משוקלל</div></div>
+      <button class="btn primary" onclick="ideaForm()">+ רעיון</button></div>
+    <div class="card" style="padding:6px 17px">
+      ${list.length?list.map(i=>`<div class="list-item" onclick='ideaForm(${j(i)})'>
+        <div class="li-main"><b>💡 ${esc(i.title)}</b><small>${i.clientName?esc(i.clientName)+' · ':''}${i.model?esc(i.model)+' · ':''}מאמץ ${EFFORT[i.effort]||i.effort} · סבירות ${i.confidence}%</small></div>
+        <div class="row" style="gap:8px">${pill(IDEA_STATUS,i.status)}<b class="li-val" style="color:var(--accent-2)">${i.potentialMonthly?money(i.potentialMonthly)+"/ח'":i.potentialOneTime?money(i.potentialOneTime):''}</b></div></div>`).join(''):'<div class="empty">כאן נולדים מרכזי הרווח החדשים 🚀</div>'}
+    </div>`;
+};
+function ideaForm(i={}){
+  openModal(`<h3>${i.id?'עריכת מרכז רווח':'מרכז רווח חדש'}</h3>
+    <div class="f"><label>כותרת *</label><input id="f_title" value="${esc(i.title||'')}"></div>
+    <div class="f2"><div class="f"><label>לקוח (אופציונלי)</label><select id="f_clientId">${clientOptions(i.clientId)}</select></div>
+      <div class="f"><label>מודל הכנסה</label><input id="f_model" value="${esc(i.model||'')}" placeholder="SaaS, אחוזים, מנוי…"></div></div>
+    <div class="f3"><div class="f"><label>פוטנציאל חודשי ₪</label><input type="number" id="f_potentialMonthly" value="${i.potentialMonthly||0}"></div>
+      <div class="f"><label>פוטנציאל חד-פעמי ₪</label><input type="number" id="f_potentialOneTime" value="${i.potentialOneTime||0}"></div>
+      <div class="f"><label>סבירות %</label><input type="number" id="f_confidence" min="0" max="100" value="${i.confidence??50}"></div></div>
+    <div class="f2"><div class="f"><label>מאמץ</label><select id="f_effort">${opts(EFFORT,i.effort||'medium')}</select></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(IDEA_STATUS),i.status||'idea')}</select></div></div>
+    <div class="f"><label>תיאור</label><textarea id="f_description" rows="3">${esc(i.description||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveIdea('${i.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${i.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delIdea('${i.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveIdea(id){
+  const body={title:val('f_title'),clientId:val('f_clientId')||null,model:val('f_model'),potentialMonthly:valN('f_potentialMonthly'),
+    potentialOneTime:valN('f_potentialOneTime'),confidence:valN('f_confidence'),effort:val('f_effort'),status:val('f_status'),description:val('f_description')};
+  if(!body.title){toast('חסרה כותרת','bad');return;}
+  try{ id?await apiPatch('/ideas/'+id,body):await apiPost('/ideas',body); closeModal(); toast('נשמר'); go('ideas'); }catch(e){toast('שגיאה','bad');}
+}
+async function delIdea(id){ if(!confirm('למחוק?'))return; await apiDel('/ideas/'+id); closeModal(); toast('נמחק'); go('ideas'); }
+
+// ---------- תהליכים ----------
+RENDER.processes=async()=>{
+  await loadRefs(); const list=await apiGet('/processes');
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>תהליכים ומסעות לקוח</h2><div class="sub">תהליכי עבודה, מסעות לקוח ונהלים שאתה בונה</div></div>
+      <button class="btn primary" onclick="processForm()">+ תהליך</button></div>
+    <div class="grid2">
+      ${list.length?list.map(p=>{const steps=JSON.parse(p.steps||'[]');const done=steps.filter(s=>s.done).length;return `
+        <div class="card" onclick='processForm(${j(p)})' style="cursor:pointer">
+          <div class="spread" style="margin-bottom:4px"><h3 style="margin:0">${esc(p.name)}</h3>${pill({process:['תהליך','p-blue'],journey:['מסע לקוח','p-purple'],sop:['נוהל','p-teal']},p.kind)}</div>
+          <div class="hint">${p.clientName?esc(p.clientName):'כללי'} · ${steps.length} שלבים${steps.length?` · ${done}/${steps.length} הושלמו`:''}</div>
+          ${steps.length?`<div class="bar" style="margin-top:8px"><span style="width:${Math.round(done/steps.length*100)}%"></span></div>`:''}
+        </div>`;}).join(''):'<div class="empty">התחל למפות תהליך עבודה או מסע לקוח</div>'}
+    </div>`;
+};
+let PSTEPS=[];
+function processForm(p={}){
+  PSTEPS=JSON.parse(p.steps||'[]');
+  openModal(`<h3>${p.id?'עריכת תהליך':'תהליך חדש'}</h3>
+    <div class="f2"><div class="f"><label>שם *</label><input id="f_name" value="${esc(p.name||'')}"></div>
+      <div class="f"><label>סוג</label><select id="f_kind">${opts({process:'תהליך עבודה',journey:'מסע לקוח',sop:'נוהל (SOP)'},p.kind||'process')}</select></div></div>
+    <div class="f2"><div class="f"><label>לקוח</label><select id="f_clientId">${clientOptions(p.clientId)}</select></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts({draft:'טיוטה',active:'פעיל',archived:'ארכיון'},p.status||'draft')}</select></div></div>
+    <div class="f"><label>תיאור</label><textarea id="f_description" rows="2">${esc(p.description||'')}</textarea></div>
+    <div class="f"><label>שלבים</label><div id="stepsList"></div>
+      <button class="btn ghost small" onclick="addStep()" type="button">+ שלב</button></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveProcess('${p.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${p.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delProcess('${p.id}')">מחיקה</button>`:''}</div>`, true);
+  renderSteps();
+}
+function renderSteps(){
+  $('stepsList').innerHTML=PSTEPS.map((s,idx)=>`<div class="row" style="margin-bottom:6px;gap:6px">
+    <input type="checkbox" style="width:auto" ${s.done?'checked':''} onchange="PSTEPS[${idx}].done=this.checked">
+    <input value="${esc(s.title||'')}" placeholder="שם השלב" oninput="PSTEPS[${idx}].title=this.value" class="grow">
+    <input value="${esc(s.owner||'')}" placeholder="אחראי" style="max-width:110px" oninput="PSTEPS[${idx}].owner=this.value">
+    <button class="btn danger small" type="button" onclick="PSTEPS.splice(${idx},1);renderSteps()">✕</button></div>`).join('')||'<div class="hint">אין שלבים עדיין</div>';
+}
+function addStep(){ PSTEPS.push({title:'',owner:'',done:false}); renderSteps(); }
+async function saveProcess(id){
+  const body={name:val('f_name'),kind:val('f_kind'),clientId:val('f_clientId')||null,status:val('f_status'),description:val('f_description'),steps:PSTEPS.filter(s=>s.title)};
+  if(!body.name){toast('חסר שם','bad');return;}
+  try{ id?await apiPatch('/processes/'+id,body):await apiPost('/processes',body); closeModal(); toast('נשמר'); go('processes'); }catch(e){toast('שגיאה','bad');}
+}
+async function delProcess(id){ if(!confirm('למחוק?'))return; await apiDel('/processes/'+id); closeModal(); toast('נמחק'); go('processes'); }
+
+// ---------- משימות ----------
+RENDER.tasks=async()=>{
+  const list=await apiGet('/tasks');
+  const cols=[['todo','לביצוע'],['doing','בעבודה'],['done','הושלם']];
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>משימות</h2><div class="sub">${list.filter(t=>t.status!=='done').length} פתוחות</div></div>
+      <button class="btn primary" onclick="taskForm()">+ משימה</button></div>
+    <div class="grid3">
+      ${cols.map(([k,label])=>{const items=list.filter(t=>t.status===k);return `
+        <div class="card"><h3>${label} <span class="muted">(${items.length})</span></h3>
+          ${items.map(t=>`<div class="list-item" onclick='taskForm(${j(t)})'>
+            <div class="li-main"><b>${t.priority==='urgent'?'🔴 ':t.priority==='high'?'🟠 ':''}${esc(t.title)}</b><small>${t.dueDate?'יעד: '+t.dueDate:''}</small></div>
+            ${k!=='done'?`<button class="btn teal small" onclick="event.stopPropagation();advanceTask('${t.id}','${k==='todo'?'doing':'done'}')">${k==='todo'?'התחל':'סיים'}</button>`:'✓'}
+          </div>`).join('')||'<div class="empty">—</div>'}
+        </div>`;}).join('')}
+    </div>`;
+};
+async function advanceTask(id,status){ await apiPatch('/tasks/'+id,{status}); toast('עודכן'); go('tasks'); }
+function taskForm(t={}){
+  openModal(`<h3>${t.id?'עריכת משימה':'משימה חדשה'}</h3>
+    <div class="f"><label>כותרת *</label><input id="f_title" value="${esc(t.title||'')}"></div>
+    <div class="f3"><div class="f"><label>סטטוס</label><select id="f_status">${opts({todo:'לביצוע',doing:'בעבודה',done:'הושלם'},t.status||'todo')}</select></div>
+      <div class="f"><label>עדיפות</label><select id="f_priority">${opts({low:'נמוכה',normal:'רגילה',high:'גבוהה',urgent:'דחוף'},t.priority||'normal')}</select></div>
+      <div class="f"><label>יעד</label><input type="date" id="f_dueDate" value="${esc(t.dueDate||'')}"></div></div>
+    <div class="f"><label>פרטים</label><textarea id="f_details" rows="2">${esc(t.details||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveTask('${t.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${t.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delTask('${t.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveTask(id){
+  const body={title:val('f_title'),status:val('f_status'),priority:val('f_priority'),dueDate:val('f_dueDate'),details:val('f_details')};
+  if(!body.title){toast('חסרה כותרת','bad');return;}
+  try{ id?await apiPatch('/tasks/'+id,body):await apiPost('/tasks',body); closeModal(); toast('נשמר'); go('tasks'); }catch(e){toast('שגיאה','bad');}
+}
+async function delTask(id){ if(!confirm('למחוק?'))return; await apiDel('/tasks/'+id); closeModal(); toast('נמחק'); go('tasks'); }
+
+// ============ הפעלה ============
+boot();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,23 @@
+{
+  "name": "agency-hq",
+  "version": "0.1.0",
+  "private": true,
+  "description": "מערכת-על לניהול בית התוכנה — לקוחות, מערכות, תזרים, מחשבון מודלי חיוב ומרכזי רווח. Cloudflare Pages + D1",
+  "scripts": {
+    "dev": "wrangler pages dev public --compatibility-date=2024-09-23 --port 8790",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply agency-hq-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply agency-hq-db --remote"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.36.4",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "drizzle-kit": "^0.28.1",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.95.0"
+  }
+}
