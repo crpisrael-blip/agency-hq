@@ -17,6 +17,57 @@ systemsApp.get('/', async (c) => {
   return c.json(filtered.map((s) => ({ ...s, clientName: cls.find((cl) => cl.id === s.clientId)?.name || '—' })));
 });
 
+// --- Dev Cockpit: בדיקת חי/נפל לכל המערכות עם כתובת חיה ---
+systemsApp.get('/status', async (c) => {
+  const rows = await db(c).select().from(systems).all();
+  const targets = rows.filter((s) => s.url && /^https?:\/\//i.test(s.url));
+  const checks = await Promise.all(targets.map(async (s) => {
+    const started = Date.now();
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(s.url as string, {
+        method: 'GET', redirect: 'follow', signal: ctrl.signal,
+        headers: { 'user-agent': 'agency-hq-healthcheck' },
+      });
+      clearTimeout(timer);
+      return { id: s.id, ok: res.ok, status: res.status, ms: Date.now() - started };
+    } catch (e) {
+      return { id: s.id, ok: false, status: 0, ms: Date.now() - started, error: String(e).slice(0, 120) };
+    }
+  }));
+  return c.json(Object.fromEntries(checks.map((x) => [x.id, x])));
+});
+
+// --- Dev Cockpit: סטטוס GitHub למערכת בודדת (commit אחרון + PRs פתוחים) ---
+systemsApp.get('/:id/github', async (c) => {
+  const token = c.env.GITHUB_TOKEN;
+  if (!token) return c.json({ configured: false });
+  const s = (await db(c).select().from(systems).where(eq(systems.id, c.req.param('id'))).limit(1))[0];
+  const m = s?.repoUrl?.match(/github\.com\/([^/]+)\/([^/.\s]+)/i);
+  if (!m) return c.json({ configured: true, repo: null });
+  const [, owner, repo] = m;
+  const gh = (path: string) => fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
+    headers: { authorization: `Bearer ${token}`, 'user-agent': 'agency-hq', accept: 'application/vnd.github+json' },
+  });
+  try {
+    const [repoRes, prRes, commitRes] = await Promise.all([gh(''), gh('/pulls?state=open&per_page=100'), gh('/commits?per_page=1')]);
+    if (!repoRes.ok) return c.json({ configured: true, repo: `${owner}/${repo}`, error: 'repo_' + repoRes.status });
+    const repoData: any = await repoRes.json();
+    const prs: any = prRes.ok ? await prRes.json() : [];
+    const commits: any = commitRes.ok ? await commitRes.json() : [];
+    const lc = commits[0];
+    return c.json({
+      configured: true, repo: `${owner}/${repo}`, defaultBranch: repoData.default_branch,
+      openIssues: repoData.open_issues_count, openPRs: Array.isArray(prs) ? prs.length : 0,
+      pushedAt: repoData.pushed_at,
+      lastCommit: lc ? { sha: String(lc.sha).slice(0, 7), message: (lc.commit?.message || '').split('\n')[0], date: lc.commit?.author?.date, author: lc.commit?.author?.name } : null,
+    });
+  } catch (e) {
+    return c.json({ configured: true, repo: `${owner}/${repo}`, error: String(e).slice(0, 120) });
+  }
+});
+
 systemsApp.post('/', async (c) => {
   const body = await c.req.json().catch(() => ({} as any));
   if (!body.name || !body.clientId) return c.json({ error: 'invalid_input' }, 400);
