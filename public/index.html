@@ -416,23 +416,65 @@ function engMonthly(e){
   switch(e.model){case 'retainer':case 'value':return r;case 'hourly':return h;case 'revshare':return rv;case 'one_time':return 0;case 'hybrid':return r+h+rv;default:return r;}
 }
 
-// ---------- מערכות ----------
+// ---------- מערכות (+ Dev Cockpit) ----------
 RENDER.systems=async()=>{
   await loadRefs(); const list=CACHE.systems;
+  const withUrl=list.filter(s=>s.url).length;
   $('view').innerHTML=`
-    <div class="spread"><div><h2>מערכות</h2><div class="sub">${list.length} מערכות · ${list.filter(s=>s.status==='live').length} חיות</div></div>
-      <div class="row"><input class="search" id="syS" placeholder="חיפוש…" oninput="filterList('syS','syRow')"><button class="btn primary" onclick="systemForm()">+ מערכת</button></div></div>
+    <div class="spread"><div><h2>מערכות</h2><div class="sub">${list.length} מערכות · ${list.filter(s=>s.status==='live').length} חיות · ${withUrl} עם כתובת חיה</div></div>
+      <div class="row"><input class="search" id="syS" placeholder="חיפוש…" oninput="filterList('syS','syRow')">
+        <button class="btn ghost" id="pingBtn" onclick="pingSystems()">🔄 בדוק חי/נפל</button>
+        <button class="btn primary" onclick="systemForm()">+ מערכת</button></div></div>
     <div class="card" style="padding:6px 17px">
       ${list.length?list.map(s=>{const st=SYS_STATUS[s.status]||[s.status,'p-gray'];return `
         <div class="list-item syRow" data-s="${esc(s.name+' '+s.clientName+' '+(s.stack||''))}" onclick='systemForm(${j(s)})'>
-          <div class="li-main"><b>${esc(s.name)}</b><small>${esc(s.clientName)} ${s.stack?'· '+esc(s.stack):''} ${s.url?'· 🔗':''}</small>
+          <div class="li-main"><b><span data-syid="${s.id}" title="${s.url?'לא נבדק':'אין כתובת חיה'}" style="cursor:default">${s.url?'⚪':''}</span> ${esc(s.name)}</b>
+            <small>${esc(s.clientName)} ${s.stack?'· '+esc(s.stack):''}</small>
             <div class="bar" style="max-width:200px"><span style="width:${s.progress}%"></span></div></div>
-          <div class="row" style="gap:8px"><span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b></div>
+          <div class="row" style="gap:6px">
+            ${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" onclick="event.stopPropagation()" title="Repo" style="font-size:1.05rem">📦</a>`:''}
+            ${s.url?`<a href="${esc(s.url)}" target="_blank" onclick="event.stopPropagation()" title="אתר חי" style="font-size:1.05rem">🌐</a>`:''}
+            <span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b></div>
         </div>`;}).join(''):'<div class="empty">אין עדיין מערכות</div>'}
-    </div>`;
+    </div>
+    <div class="hint" style="padding:0 4px">💡 הנקודה ליד כל מערכת מציגה חי/נפל אחרי בדיקה. פתיחת מערכת מציגה גם סטטוס GitHub (אם מחובר).</div>`;
 };
+async function pingSystems(){
+  const btn=$('pingBtn'); if(btn){btn.textContent='בודק…';btn.disabled=true;}
+  try{
+    const map=await apiGet('/systems/status');
+    document.querySelectorAll('[data-syid]').forEach(el=>{
+      const r=map[el.dataset.syid];
+      if(!r){ el.textContent=el.textContent.trim()?'⚪':''; return; }
+      el.textContent=r.ok?'🟢':'🔴';
+      el.title=(r.ok?'חי':'נפל')+` · HTTP ${r.status||'—'} · ${r.ms}ms`;
+    });
+    toast('הסטטוס עודכן');
+  }catch(e){toast('שגיאת בדיקה','bad');}
+  if(btn){btn.textContent='🔄 בדוק חי/נפל';btn.disabled=false;}
+}
+async function loadGithub(id){
+  const box=$('ghBox'); if(!box)return;
+  try{
+    const g=await apiGet('/systems/'+id+'/github');
+    if(!g.configured){ box.innerHTML='<div class="muted hint">חיבור GitHub לא מוגדר. הוסף secret בשם <b>GITHUB_TOKEN</b> לפרויקט ה-Pages כדי לראות commit אחרון ו-PRs פתוחים.</div>'; return; }
+    if(!g.repo){ box.innerHTML='<div class="muted hint">אין כתובת repo תקינה בשדה Repo.</div>'; return; }
+    if(g.error){ box.innerHTML=`<div class="muted hint">${esc(g.repo)} · שגיאת GitHub (${esc(g.error)})</div>`; return; }
+    box.innerHTML=`
+      <div class="stat-row"><span>Repo</span><b>${esc(g.repo)}</b></div>
+      <div class="stat-row"><span>ענף ראשי</span><b>${esc(g.defaultBranch||'—')}</b></div>
+      <div class="stat-row"><span>PRs פתוחים</span><b>${g.openPRs}</b></div>
+      ${g.lastCommit?`<div class="stat-row"><span>Commit אחרון</span><b>${esc(g.lastCommit.sha)}</b></div>
+        <div class="hint">${esc(g.lastCommit.message||'')}${g.lastCommit.date?' — '+new Date(g.lastCommit.date).toLocaleDateString('he-IL'):''}</div>`:''}`;
+  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת GitHub</div>'; }
+}
 function systemForm(s={}){
   openModal(`<h3>${s.id?'עריכת מערכת':'מערכת חדשה'}</h3>
+    <div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      ${s.repoUrl?`<a class="btn small ghost" href="${esc(s.repoUrl)}" target="_blank">📦 Repo</a>`:''}
+      ${s.url?`<a class="btn small ghost" href="${esc(s.url)}" target="_blank">🌐 אתר חי</a>`:''}
+      <a class="btn small ghost" href="https://dash.cloudflare.com" target="_blank">☁️ Cloudflare</a>
+    </div>
     <div class="f2"><div class="f"><label>שם המערכת *</label><input id="f_name" value="${esc(s.name||'')}"></div>
       <div class="f"><label>לקוח *</label><select id="f_clientId">${clientOptions(s.clientId)}</select></div></div>
     <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({web_app:'אפליקציית ווב',crm:'CRM',automation:'אוטומציה',website:'אתר',dashboard:'דשבורד',other:'אחר'},s.kind||'web_app')}</select></div>
@@ -444,9 +486,11 @@ function systemForm(s={}){
       <div class="f"><label>עלייה לאוויר</label><input type="date" id="f_launchDate" value="${esc(s.launchDate||'')}"></div>
       <div class="f"><label>התקדמות %</label><input type="number" id="f_progress" min="0" max="100" value="${s.progress||0}"></div></div>
     <div class="f"><label>תיאור / הערות</label><textarea id="f_description" rows="2">${esc(s.description||'')}</textarea></div>
+    ${s.id?`<div class="f"><label>מצב פיתוח (GitHub)</label><div id="ghBox" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>`:''}
     <div class="modal-actions"><button class="btn primary" onclick="saveSystem('${s.id||''}')">שמירה</button>
       <button class="btn ghost" onclick="closeModal()">ביטול</button>
       ${s.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delSystem('${s.id}')">מחיקה</button>`:''}</div>`);
+  if(s.id) setTimeout(()=>loadGithub(s.id),0);
 }
 async function saveSystem(id){
   const body={name:val('f_name'),clientId:val('f_clientId'),kind:val('f_kind'),status:val('f_status'),stack:val('f_stack'),

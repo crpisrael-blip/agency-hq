@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
 import { adminSessions } from '../db/schema';
 
-export type Bindings = { DB: D1Database };
+export type Bindings = { DB: D1Database; GITHUB_TOKEN?: string };
 export type Env = { Bindings: Bindings };
 
 export const db = (c: Context<Env>) => drizzle(c.env.DB);
