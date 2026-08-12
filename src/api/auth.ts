@@ -40,6 +40,20 @@ auth.post('/login', async (c) => {
   return c.json({ ok: true, token });
 });
 
+// שינוי קוד גישה — דורש את הקוד הנוכחי (הגנה מספקת)
+auth.post('/change', async (c) => {
+  const { currentPin, newPin } = await c.req.json().catch(() => ({} as any));
+  if (!newPin || String(newPin).length < 4) return c.json({ error: 'pin_too_short' }, 400);
+  const d = db(c);
+  const rows = await d.select().from(settings).where(eq(settings.key, PIN_KEY)).limit(1);
+  if (!rows.length) return c.json({ error: 'not_setup' }, 409);
+  if (rows[0].value !== (await sha256(String(currentPin || '')))) {
+    return c.json({ error: 'wrong_pin' }, 401);
+  }
+  await d.update(settings).set({ value: await sha256(String(newPin)) }).where(eq(settings.key, PIN_KEY));
+  return c.json({ ok: true });
+});
+
 auth.post('/logout', async (c) => {
   const token = c.req.header('x-admin-token') || '';
   if (token) await db(c).delete(adminSessions).where(eq(adminSessions.token, token));
