@@ -146,7 +146,7 @@
   <div class="topbar">
     <div class="topbar-in">
       <div class="brand"><span class="mark">◆</span>Agency <span>HQ</span></div>
-      <button class="btn small ghost" onclick="logout()">יציאה</button>
+      <div class="row" style="gap:6px"><button class="btn small ghost" onclick="changePinForm()">🔒 קוד</button><button class="btn small ghost" onclick="logout()">יציאה</button></div>
     </div>
     <div class="nav" id="nav"></div>
   </div>
@@ -222,6 +222,21 @@ async function doLogin(){
 }
 $('pin')?.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 async function logout(){ try{ await apiPost('/auth/logout'); }catch(e){} TOKEN=''; localStorage.removeItem(TOKEN_KEY); showLogin(); }
+function changePinForm(){
+  openModal(`<h3>שינוי קוד גישה</h3>
+    <div class="f"><label>קוד נוכחי</label><input type="password" id="f_cur" inputmode="numeric" autocomplete="off"></div>
+    <div class="f"><label>קוד חדש (4 ספרות ומעלה)</label><input type="password" id="f_new" inputmode="numeric" autocomplete="off"></div>
+    <div class="f"><label>אימות קוד חדש</label><input type="password" id="f_new2" inputmode="numeric" autocomplete="off"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="changePin()">עדכון</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+}
+async function changePin(){
+  const cur=val('f_cur'), n1=val('f_new'), n2=val('f_new2');
+  if(n1.length<4){toast('הקוד החדש קצר מדי','bad');return;}
+  if(n1!==n2){toast('הקודים אינם תואמים','bad');return;}
+  try{ await apiPost('/auth/change',{currentPin:cur,newPin:n1}); closeModal(); toast('הקוד עודכן ✓'); }
+  catch(e){ toast(e.message==='wrong_pin'?'הקוד הנוכחי שגוי': e.message==='pin_too_short'?'קוד קצר מדי':'שגיאה, נסה שוב','bad'); }
+}
 
 function showApp(){
   $('login').style.display='none'; $('app').style.display='block';
