@@ -5,7 +5,7 @@ import { Env, db, uid, now, pick } from './util';
 
 export const feedbackApp = new Hono<Env>();
 
-const FIELDS = ['kind', 'content', 'screen', 'status'];
+const FIELDS = ['kind', 'content', 'screen', 'device', 'status'];
 
 feedbackApp.get('/', async (c) => {
   const rows = await db(c).select().from(feedbackItems).orderBy(desc(feedbackItems.createdAt)).all();

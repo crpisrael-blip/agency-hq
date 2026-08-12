@@ -162,7 +162,8 @@ export const feedbackItems = sqliteTable('feedback_items', {
   kind: text('kind').notNull().default('idea'), // idea | bug | todo
   content: text('content').notNull(),
   screen: text('screen'),                        // המסך שממנו נלכד
-  status: text('status').notNull().default('open'), // open | done
+  device: text('device'),                        // נייד | נייח
+  status: text('status').notNull().default('open'), // open | done | doing
   createdAt: integer('created_at').notNull(),
 });
 
