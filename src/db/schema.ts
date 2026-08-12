@@ -156,6 +156,16 @@ export const tasks = sqliteTable('tasks', {
   doneAt: integer('done_at'),
 });
 
+/** בועת רעיונות — לכידה מהירה של רעיונות/באגים/משימות תוך כדי עבודה */
+export const feedbackItems = sqliteTable('feedback_items', {
+  id: text('id').primaryKey(),
+  kind: text('kind').notNull().default('idea'), // idea | bug | todo
+  content: text('content').notNull(),
+  screen: text('screen'),                        // המסך שממנו נלכד
+  status: text('status').notNull().default('open'), // open | done
+  createdAt: integer('created_at').notNull(),
+});
+
 export type Client = typeof clients.$inferSelect;
 export type System = typeof systems.$inferSelect;
 export type Engagement = typeof engagements.$inferSelect;

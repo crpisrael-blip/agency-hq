@@ -125,6 +125,11 @@
   .seg{display:flex;gap:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:4px;flex-wrap:wrap}
   .seg button{flex:1;min-width:70px;border:0;background:none;color:var(--muted);font-weight:700;padding:7px 8px;border-radius:8px;font-size:.83rem}
   .seg button.on{background:var(--accent);color:#fff}
+  /* בועת רעיונות */
+  .bubble-btn{position:fixed;bottom:20px;inset-inline-start:20px;z-index:60;width:54px;height:54px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-size:1.5rem;box-shadow:0 8px 26px rgba(0,0,0,.45);cursor:pointer;transition:transform .15s}
+  .bubble-btn:hover{transform:scale(1.08)}
+  .bubble-panel{position:fixed;bottom:84px;inset-inline-start:20px;z-index:61;width:330px;max-width:calc(100vw - 40px);max-height:64vh;overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 44px rgba(0,0,0,.55);padding:15px}
+  .bubble-panel textarea{resize:vertical}
 </style>
 </head>
 <body>
@@ -151,6 +156,8 @@
     <div class="nav" id="nav"></div>
   </div>
   <div class="wrap" id="view"></div>
+  <button id="bubbleBtn" class="bubble-btn" onclick="toggleBubble()" title="בועת רעיונות" aria-label="בועת רעיונות">💡</button>
+  <div id="bubblePanel" class="bubble-panel" style="display:none"></div>
 </div>
 
 <div id="toast"></div>
@@ -265,6 +272,41 @@ function go(page){
   (RENDER[page]||(()=> $('view').innerHTML='<div class="empty">בקרוב</div>'))();
   window.scrollTo(0,0);
 }
+
+// ============ בועת רעיונות ============
+let BUBBLE_OPEN=false;
+const navLabel=(k)=>(PAGES.find(p=>p[0]===k)||[,k])[1];
+const bubbleIcon=(k)=>({idea:'💡',bug:'🐛',todo:'✅'}[k]||'💡');
+async function toggleBubble(){
+  BUBBLE_OPEN=!BUBBLE_OPEN;
+  if(!BUBBLE_OPEN){ $('bubblePanel').style.display='none'; return; }
+  $('bubblePanel').style.display='block';
+  await renderBubble();
+  setTimeout(()=>$('bubbleTxt')?.focus(),30);
+}
+async function renderBubble(){
+  let list=[]; try{ list=await apiGet('/feedback'); }catch(e){}
+  const open=list.filter(x=>x.status!=='done');
+  $('bubblePanel').innerHTML=`
+    <div class="spread" style="margin-bottom:10px"><b>💡 בועת רעיונות</b><button class="btn small ghost" onclick="toggleBubble()">✕</button></div>
+    <textarea id="bubbleTxt" rows="2" placeholder="רעיון, באג, או משימה מהירה…" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey))addBubble()"></textarea>
+    <div class="row" style="gap:6px;margin:9px 0">
+      <select id="bubbleKind" style="max-width:130px">${opts({idea:'💡 רעיון',bug:'🐛 באג',todo:'✅ לביצוע'},'idea')}</select>
+      <button class="btn primary small grow" onclick="addBubble()">הוסף</button></div>
+    <div style="border-top:1px solid var(--line);padding-top:8px">
+      ${open.length?open.map(x=>`<div class="list-item" style="padding:9px 0">
+        <div class="li-main"><b style="font-weight:600;font-size:.9rem">${bubbleIcon(x.kind)} ${esc(x.content)}</b><small>${x.screen?navLabel(x.screen):''}</small></div>
+        <div class="row" style="gap:4px"><button class="btn small teal" onclick="bubbleDone('${x.id}')" title="בוצע">✓</button><button class="btn small danger" onclick="bubbleDel('${x.id}')" title="מחק">✕</button></div>
+      </div>`).join(''):'<div class="empty" style="padding:14px">אין רעיונות פתוחים ✨</div>'}
+    </div>`;
+}
+async function addBubble(){
+  const content=val('bubbleTxt'); if(!content){toast('כתוב משהו קודם','bad');return;}
+  try{ await apiPost('/feedback',{content,kind:val('bubbleKind'),screen:CURRENT}); toast('נשמר 💡'); renderBubble(); }
+  catch(e){toast('שגיאה','bad');}
+}
+async function bubbleDone(id){ await apiPatch('/feedback/'+id,{status:'done'}); toast('בוצע ✓'); renderBubble(); }
+async function bubbleDel(id){ await apiDel('/feedback/'+id); renderBubble(); }
 
 // ============ מודאל ============
 function openModal(html, wide){
