@@ -125,6 +125,17 @@
   .seg{display:flex;gap:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:4px;flex-wrap:wrap}
   .seg button{flex:1;min-width:70px;border:0;background:none;color:var(--muted);font-weight:700;padding:7px 8px;border-radius:8px;font-size:.83rem}
   .seg button.on{background:var(--accent);color:#fff}
+  /* ---- מתודולוגיה (פלייבוק) ---- */
+  .pb-list{margin:6px 0 0;padding-inline-start:20px}
+  .pb-list li{margin-bottom:6px;font-size:.9rem}
+  .pb-doc{white-space:pre-wrap;word-break:break-word;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:.84rem;line-height:1.6;max-height:54vh;overflow:auto;font-family:inherit}
+  .pb-sec{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:var(--bg-2)}
+  .pb-check{display:flex;gap:10px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+  .pb-check:last-child{border-bottom:0}
+  .pb-check input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--accent)}
+  .pb-check span{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .pb-check.on b{opacity:.55;text-decoration:line-through}
+  .pb-check .hint{margin-top:0}
 </style>
 </head>
 <body>
@@ -255,6 +266,7 @@ const PAGES = [
   ['cashflow','תזרים'],
   ['ideas','מרכזי רווח'],
   ['processes','תהליכים'],
+  ['playbooks','מתודולוגיה'],
   ['tasks','משימות'],
 ];
 function buildNav(){
@@ -291,6 +303,10 @@ const HEALTH={green:['🟢','p-green'],yellow:['🟡','p-amber'],red:['🔴','p-
 const EFFORT={low:'נמוך',medium:'בינוני',high:'גבוה'};
 const IDEA_STATUS={idea:['רעיון','p-gray'],exploring:['בבדיקה','p-amber'],pitched:['הוצע','p-blue'],active:['פעיל','p-green'],dropped:['נזנח','p-red']};
 const pill=(map,k)=>{const m=map[k]||[k,'p-gray'];return `<span class="pill ${m[1]}">${m[0]}</span>`;};
+const STAGE_LABELS={discovery:'אפיון וגילוי',proposal:'הצעה והתקשרות',design:'תכנון ואדריכלות',build:'פיתוח',quality:'בדיקות ואיכות',security:'אבטחה ופרטיות',launch:'עלייה לאוויר',handoff:'מסירה ללקוח',care:'תחזוקה ותמיכה',advisory:'ליווי וייעוץ עסקי'};
+const STAGE_ORDER=['discovery','proposal','design','build','quality','security','launch','handoff','care','advisory'];
+const STAGE_EMOJI={discovery:'🔍',proposal:'📝',design:'🧭',build:'🛠️',quality:'✅',security:'🔒',launch:'🚀',handoff:'🤝',care:'🛡️',advisory:'📈'};
+const PB_KIND={checklist:['צ׳ק־ליסט','p-blue'],template:['תבנית מסמך','p-purple'],canvas:['קנבס','p-teal']};
 
 // ============ מסכים ============
 const RENDER={};
@@ -862,6 +878,157 @@ async function saveProcess(id){
   try{ id?await apiPatch('/processes/'+id,body):await apiPost('/processes',body); closeModal(); toast('נשמר'); go('processes'); }catch(e){toast('שגיאה','bad');}
 }
 async function delProcess(id){ if(!confirm('למחוק?'))return; await apiDel('/processes/'+id); closeModal(); toast('נמחק'); go('processes'); }
+
+// ---------- מתודולוגיה (פלייבוק) ----------
+let PB_CACHE=[], PBSECS=[], RUN=null;
+RENDER.playbooks=async()=>{
+  const [list,runs]=await Promise.all([apiGet('/playbooks'),apiGet('/playbooks/runs')]);
+  PB_CACHE=list;
+  const activeRuns=runs.filter(r=>r.status==='active');
+  const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
+  const stages=STAGE_ORDER.filter(s=>byStage[s]);
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מתודולוגיה — מרעיון לפרודקשן</h2>
+      <div class="sub">ספריית הפורמטים המקצועיים שלך למסע המוצר. ערוך כל פורמט, והחל אותו על לקוח כדי שיהפוך למהלך חי עם מעקב.</div></div>
+      <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
+        <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
+    ${activeRuns.length?`<div class="card">
+      <h3>מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
+      ${activeRuns.map(r=>`<div class="list-item" onclick="openRun('${r.id}')">
+        <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+          <small>${r.clientName?esc(r.clientName):'כללי'}${r.systemName?' · '+esc(r.systemName):''} · ${STAGE_LABELS[r.stage]||''}</small>
+          <div class="bar" style="width:170px;margin-top:6px"><span style="width:${r.progress}%"></span></div></div>
+        <div class="li-val muted">${r.progress}%</div></div>`).join('')}
+    </div>`:''}
+    <div class="grid2">
+    ${stages.map(s=>`
+      <div class="card">
+        <h3 style="margin:0 0 8px">${STAGE_EMOJI[s]} ${STAGE_LABELS[s]||s}</h3>
+        ${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0)).map(p=>`
+          <div class="list-item" onclick="openPlaybook('${p.id}')">
+            <div class="li-main"><b>${esc(p.title)}</b><small>${esc(p.summary||'')}</small></div>
+            <div class="row" style="gap:6px">${pill(PB_KIND,p.kind)}${p.builtin?'':'<span class="pill p-gray">שלי</span>'}</div>
+          </div>`).join('')}
+      </div>`).join('')}
+    </div>`;
+};
+function openPlaybook(id){
+  const p=PB_CACHE.find(x=>x.id===id); if(!p)return;
+  const secs=JSON.parse(p.sections||'[]');
+  let inner;
+  if(p.kind==='checklist'){
+    inner=secs.map(sec=>`<div style="margin-bottom:12px"><b>${esc(sec.title||'')}</b>
+      <ul class="pb-list">${(sec.items||[]).map(it=>`<li>${esc(it.label||'')}${it.hint?`<div class="hint">${esc(it.hint)}</div>`:''}</li>`).join('')}</ul></div>`).join('')||'<div class="hint">אין סעיפים</div>';
+  } else {
+    inner=`<pre class="pb-doc" id="pbDoc">${esc(p.body||'')}</pre>
+      <button class="btn ghost small" type="button" onclick="copyPbDoc()">📋 העתקת המסמך</button>`;
+  }
+  openModal(`<div class="spread"><h3 style="margin:0">${STAGE_EMOJI[p.stage]||''} ${esc(p.title)}</h3>${pill(PB_KIND,p.kind)}</div>
+    ${p.summary?`<div class="sub" style="margin:4px 0 14px">${esc(p.summary)}</div>`:'<div style="height:8px"></div>'}
+    ${inner}
+    <div class="modal-actions">
+      ${p.kind==='checklist'?`<button class="btn primary" onclick="applyForm('${p.id}')">החל על עבודה →</button>`:''}
+      <button class="btn ghost" onclick='playbookForm(${j(p)})'>עריכה</button>
+      <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+function copyPbDoc(){ const t=$('pbDoc')?.textContent||''; (navigator.clipboard?.writeText(t)||Promise.reject()).then(()=>toast('הועתק ✓')).catch(()=>toast('בחר והעתק ידנית','bad')); }
+
+function playbookForm(p={}){
+  PBSECS=JSON.parse(p.sections||'[]');
+  const kind=p.kind||'checklist';
+  openModal(`<h3>${p.id?'עריכת פורמט':'פורמט חדש'}</h3>
+    <div class="f2"><div class="f"><label>כותרת *</label><input id="f_title" value="${esc(p.title||'')}"></div>
+      <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(STAGE_LABELS,p.stage||'discovery')}</select></div></div>
+    <div class="f2"><div class="f"><label>סוג</label><select id="f_kind" onchange="togglePbKind(this.value)">${opts({checklist:'צ׳ק־ליסט',template:'תבנית מסמך',canvas:'קנבס'},kind)}</select></div>
+      <div class="f"><label>תגיות</label><input id="f_tags" value="${esc(p.tags||'')}" placeholder="מופרד בפסיקים"></div></div>
+    <div class="f"><label>תקציר (שורה אחת)</label><input id="f_summary" value="${esc(p.summary||'')}"></div>
+    <div id="pbChecklistEd" class="f" style="display:${kind==='checklist'?'block':'none'}">
+      <label>סעיפים ופריטים</label><div id="pbSecs"></div>
+      <button class="btn ghost small" type="button" onclick="addPbSec()">+ סעיף</button></div>
+    <div id="pbBodyEd" class="f" style="display:${kind==='checklist'?'none':'block'}">
+      <label>גוף המסמך (Markdown)</label><textarea id="f_body" rows="10">${esc(p.body||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="savePlaybook('${p.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${p.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delPlaybook('${p.id}')">מחיקה</button>`:''}</div>`, true);
+  renderPbSecs();
+}
+function togglePbKind(k){ $('pbChecklistEd').style.display=k==='checklist'?'block':'none'; $('pbBodyEd').style.display=k==='checklist'?'none':'block'; }
+function renderPbSecs(){
+  $('pbSecs').innerHTML=PBSECS.map((s,si)=>`<div class="pb-sec">
+    <div class="row" style="gap:6px;margin-bottom:6px"><input value="${esc(s.title||'')}" placeholder="שם הסעיף" class="grow" oninput="PBSECS[${si}].title=this.value">
+      <button class="btn danger small" type="button" onclick="PBSECS.splice(${si},1);renderPbSecs()">✕ סעיף</button></div>
+    ${(s.items||[]).map((it,ii)=>`<div class="row" style="gap:6px;margin:0 14px 5px">
+      <input value="${esc(it.label||'')}" placeholder="פריט" class="grow" oninput="PBSECS[${si}].items[${ii}].label=this.value">
+      <input value="${esc(it.hint||'')}" placeholder="רמז" style="max-width:150px" oninput="PBSECS[${si}].items[${ii}].hint=this.value">
+      <button class="btn danger small" type="button" onclick="PBSECS[${si}].items.splice(${ii},1);renderPbSecs()">✕</button></div>`).join('')}
+    <button class="btn ghost small" type="button" onclick="addPbItem(${si})">+ פריט</button>
+  </div>`).join('')||'<div class="hint">אין סעיפים עדיין</div>';
+}
+function addPbSec(){ PBSECS.push({title:'',items:[{label:'',hint:''}]}); renderPbSecs(); }
+function addPbItem(si){ PBSECS[si].items=PBSECS[si].items||[]; PBSECS[si].items.push({label:'',hint:''}); renderPbSecs(); }
+async function savePlaybook(id){
+  const kind=val('f_kind');
+  const body={title:val('f_title'),stage:val('f_stage'),kind,summary:val('f_summary'),tags:val('f_tags')};
+  if(!body.title){toast('חסרה כותרת','bad');return;}
+  if(kind==='checklist') body.sections=PBSECS.map(s=>({title:s.title,items:(s.items||[]).filter(i=>i.label)})).filter(s=>s.title||s.items.length);
+  else body.body=val('f_body');
+  try{ id?await apiPatch('/playbooks/'+id,body):await apiPost('/playbooks',body); closeModal(); toast('נשמר ✓'); go('playbooks'); }catch(e){toast('שגיאה','bad');}
+}
+async function delPlaybook(id){ if(!confirm('למחוק פורמט זה? מהלכים שנוצרו ממנו יימחקו גם.'))return; await apiDel('/playbooks/'+id); closeModal(); toast('נמחק'); go('playbooks'); }
+async function reseedPlaybooks(){ try{ const r=await apiPost('/playbooks/reseed'); toast(r.added?`שוחזרו ${r.added} תבניות`:'כל התבניות קיימות'); go('playbooks'); }catch(e){toast('שגיאה','bad');} }
+
+async function applyForm(id){
+  await loadRefs();
+  const p=PB_CACHE.find(x=>x.id===id)||{};
+  openModal(`<h3>החלת פורמט: ${esc(p.title||'')}</h3>
+    <div class="sub" style="margin-bottom:12px">ייווצר מהלך חי — צ׳ק־ליסט שאפשר לסמן, לעקוב אחריו ולקשר ללקוח.</div>
+    <div class="f"><label>כותרת המהלך</label><input id="f_title" value="${esc(p.title||'')}"></div>
+    <div class="f2"><div class="f"><label>לקוח</label><select id="f_clientId" onchange="syncApplySys()">${clientOptions('')}</select></div>
+      <div class="f"><label>מערכת</label><select id="f_systemId">${systemOptions('','')}</select></div></div>
+    <div class="modal-actions"><button class="btn primary" onclick="doApply('${id}')">יצירת מהלך</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+}
+function syncApplySys(){ $('f_systemId').innerHTML=systemOptions('',val('f_clientId')); }
+async function doApply(id){
+  const body={title:val('f_title'),clientId:val('f_clientId')||null,systemId:val('f_systemId')||null};
+  try{ const r=await apiPost('/playbooks/'+id+'/apply',body); closeModal(); toast('המהלך נוצר ✓'); openRun(r.id); }catch(e){toast('שגיאה','bad');}
+}
+async function openRun(id){
+  const runs=await apiGet('/playbooks/runs'); const r=runs.find(x=>x.id===id);
+  if(!r){toast('המהלך לא נמצא','bad'); go('playbooks'); return;}
+  RUN={...r,_checked:JSON.parse(r.checked||'{}')};
+  drawRun();
+}
+function drawRun(){
+  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked;
+  let total=0,done=0; secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{total++;if(ck[si+'-'+ii])done++;}));
+  const prog=total?Math.round(done/total*100):0;
+  $('view').innerHTML=`
+    <button class="btn ghost small" onclick="go('playbooks')">→ חזרה למתודולוגיה</button>
+    <div class="spread" style="margin-top:10px"><div><h2 style="margin:0">${STAGE_EMOJI[RUN.stage]||''} ${esc(RUN.title)}</h2>
+      <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${done}/${total} · ${prog}%</div></div>
+      <div class="row">${RUN.status==='done'?'<span class="pill p-green">הושלם ✓</span>':`<button class="btn teal" onclick="finishRun()">סימון כהושלם</button>`}
+        <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
+    <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
+    ${secs.map((s,si)=>`<div class="card">
+      <h3>${esc(s.title||'')}</h3>
+      ${(s.items||[]).map((it,ii)=>{const key=si+'-'+ii,on=!!ck[key];return `
+        <label class="pb-check${on?' on':''}">
+          <input type="checkbox" ${on?'checked':''} onchange="toggleRun('${key}',this.checked)">
+          <span><b>${esc(it.label||'')}</b>${it.hint?`<span class="hint">${esc(it.hint)}</span>`:''}</span></label>`;}).join('')}
+    </div>`).join('')||'<div class="empty">לפורמט הזה אין פריטים</div>'}
+    <div class="card"><h3>הערות</h3>
+      <textarea id="runNotes" rows="3" placeholder="הערות למהלך…" onchange="saveRunNotes()">${esc(RUN.notes||'')}</textarea></div>`;
+}
+async function toggleRun(key,on){
+  RUN._checked[key]=on; if(!on) delete RUN._checked[key];
+  const nt=$('runNotes'); if(nt) RUN.notes=nt.value;
+  drawRun();
+  try{ const r=await apiPatch('/playbooks/runs/'+RUN.id,{checked:RUN._checked}); RUN.progress=r.progress; }catch(e){toast('שגיאה בשמירה','bad');}
+}
+async function saveRunNotes(){ RUN.notes=val('runNotes'); try{ await apiPatch('/playbooks/runs/'+RUN.id,{notes:RUN.notes}); toast('נשמר'); }catch(e){} }
+async function finishRun(){ try{ await apiPatch('/playbooks/runs/'+RUN.id,{status:'done'}); RUN.status='done'; toast('הושלם ✓'); drawRun(); }catch(e){toast('שגיאה','bad');} }
+async function delRun(){ if(!confirm('למחוק מהלך זה?'))return; await apiDel('/playbooks/runs/'+RUN.id); toast('נמחק'); go('playbooks'); }
 
 // ---------- משימות ----------
 RENDER.tasks=async()=>{
