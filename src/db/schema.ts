@@ -50,7 +50,9 @@ export const systems = sqliteTable('systems', {
   kind: text('kind').default('web_app'),      // web_app | crm | automation | website | dashboard | other
   stack: text('stack'),                        // טכנולוגיות
   status: text('status').notNull().default('discovery'), // discovery | design | building | live | maintenance | retired
-  url: text('url'),                            // כתובת חיה
+  url: text('url'),                            // כתובת חיה (עמוד ציבורי / נחיתה)
+  adminUrl: text('admin_url'),                 // כתובת ממשק ניהול
+  credentials: text('credentials'),            // פרטי כניסה ראשונית ללקוח
   repoUrl: text('repo_url'),
   startDate: text('start_date'),               // YYYY-MM-DD
   launchDate: text('launch_date'),

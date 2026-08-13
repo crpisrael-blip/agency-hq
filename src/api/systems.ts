@@ -5,7 +5,7 @@ import { Env, db, uid, now, pick, num } from './util';
 
 export const systemsApp = new Hono<Env>();
 
-const FIELDS = ['clientId', 'name', 'kind', 'stack', 'status', 'url', 'repoUrl', 'startDate', 'launchDate', 'progress', 'description', 'notes'];
+const FIELDS = ['clientId', 'name', 'kind', 'stack', 'status', 'url', 'adminUrl', 'credentials', 'repoUrl', 'startDate', 'launchDate', 'progress', 'description', 'notes'];
 
 // כל המערכות (עם שם הלקוח) — אופציונלי סינון לפי לקוח ?clientId=
 systemsApp.get('/', async (c) => {
