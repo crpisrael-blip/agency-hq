@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { desc, eq, and } from 'drizzle-orm';
-import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents } from '../db/schema';
+import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules } from '../db/schema';
 import { Env, db, uid, now, pick } from './util';
 import { engagementMonthly } from './engagements';
 
@@ -45,11 +45,12 @@ clientsApp.get('/:id', async (c) => {
   const ideas = await d.select().from(profitCenters).where(eq(profitCenters.clientId, id)).all();
   const cf = await d.select().from(cashflow).where(eq(cashflow.clientId, id)).orderBy(desc(cashflow.startDate)).all();
   const docs = await d.select().from(documents).where(eq(documents.clientId, id)).orderBy(desc(documents.pinned), desc(documents.createdAt)).all();
+  const mods = await d.select().from(modules).where(eq(modules.clientId, id)).all();
   const linkedTasks = await d.select().from(tasks)
     .where(and(eq(tasks.entityType, 'client'), eq(tasks.entityId, id)))
     .orderBy(desc(tasks.createdAt)).all();
   const mrr = eng.filter((e) => e.status === 'active').reduce((a, e) => a + engagementMonthly(e), 0);
-  return c.json({ client: cl, systems: sys, engagements: eng, processes: procs, ideas, cashflow: cf, documents: docs, tasks: linkedTasks, mrr });
+  return c.json({ client: cl, systems: sys, engagements: eng, processes: procs, ideas, cashflow: cf, documents: docs, modules: mods, tasks: linkedTasks, mrr });
 });
 
 clientsApp.patch('/:id', async (c) => {
