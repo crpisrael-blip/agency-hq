@@ -451,8 +451,9 @@ async function delClient(id){
   try{ await apiDel('/clients/'+id); closeModal(); toast('נמחק'); go('clients'); }
   catch(e){toast(e.message==='has_systems'?'יש מערכות מקושרות':e.message==='has_engagements'?'יש התקשרויות מקושרות':'שגיאה','bad');}
 }
+let CLIENT360=null;
 async function openClient(id){
-  const d=await apiGet('/clients/'+id); const c=d.client; const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
+  const d=await apiGet('/clients/'+id); const c=d.client; CLIENT360=d; const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
   openModal(`<div class="spread"><h3 style="margin:0">${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</h3><span class="pill ${st[1]}">${st[0]}</span></div>
     <div class="sub">${esc(c.industry||'')} ${c.contactName?'· '+esc(c.contactName):''} ${c.phone?'· '+esc(c.phone):''}</div>
     <div class="kpis" style="grid-template-columns:1fr 1fr 1fr">
@@ -472,7 +473,54 @@ async function openClient(id){
       <button class="btn ghost" onclick="closeModal();systemForm({clientId:'${id}'})">+ מערכת</button>
       <button class="btn ghost" onclick="closeModal();docForm({clientId:'${id}'})">+ מסמך</button>
       <button class="btn ghost" onclick="moduleForm({clientId:'${id}'})">+ מודול</button>
+      <button class="btn teal" onclick="handoffMsg()">📤 הודעת מסירה</button>
       <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+// ---------- הודעת מסירה ללקוח ----------
+function handoffMsg(){
+  const d=CLIENT360; if(!d){toast('פתח קודם לקוח','bad');return;}
+  const c=d.client;
+  const sys=(d.systems||[]).find(s=>s.status==='live')||(d.systems||[])[0]||{};
+  const mods=(d.modules||[]).filter(m=>m.status!=='deprecated').slice(0,8).map(m=>m.name);
+  openModal(`<h3>📤 הודעת מסירה — ${esc(c.name)}</h3>
+    <div class="f3">
+      <div class="f"><label>איש קשר</label><input id="h_contact" value="${esc(c.contactName||c.name||'')}" oninput="handoffBuild()"></div>
+      <div class="f"><label>טלפון (לוואטסאפ)</label><input id="h_phone" value="${esc(c.phone||'')}" oninput="handoffBuild()"></div>
+      <div class="f"><label>שם המערכת</label><input id="h_sysname" value="${esc(sys.name||'')}" oninput="handoffBuild()"></div>
+    </div>
+    <div class="f2">
+      <div class="f"><label>עמוד ציבורי / נחיתה</label><input id="h_landing" value="${esc(sys.url||'')}" oninput="handoffBuild()"></div>
+      <div class="f"><label>ממשק ניהול</label><input id="h_admin" value="${esc(sys.adminUrl||'')}" oninput="handoffBuild()"></div>
+    </div>
+    <div class="f"><label>פרטי כניסה ראשונית</label><input id="h_creds" value="${esc(sys.credentials||'')}" oninput="handoffBuild()" placeholder="משתמש / סיסמה / קוד"></div>
+    <input type="hidden" id="h_desc" value="${esc(sys.description||'')}">
+    <input type="hidden" id="h_mods" value="${esc(mods.join(', '))}">
+    <div class="f"><label>ההודעה (ניתנת לעריכה)</label><textarea id="h_msg" rows="11" style="font-size:.9rem;line-height:1.6"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="handoffCopy()">📋 העתק</button>
+      <button class="btn teal" onclick="handoffWa()">💬 וואטסאפ</button>
+      <button class="btn ghost" onclick="openClient('${c.id}')">חזרה</button></div>`, true);
+  handoffBuild();
+}
+function handoffBuild(){
+  const contact=val('h_contact')||'', sysname=val('h_sysname')||'המערכת';
+  const landing=val('h_landing'), admin=val('h_admin'), creds=val('h_creds');
+  const desc=val('h_desc'), mods=val('h_mods');
+  let m=`היי ${contact}, המערכת מוכנה עבורך 🎉\n\n`;
+  m+=`${sysname}${desc?' — '+desc:''}\n`;
+  if(landing) m+=`\n🌐 עמוד ציבורי:\n${landing}\n`;
+  if(admin) m+=`\n🛠️ ממשק ניהול:\n${admin}\n`;
+  if(creds) m+=`\n🔑 פרטי כניסה ראשונית:\n${creds}\n`;
+  if(mods) m+=`\nמה המערכת יודעת לעשות:\n${mods.split(', ').map(x=>'• '+x).join('\n')}\n`;
+  m+=`\nמוזמן להיכנס, להתרשם ולשחק עם המערכת — היא בנויה בהתאמה אישית לעסק שלך. אשמח לשמוע התרשמות ולעבור יחד על הכל. 🙌`;
+  const el=$('h_msg'); if(el) el.value=m;
+}
+function handoffCopy(){ const t=$('h_msg').value; navigator.clipboard.writeText(t).then(()=>toast('ההודעה הועתקה ✓'),()=>toast('העתק ידנית','bad')); }
+function handoffWa(){
+  let p=(val('h_phone')||'').replace(/\D/g,'');
+  if(p.startsWith('0')) p='972'+p.slice(1);
+  const url=(p?`https://wa.me/${p}`:`https://wa.me/`)+`?text=${encodeURIComponent($('h_msg').value)}`;
+  window.open(url,'_blank');
 }
 function moduleForm(m={}){
   openModal(`<h3>${m.id?'עריכת מודול':'מודול חדש'}</h3>
@@ -564,8 +612,10 @@ function systemForm(s={}){
     <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({web_app:'אפליקציית ווב',crm:'CRM',automation:'אוטומציה',website:'אתר',dashboard:'דשבורד',other:'אחר'},s.kind||'web_app')}</select></div>
       <div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(SYS_STATUS),s.status||'discovery')}</select></div></div>
     <div class="f"><label>Stack טכנולוגי</label><input id="f_stack" value="${esc(s.stack||'')}" placeholder="Cloudflare, D1, Hono…"></div>
-    <div class="f2"><div class="f"><label>כתובת חיה</label><input id="f_url" value="${esc(s.url||'')}"></div>
+    <div class="f2"><div class="f"><label>כתובת חיה (עמוד ציבורי)</label><input id="f_url" value="${esc(s.url||'')}"></div>
       <div class="f"><label>Repo</label><input id="f_repoUrl" value="${esc(s.repoUrl||'')}"></div></div>
+    <div class="f2"><div class="f"><label>כתובת ממשק ניהול</label><input id="f_adminUrl" value="${esc(s.adminUrl||'')}"></div>
+      <div class="f"><label>פרטי כניסה ראשונית ללקוח</label><input id="f_credentials" value="${esc(s.credentials||'')}" placeholder="משתמש / סיסמה / קוד"></div></div>
     <div class="f3"><div class="f"><label>תחילת עבודה</label><input type="date" id="f_startDate" value="${esc(s.startDate||'')}"></div>
       <div class="f"><label>עלייה לאוויר</label><input type="date" id="f_launchDate" value="${esc(s.launchDate||'')}"></div>
       <div class="f"><label>התקדמות %</label><input type="number" id="f_progress" min="0" max="100" value="${s.progress||0}"></div></div>
@@ -583,7 +633,7 @@ function systemForm(s={}){
 }
 async function saveSystem(id){
   const body={name:val('f_name'),clientId:val('f_clientId'),kind:val('f_kind'),status:val('f_status'),stack:val('f_stack'),
-    url:val('f_url'),repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
+    url:val('f_url'),adminUrl:val('f_adminUrl'),credentials:val('f_credentials'),repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
   if(!body.name||!body.clientId){toast('חסר שם או לקוח','bad');return;}
   try{ id?await apiPatch('/systems/'+id,body):await apiPost('/systems',body); closeModal(); toast('נשמר'); go('systems'); }
   catch(e){toast('שגיאה: '+e.message,'bad');}
