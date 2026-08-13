@@ -342,7 +342,12 @@ RENDER.dashboard=async()=>{
       <div class="kpi"><b>${k.systemsBuilding}</b><small>מערכות בפיתוח</small></div>
       <div class="kpi"><b>${k.openTasks}</b><small>משימות פתוחות</small></div>
       <div class="kpi amber"><b>${money(k.ideasWeighted)}</b><small>פוטנציאל מרכזי רווח (משוקלל)</small></div>
+      <div class="kpi green"><b>📥 ${k.leadsMonth||0}</b><small>לידים החודש · ${k.leadsTotal||0} סה"כ</small></div>
     </div>
+    ${d.leadsBySystem&&d.leadsBySystem.length?`<div class="card">
+      <h3>📥 לידים לפי מערכת</h3>
+      ${d.leadsBySystem.map(l=>`<div class="list-item" onclick="go('systems')"><div class="li-main"><b>${esc(l.name)}</b><small>${esc(l.clientName)}</small></div><b class="li-val" style="color:var(--accent-2)">${l.count}</b></div>`).join('')}
+    </div>`:''}
     <div class="grid2">
       <div class="card">
         <h3>MRR לפי לקוח</h3>
@@ -475,6 +480,7 @@ function engMonthly(e){
 RENDER.systems=async()=>{
   await loadRefs(); const list=CACHE.systems;
   const withUrl=list.filter(s=>s.url).length;
+  let leadMap={}; try{ const ls=await apiGet('/leads/summary'); (ls.bySystem||[]).forEach(x=>leadMap[x.systemId]={count:x.count,month:x.month}); }catch(e){}
   $('view').innerHTML=`
     <div class="spread"><div><h2>מערכות</h2><div class="sub">${list.length} מערכות · ${list.filter(s=>s.status==='live').length} חיות · ${withUrl} עם כתובת חיה</div></div>
       <div class="row"><input class="search" id="syS" placeholder="חיפוש…" oninput="filterList('syS','syRow')">
@@ -489,6 +495,7 @@ RENDER.systems=async()=>{
           <div class="row" style="gap:6px">
             ${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" onclick="event.stopPropagation()" title="Repo" style="font-size:1.05rem">📦</a>`:''}
             ${s.url?`<a href="${esc(s.url)}" target="_blank" onclick="event.stopPropagation()" title="אתר חי" style="font-size:1.05rem">🌐</a>`:''}
+            ${leadMap[s.id]?`<span class="pill p-teal" title="לידים שנכנסו דרך המערכת">📥 ${leadMap[s.id].count}</span>`:''}
             <span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b></div>
         </div>`;}).join(''):'<div class="empty">אין עדיין מערכות</div>'}
     </div>
@@ -541,7 +548,12 @@ function systemForm(s={}){
       <div class="f"><label>עלייה לאוויר</label><input type="date" id="f_launchDate" value="${esc(s.launchDate||'')}"></div>
       <div class="f"><label>התקדמות %</label><input type="number" id="f_progress" min="0" max="100" value="${s.progress||0}"></div></div>
     <div class="f"><label>תיאור / הערות</label><textarea id="f_description" rows="2">${esc(s.description||'')}</textarea></div>
-    ${s.id?`<div class="f"><label>מצב פיתוח (GitHub)</label><div id="ghBox" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>`:''}
+    ${s.id?`<div class="f"><label>מצב פיתוח (GitHub)</label><div id="ghBox" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
+    <div class="f"><label>📥 Webhook לידים</label><div class="card" style="margin:0;padding:11px 13px">
+      <div class="hint">כדי שהמערכת תספור לידים ב-Agency HQ — הוסף בה קריאה כשנכנס ליד:</div>
+      <code id="hookCode" style="display:block;direction:ltr;text-align:left;font-size:.72rem;background:var(--bg-2);padding:8px;border-radius:8px;margin-top:6px;word-break:break-all">POST ${location.origin}/api/hook/lead&#10;{"systemId":"${s.id}","source":"website"}</code>
+      <button class="btn small ghost" type="button" onclick="copyHook('${s.id}')" style="margin-top:6px">העתק endpoint</button>
+    </div></div>`:''}
     <div class="modal-actions"><button class="btn primary" onclick="saveSystem('${s.id||''}')">שמירה</button>
       <button class="btn ghost" onclick="closeModal()">ביטול</button>
       ${s.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delSystem('${s.id}')">מחיקה</button>`:''}</div>`);
@@ -555,6 +567,10 @@ async function saveSystem(id){
   catch(e){toast('שגיאה: '+e.message,'bad');}
 }
 async function delSystem(id){ if(!confirm('למחוק מערכת?'))return; await apiDel('/systems/'+id); closeModal(); toast('נמחק'); go('systems'); }
+async function copyHook(id){
+  const txt=`${location.origin}/api/hook/lead`;
+  try{ await navigator.clipboard.writeText(txt); toast('ה-endpoint הועתק'); }catch(e){ toast('העתק ידנית','bad'); }
+}
 
 // ---------- התקשרויות ----------
 RENDER.engagements=async()=>{
