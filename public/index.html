@@ -255,6 +255,7 @@ const PAGES = [
   ['cashflow','תזרים'],
   ['ideas','מרכזי רווח'],
   ['processes','תהליכים'],
+  ['documents','מסמכים'],
   ['tasks','משימות'],
 ];
 function buildNav(){
@@ -290,6 +291,10 @@ const ENG_STATUS={proposed:['מוצע','p-amber'],active:['פעיל','p-green'],
 const HEALTH={green:['🟢','p-green'],yellow:['🟡','p-amber'],red:['🔴','p-red']};
 const EFFORT={low:'נמוך',medium:'בינוני',high:'גבוה'};
 const IDEA_STATUS={idea:['רעיון','p-gray'],exploring:['בבדיקה','p-amber'],pitched:['הוצע','p-blue'],active:['פעיל','p-green'],dropped:['נזנח','p-red']};
+const DOC_CAT={live:['🌐','ממשק חי'],repo:['💻','קוד'],infra:['🗄️','תשתית'],guide:['📖','מדריך'],deck:['📊','מצגת'],design:['🎨','עיצוב'],security:['🔒','אבטחה'],devlog:['🗓️','יומן פיתוח'],ideas:['💡','רעיונות'],spec:['📋','מפרט'],doc:['📄','מסמך'],other:['🔗','אחר']};
+const docIcon=(c)=>(DOC_CAT[c]||DOC_CAT.other)[0];
+const docCatLabel=(c)=>(DOC_CAT[c]||DOC_CAT.other)[1];
+const catOptions=(sel)=>Object.entries(DOC_CAT).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v[0]} ${v[1]}</option>`).join('');
 const pill=(map,k)=>{const m=map[k]||[k,'p-gray'];return `<span class="pill ${m[1]}">${m[0]}</span>`;};
 
 // ============ מסכים ============
@@ -422,10 +427,12 @@ async function openClient(id){
     <div class="card"><h3>מערכות</h3>${d.systems.length?d.systems.map(s=>`<div class="stat-row"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}</div>
     <div class="card"><h3>התקשרויות</h3>${d.engagements.length?d.engagements.map(e=>`<div class="stat-row"><span>${esc(e.title)} <span class="tag">${ENG_MODEL[e.model]||e.model}</span></span><b>${money(engMonthly(e))}/ח'</b></div>`).join(''):'<div class="muted">—</div>'}</div>
     ${d.ideas.length?`<div class="card"><h3>מרכזי רווח</h3>${d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><b>${money(i.potentialMonthly)}/ח'</b></div>`).join('')}</div>`:''}
+    ${d.documents&&d.documents.length?`<div class="card"><h3>מסמכים ותוצרים (${d.documents.length})</h3>${d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join('')}</div>`:''}
     ${c.notes?`<div class="card"><h3>הערות</h3><div class="muted">${esc(c.notes)}</div></div>`:''}
     <div class="modal-actions"><button class="btn primary" onclick='clientForm(${j(c)})'>עריכה</button>
       <button class="btn teal" onclick="closeModal();engagementForm({clientId:'${id}'})">+ התקשרות</button>
       <button class="btn ghost" onclick="closeModal();systemForm({clientId:'${id}'})">+ מערכת</button>
+      <button class="btn ghost" onclick="closeModal();docForm({clientId:'${id}'})">+ מסמך</button>
       <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
 }
 // חישוב MRR בצד לקוח (תואם לשרת)
@@ -862,6 +869,47 @@ async function saveProcess(id){
   try{ id?await apiPatch('/processes/'+id,body):await apiPost('/processes',body); closeModal(); toast('נשמר'); go('processes'); }catch(e){toast('שגיאה','bad');}
 }
 async function delProcess(id){ if(!confirm('למחוק?'))return; await apiDel('/processes/'+id); closeModal(); toast('נמחק'); go('processes'); }
+
+// ---------- מסמכים ותוצרים ----------
+RENDER.documents=async()=>{
+  await loadRefs();
+  const list=await apiGet('/documents');
+  const groups={};
+  for(const dc of list){ const k=dc.clientId||'__agency'; (groups[k]=groups[k]||[]).push(dc); }
+  const gName=(id)=>id==='__agency'?'בית התוכנה · חוצה-פרויקטים':(CACHE.clients.find(c=>c.id===id)?.name||'—');
+  const keys=Object.keys(groups).sort((a,b)=>(a==='__agency'?1:0)-(b==='__agency'?1:0));
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מסמכים ותוצרים</h2><div class="sub">${list.length} תוצרים · מרכז אחד לכל הקישורים, המסמכים והתשתיות</div></div>
+      <button class="btn primary" onclick="docForm()">+ מסמך</button></div>
+    ${keys.length?keys.map(k=>`
+      <div class="card"><h3>${esc(gName(k))} <span class="muted" style="font-weight:400">(${groups[k].length})</span></h3>
+        ${groups[k].map(dc=>`<div class="list-item" onclick='docForm(${j(dc)})'>
+          <div class="li-main"><b>${dc.pinned?'📌 ':''}${docIcon(dc.category)} ${esc(dc.title)}</b>
+            <small>${docCatLabel(dc.category)}${dc.source?' · '+esc(dc.source):''}${dc.url?' · '+esc(dc.url.replace(/^https?:\/\//,'').slice(0,46)):''}</small></div>
+          ${dc.url?`<a href="${esc(dc.url)}" target="_blank" onclick="event.stopPropagation()" class="btn small ghost">פתח ↗</a>`:''}
+        </div>`).join('')}
+      </div>`).join(''):'<div class="empty">אין עדיין מסמכים. הוסף את הראשון!</div>'}`;
+};
+function docForm(dc={}){
+  openModal(`<h3>${dc.id?'עריכת מסמך':'מסמך / תוצר חדש'}</h3>
+    <div class="f"><label>כותרת *</label><input id="f_title" value="${esc(dc.title||'')}"></div>
+    <div class="f"><label>קישור (URL)</label><input id="f_url" value="${esc(dc.url||'')}" placeholder="https://…"></div>
+    <div class="f2"><div class="f"><label>קטגוריה</label><select id="f_category">${catOptions(dc.category||'doc')}</select></div>
+      <div class="f"><label>מקור</label><select id="f_source">${opts({artifact:'Artifact',github:'GitHub',supabase:'Supabase',netlify:'Netlify',vercel:'Vercel',cloudflare:'Cloudflare',firebase:'Firebase',expo:'Expo',drive:'Google Drive',other:'אחר'},dc.source||'artifact')}</select></div></div>
+    <div class="f"><label>לקוח (ריק = חוצה-פרויקטים)</label><select id="f_clientId">${clientOptions(dc.clientId)}</select></div>
+    <div class="f"><label>הערות</label><textarea id="f_notes" rows="2">${esc(dc.notes||'')}</textarea></div>
+    <label class="row" style="gap:7px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="f_pinned" style="width:auto" ${dc.pinned?'checked':''}> 📌 נעוץ למעלה</label>
+    <div class="modal-actions"><button class="btn primary" onclick="saveDoc('${dc.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${dc.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delDoc('${dc.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveDoc(id){
+  const body={title:val('f_title'),url:val('f_url'),category:val('f_category'),source:val('f_source'),clientId:val('f_clientId')||null,notes:val('f_notes'),pinned:$('f_pinned').checked?1:0};
+  if(!body.title){toast('חסרה כותרת','bad');return;}
+  try{ id?await apiPatch('/documents/'+id,body):await apiPost('/documents',body); closeModal(); toast('נשמר'); go('documents'); }
+  catch(e){toast('שגיאה','bad');}
+}
+async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await apiDel('/documents/'+id); closeModal(); toast('נמחק'); go('documents'); }
 
 // ---------- משימות ----------
 RENDER.tasks=async()=>{

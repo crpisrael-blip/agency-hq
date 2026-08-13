@@ -156,6 +156,20 @@ export const tasks = sqliteTable('tasks', {
   doneAt: integer('done_at'),
 });
 
+/** מרכז מסמכים/תוצרים — כל הקישורים והנכסים של כל פרויקט במקום אחד */
+export const documents = sqliteTable('documents', {
+  id: text('id').primaryKey(),
+  clientId: text('client_id').references(() => clients.id), // ריק = תוצר חוצה-פרויקטים (בית התוכנה)
+  systemId: text('system_id').references(() => systems.id),
+  title: text('title').notNull(),
+  category: text('category').notNull().default('doc'), // live | repo | infra | guide | deck | design | security | devlog | ideas | spec | doc | other
+  source: text('source'),   // artifact | github | supabase | netlify | vercel | cloudflare | firebase | expo | drive | other
+  url: text('url'),
+  notes: text('notes'),
+  pinned: integer('pinned').notNull().default(0),
+  createdAt: integer('created_at').notNull(),
+});
+
 /** בועת רעיונות — לכידה מהירה של רעיונות/באגים/משימות תוך כדי עבודה */
 export const feedbackItems = sqliteTable('feedback_items', {
   id: text('id').primaryKey(),
