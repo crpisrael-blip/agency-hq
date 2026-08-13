@@ -14,6 +14,7 @@ import { tasksApp } from '../../src/api/tasks';
 import { feedbackApp } from '../../src/api/feedback';
 import { documentsApp } from '../../src/api/documents';
 import { leadsApp, registerLeadPublic } from '../../src/api/leads';
+import { modulesApp } from '../../src/api/modules';
 import { dashboardApp } from '../../src/api/dashboard';
 
 const app = new Hono<Env>().basePath('/api');
@@ -47,6 +48,7 @@ app.route('/tasks', tasksApp);
 app.route('/feedback', feedbackApp);
 app.route('/documents', documentsApp);
 app.route('/leads', leadsApp);
+app.route('/modules', modulesApp);
 app.route('/dashboard', dashboardApp);
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));

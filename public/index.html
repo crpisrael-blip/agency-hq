@@ -460,6 +460,8 @@ async function openClient(id){
       <div class="kpi"><b>${d.engagements.filter(e=>e.status==='active').length}</b><small>התקשרויות פעילות</small></div>
     </div>
     <div class="card"><h3>מערכות</h3>${d.systems.length?d.systems.map(s=>`<div class="stat-row"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}</div>
+    ${d.modules&&d.modules.length?`<div class="card"><h3>מודולים מוטמעים (${d.modules.length})</h3>
+      <div class="row" style="flex-wrap:wrap;gap:6px">${d.modules.map(m=>`<span class="pill ${m.status==='planned'?'p-amber':m.status==='deprecated'?'p-gray':'p-teal'}" onclick='moduleForm(${j(m)})' style="cursor:pointer" title="${esc(m.description||'')}">${esc(m.name)}</span>`).join('')}</div></div>`:''}
     <div class="card"><h3>התקשרויות</h3>${d.engagements.length?d.engagements.map(e=>`<div class="stat-row"><span>${esc(e.title)} <span class="tag">${ENG_MODEL[e.model]||e.model}</span></span><b>${money(engMonthly(e))}/ח'</b></div>`).join(''):'<div class="muted">—</div>'}</div>
     ${d.ideas.length?`<div class="card"><h3>מרכזי רווח</h3>${d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><b>${money(i.potentialMonthly)}/ח'</b></div>`).join('')}</div>`:''}
     ${d.documents&&d.documents.length?`<div class="card"><h3>מסמכים ותוצרים (${d.documents.length})</h3>${d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join('')}</div>`:''}
@@ -468,8 +470,27 @@ async function openClient(id){
       <button class="btn teal" onclick="closeModal();engagementForm({clientId:'${id}'})">+ התקשרות</button>
       <button class="btn ghost" onclick="closeModal();systemForm({clientId:'${id}'})">+ מערכת</button>
       <button class="btn ghost" onclick="closeModal();docForm({clientId:'${id}'})">+ מסמך</button>
+      <button class="btn ghost" onclick="moduleForm({clientId:'${id}'})">+ מודול</button>
       <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
 }
+function moduleForm(m={}){
+  openModal(`<h3>${m.id?'עריכת מודול':'מודול חדש'}</h3>
+    <div class="f"><label>שם המודול *</label><input id="f_name" value="${esc(m.name||'')}"></div>
+    <div class="f2"><div class="f"><label>מערכת</label><select id="f_systemId">${systemOptions(m.systemId,m.clientId)}</select></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts({active:'פעיל',planned:'מתוכנן',deprecated:'הוצא'},m.status||'active')}</select></div></div>
+    <div class="f"><label>תיאור</label><textarea id="f_description" rows="2">${esc(m.description||'')}</textarea></div>
+    <input type="hidden" id="f_clientId" value="${esc(m.clientId||'')}">
+    <div class="modal-actions"><button class="btn primary" onclick="saveModule('${m.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="${m.clientId?`openClient('${m.clientId}')`:'closeModal()'}">חזרה</button>
+      ${m.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delModule('${m.id}','${m.clientId||''}')">מחיקה</button>`:''}</div>`);
+}
+async function saveModule(id){
+  const body={name:val('f_name'),systemId:val('f_systemId')||null,status:val('f_status'),description:val('f_description'),clientId:val('f_clientId')||null};
+  if(!body.name){toast('חסר שם','bad');return;}
+  try{ id?await apiPatch('/modules/'+id,body):await apiPost('/modules',body); toast('נשמר'); if(body.clientId)openClient(body.clientId); else{closeModal();go('clients');} }
+  catch(e){toast('שגיאה','bad');}
+}
+async function delModule(id,clientId){ if(!confirm('למחוק מודול?'))return; await apiDel('/modules/'+id); toast('נמחק'); if(clientId)openClient(clientId); else{closeModal();go('clients');} }
 // חישוב MRR בצד לקוח (תואם לשרת)
 function engMonthly(e){
   const r=+e.monthlyFee||0,h=(+e.hourlyRate||0)*(+e.monthlyHours||0),rv=(+e.revshareBase||0)*((+e.revsharePercent||0)/100);

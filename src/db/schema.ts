@@ -156,6 +156,18 @@ export const tasks = sqliteTable('tasks', {
   doneAt: integer('done_at'),
 });
 
+/** מודול פונקציונלי שמוטמע במערכת של לקוח (לוח בקרה, לידים, הזמנות, פורטל...) */
+export const modules = sqliteTable('modules', {
+  id: text('id').primaryKey(),
+  systemId: text('system_id').references(() => systems.id),
+  clientId: text('client_id').references(() => clients.id),
+  name: text('name').notNull(),
+  description: text('description'),
+  status: text('status').notNull().default('active'), // active | planned | deprecated
+  sort: integer('sort').notNull().default(0),
+  createdAt: integer('created_at').notNull(),
+});
+
 /** ליד שנכנס דרך אחת המערכות שבניתי (נרשם דרך webhook ציבורי) */
 export const leads = sqliteTable('leads', {
   id: text('id').primaryKey(),
