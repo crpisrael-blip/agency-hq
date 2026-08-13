@@ -261,6 +261,7 @@ const PAGES = [
   ['dashboard','לוח בקרה'],
   ['clients','לקוחות'],
   ['systems','מערכות'],
+  ['modules','מודולים'],
   ['engagements','התקשרויות'],
   ['calculator','מחשבון חיוב'],
   ['cashflow','תזרים'],
@@ -936,6 +937,36 @@ async function saveProcess(id){
   try{ id?await apiPatch('/processes/'+id,body):await apiPost('/processes',body); closeModal(); toast('נשמר'); go('processes'); }catch(e){toast('שגיאה','bad');}
 }
 async function delProcess(id){ if(!confirm('למחוק?'))return; await apiDel('/processes/'+id); closeModal(); toast('נמחק'); go('processes'); }
+
+// ---------- מודולים (קטלוג + מטריצה) ----------
+RENDER.modules=async()=>{
+  const list=await apiGet('/modules');
+  if(!list.length){ $('view').innerHTML='<h2>מודולים</h2><div class="empty">אין עדיין מודולים. הוסף מודולים מכרטיס לקוח.</div>'; return; }
+  const shortName=(n)=>String(n).split(/ — | \(|,/)[0].slice(0,20);
+  const clients=[...new Map(list.filter(m=>m.clientId).map(m=>[m.clientId,m.clientName||'—'])).entries()].map(([id,name])=>({id,name,short:shortName(name)}));
+  const names=[...new Set(list.map(m=>m.name))];
+  const nameClients={}; list.forEach(m=>{(nameClients[m.name]=nameClients[m.name]||new Set()).add(m.clientId);});
+  names.sort((a,b)=>(nameClients[b].size-nameClients[a].size)||a.localeCompare(b,'he'));
+  const shared=names.filter(n=>nameClients[n].size>1);
+  $('view').innerHTML=`
+    <h2>מודולים</h2><div class="sub">${list.length} מופעים · ${names.length} מודולים ייחודיים · ${clients.length} פרויקטים</div>
+    <div class="kpis">
+      <div class="kpi accent"><b>${list.length}</b><small>סה"כ מודולים מוטמעים</small></div>
+      <div class="kpi"><b>${names.length}</b><small>מודולים ייחודיים</small></div>
+      <div class="kpi"><b>${clients.length}</b><small>פרויקטים</small></div>
+      <div class="kpi amber"><b>${shared.length}</b><small>משותפים (2+ פרויקטים)</small></div>
+    </div>
+    ${shared.length?`<div class="card"><h3>מודולים משותפים — נכסים לשכפול</h3>
+      ${shared.map(n=>`<div class="list-item"><div class="li-main"><b>${esc(n)}</b><small>${[...nameClients[n]].map(id=>esc(clients.find(c=>c.id===id)?.short||'—')).join(' · ')}</small></div><b class="li-val" style="color:var(--accent-2)">${nameClients[n].size}</b></div>`).join('')}
+    </div>`:''}
+    <div class="card"><h3>מטריצה: מודול × פרויקט</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th style="text-align:right">מודול</th>${clients.map(c=>`<th title="${esc(c.name)}" style="writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:.72rem;height:120px;vertical-align:bottom">${esc(c.short)}</th>`).join('')}<th class="num">סה"כ</th></tr>
+        ${names.map(n=>`<tr><td style="white-space:nowrap">${esc(n)}</td>${clients.map(c=>`<td style="text-align:center">${nameClients[n].has(c.id)?'<span style="color:var(--accent-2);font-weight:800">✓</span>':'<span style="color:var(--line)">·</span>'}</td>`).join('')}<td class="num"><b>${nameClients[n].size}</b></td></tr>`).join('')}
+      </table></div>
+      <div class="hint">✓ = הפרויקט מממש את המודול · העמודות (אנכי) = הפרויקטים.</div>
+    </div>`;
+};
 
 // ---------- מסמכים ותוצרים ----------
 RENDER.documents=async()=>{
