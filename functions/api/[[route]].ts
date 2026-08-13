@@ -12,6 +12,7 @@ import { processesApp } from '../../src/api/processes';
 import { playbooksApp } from '../../src/api/playbooks';
 import { tasksApp } from '../../src/api/tasks';
 import { feedbackApp } from '../../src/api/feedback';
+import { documentsApp } from '../../src/api/documents';
 import { dashboardApp } from '../../src/api/dashboard';
 
 const app = new Hono<Env>().basePath('/api');
@@ -42,6 +43,7 @@ app.route('/processes', processesApp);
 app.route('/playbooks', playbooksApp);
 app.route('/tasks', tasksApp);
 app.route('/feedback', feedbackApp);
+app.route('/documents', documentsApp);
 app.route('/dashboard', dashboardApp);
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
