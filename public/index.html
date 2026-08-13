@@ -482,6 +482,7 @@ function handoffMsg(){
   const c=d.client;
   const sys=(d.systems||[]).find(s=>s.status==='live')||(d.systems||[])[0]||{};
   const mods=(d.modules||[]).filter(m=>m.status!=='deprecated').slice(0,8).map(m=>m.name);
+  const collab=(d.modules||[]).some(m=>/שיתופ|שותפ/.test(m.name||''));
   openModal(`<h3>📤 הודעת מסירה — ${esc(c.name)}</h3>
     <div class="f3">
       <div class="f"><label>איש קשר</label><input id="h_contact" value="${esc(c.contactName||c.name||'')}" oninput="handoffBuild()"></div>
@@ -495,6 +496,7 @@ function handoffMsg(){
     <div class="f"><label>פרטי כניסה ראשונית</label><input id="h_creds" value="${esc(sys.credentials||'')}" oninput="handoffBuild()" placeholder="משתמש / סיסמה / קוד"></div>
     <input type="hidden" id="h_desc" value="${esc(sys.description||'')}">
     <input type="hidden" id="h_mods" value="${esc(mods.join(', '))}">
+    <input type="hidden" id="h_collab" value="${collab?'1':''}">
     <div class="f"><label>ההודעה (ניתנת לעריכה)</label><textarea id="h_msg" rows="11" style="font-size:.9rem;line-height:1.6"></textarea></div>
     <div class="modal-actions">
       <button class="btn primary" onclick="handoffCopy()">📋 העתק</button>
@@ -512,6 +514,7 @@ function handoffBuild(){
   if(admin) m+=`\n🛠️ ממשק ניהול:\n${admin}\n`;
   if(creds) m+=`\n🔑 פרטי כניסה ראשונית:\n${creds}\n`;
   if(mods) m+=`\nמה המערכת יודעת לעשות:\n${mods.split(', ').map(x=>'• '+x).join('\n')}\n`;
+  if($('h_collab')&&$('h_collab').value) m+=`\n🤝 שיתופי פעולה (שת״פ):\nהמערכת מאפשרת לך לצרף שותפים ולמכור חבילות/תוספות להזמנה — מרכז רווח נוסף, עם מעקב הכנסה ורווחיות.\n`;
   m+=`\nמוזמן להיכנס, להתרשם ולשחק עם המערכת — היא בנויה בהתאמה אישית לעסק שלך. אשמח לשמוע התרשמות ולעבור יחד על הכל. 🙌`;
   const el=$('h_msg'); if(el) el.value=m;
 }
