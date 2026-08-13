@@ -32,6 +32,7 @@ export const clients = sqliteTable('clients', {
   industry: text('industry'),                 // תחום העסק
   size: text('size').default('solo'),         // solo | micro | small | medium
   contactName: text('contact_name'),
+  contactRole: text('contact_role'),          // תפקיד איש הקשר
   phone: text('phone'),
   email: text('email'),
   status: text('status').notNull().default('prospect'), // prospect | active | paused | churned
@@ -108,6 +109,7 @@ export const cashflow = sqliteTable('cashflow', {
   engagementId: text('engagement_id').references(() => engagements.id),
   category: text('category'),
   recurring: text('recurring').notNull().default('once'), // once | monthly
+  billingDay: integer('billing_day'),                     // יום חיוב בחודש (למנויים חוזרים)
   startDate: text('start_date').notNull(),                // YYYY-MM-DD
   endDate: text('end_date'),                              // חודשי: עד מתי (ריק = פתוח)
   status: text('status').notNull().default('planned'),    // planned | confirmed | paid

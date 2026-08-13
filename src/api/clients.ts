@@ -6,7 +6,7 @@ import { engagementMonthly } from './engagements';
 
 export const clientsApp = new Hono<Env>();
 
-const FIELDS = ['name', 'industry', 'size', 'contactName', 'phone', 'email', 'status', 'stage', 'health', 'tags', 'notes'];
+const FIELDS = ['name', 'industry', 'size', 'contactName', 'contactRole', 'phone', 'email', 'status', 'stage', 'health', 'tags', 'notes'];
 
 // רשימת לקוחות + סיכומים (כמה מערכות, MRR)
 clientsApp.get('/', async (c) => {

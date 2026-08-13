@@ -177,6 +177,7 @@ const money = (n) => new Intl.NumberFormat('he-IL',{style:'currency',currency:'I
 const money1 = (n) => new Intl.NumberFormat('he-IL',{maximumFractionDigits:0}).format(Math.round(n||0));
 const esc = (s) => String(s??'').replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const j = (o) => esc(JSON.stringify(o)); // JSON בטוח ל-attribute עם גרשיים בעברית
+const waLink = (phone) => { let p=String(phone||'').replace(/\D/g,''); if(p.startsWith('0')) p='972'+p.slice(1); return 'https://wa.me/'+p; };
 const todayISO = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem'}).format(new Date());
 
 async function api(path, opts={}){
@@ -416,8 +417,9 @@ function clientForm(c={}){
     <div class="f2"><div class="f"><label>תחום</label><input id="f_industry" value="${esc(c.industry||'')}"></div>
       <div class="f"><label>גודל</label><select id="f_size">${opts({solo:'עצמאי',micro:'זעיר',small:'קטן',medium:'בינוני'},c.size||'solo')}</select></div></div>
     <div class="f2"><div class="f"><label>איש קשר</label><input id="f_contactName" value="${esc(c.contactName||'')}"></div>
-      <div class="f"><label>טלפון</label><input id="f_phone" value="${esc(c.phone||'')}"></div></div>
-    <div class="f"><label>אימייל</label><input id="f_email" value="${esc(c.email||'')}"></div>
+      <div class="f"><label>תפקיד איש קשר</label><input id="f_contactRole" value="${esc(c.contactRole||'')}" placeholder="בעלים / מנהל / מנהלת שיווק…"></div></div>
+    <div class="f2"><div class="f"><label>טלפון</label><input id="f_phone" value="${esc(c.phone||'')}"></div>
+      <div class="f"><label>אימייל</label><input id="f_email" value="${esc(c.email||'')}"></div></div>
     <div class="f3"><div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(CLIENT_STATUS),c.status||'prospect')}</select></div>
       <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(CLIENT_STAGE,c.stage||'lead')}</select></div>
       <div class="f"><label>בריאות</label><select id="f_health">${opts({green:'🟢 תקין',yellow:'🟡 לב לב',red:'🔴 סיכון'},c.health||'green')}</select></div></div>
@@ -429,7 +431,7 @@ function clientForm(c={}){
 const opts=(map,sel)=>Object.entries(map).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
 const mapLabels=(m)=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,v[0]]));
 async function saveClient(id){
-  const body={name:val('f_name'),industry:val('f_industry'),size:val('f_size'),contactName:val('f_contactName'),
+  const body={name:val('f_name'),industry:val('f_industry'),size:val('f_size'),contactName:val('f_contactName'),contactRole:val('f_contactRole'),
     phone:val('f_phone'),email:val('f_email'),status:val('f_status'),stage:val('f_stage'),health:val('f_health'),notes:val('f_notes')};
   if(!body.name){toast('חסר שם','bad');return;}
   try{
@@ -461,6 +463,11 @@ async function openClient(id){
       <div class="kpi"><b>${d.systems.length}</b><small>מערכות</small></div>
       <div class="kpi"><b>${d.engagements.filter(e=>e.status==='active').length}</b><small>התקשרויות פעילות</small></div>
     </div>
+    ${(c.contactName||c.phone||c.email)?`<div class="card"><h3>👤 איש קשר</h3>
+      <div class="stat-row"><span><b>${esc(c.contactName||'—')}</b>${c.contactRole?' · '+esc(c.contactRole):''}</span></div>
+      ${c.phone?`<div class="stat-row"><span>טלפון</span><span>${esc(c.phone)} · <a href="tel:${esc(c.phone)}" style="color:var(--accent-2)">חיוג</a> · <a href="${waLink(c.phone)}" target="_blank" style="color:var(--accent-2)">וואטסאפ</a></span></div>`:''}
+      ${c.email?`<div class="stat-row"><span>אימייל</span><a href="mailto:${esc(c.email)}" style="color:var(--accent-2)">${esc(c.email)}</a></div>`:''}
+    </div>`:''}
     <div class="card"><h3>מערכות</h3>${d.systems.length?d.systems.map(s=>`<div class="stat-row"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}</div>
     ${d.modules&&d.modules.length?`<div class="card"><h3>מודולים מוטמעים (${d.modules.length})</h3>
       <div class="row" style="flex-wrap:wrap;gap:6px">${d.modules.map(m=>`<span class="pill ${m.status==='planned'?'p-amber':m.status==='deprecated'?'p-gray':'p-teal'}" onclick='moduleForm(${j(m)})' style="cursor:pointer" title="${esc(m.description||'')}">${esc(m.name)}</span>`).join('')}</div></div>`:''}
@@ -848,12 +855,15 @@ RENDER.cashflow=async()=>{
   await loadRefs();
   const [f,ledger,opening]=await Promise.all([apiGet('/finance/forecast?months='+CF_MONTHS),apiGet('/finance/cashflow'),apiGet('/finance/opening')]);
   const s=f.summary; const maxAbs=Math.max(1,...f.buckets.map(b=>Math.max(b.income,b.expense)));
+  const recurExp=ledger.filter(r=>r.recurring==='monthly'&&r.kind==='expense').reduce((a,r)=>a+(r.amount||0),0);
+  const recurInc=ledger.filter(r=>r.recurring==='monthly'&&r.kind==='income').reduce((a,r)=>a+(r.amount||0),0);
   $('view').innerHTML=`
     <div class="spread"><div><h2>תזרים</h2><div class="sub">תחזית מבוססת התקשרויות פעילות + תנועות ידניות</div></div>
       <div class="row"><div class="seg">${[6,12,24].map(n=>`<button class="${n===CF_MONTHS?'on':''}" onclick="CF_MONTHS=${n};go('cashflow')">${n} ח'</button>`).join('')}</div>
         <button class="btn primary" onclick="cfForm()">+ תנועה</button></div></div>
     <div class="kpis">
       <div class="kpi accent"><b>${money(s.mrr)}</b><small>MRR נוכחי</small></div>
+      <div class="kpi amber"><b>${money(recurExp)}</b><small>הוצאות קבועות/מנויים לחודש</small></div>
       <div class="kpi green"><b>${money(s.totalIncome)}</b><small>סה"כ הכנסות (${CF_MONTHS} ח')</small></div>
       <div class="kpi amber"><b>${money(s.totalExpense)}</b><small>סה"כ הוצאות</small></div>
       <div class="kpi"><b>${money(s.net)}</b><small>נטו</small></div>
@@ -877,7 +887,7 @@ RENDER.cashflow=async()=>{
     <div class="card">
       <h3>תנועות ידניות (${ledger.length})</h3>
       ${ledger.length?ledger.map(r=>`<div class="list-item" onclick='cfForm(${j(r)})'>
-        <div class="li-main"><b>${r.kind==='income'?'⬆️':'⬇️'} ${esc(r.label)}</b><small>${r.startDate} · ${r.recurring==='monthly'?'חודשי':'חד-פעמי'}${r.clientName?' · '+esc(r.clientName):''}${r.category?' · '+esc(r.category):''}</small></div>
+        <div class="li-main"><b>${r.kind==='income'?'⬆️':'⬇️'} ${esc(r.label)}</b><small>${r.startDate} · ${r.recurring==='monthly'?('🔁 חודשי'+(r.billingDay?` · חיוב ב-${r.billingDay} לחודש`:'')):'חד-פעמי'}${r.clientName?' · '+esc(r.clientName):''}${r.category?' · '+esc(r.category):''}</small></div>
         <b class="li-val" style="color:${r.kind==='income'?'var(--green)':'var(--amber)'}">${r.kind==='income'?'+':'−'}${money(r.amount)}</b></div>`).join(''):'<div class="empty">אין תנועות ידניות. ההכנסות מההתקשרויות מחושבות אוטומטית.</div>'}
     </div>`;
 };
@@ -886,8 +896,9 @@ function cfForm(r={}){
     <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({income:'הכנסה',expense:'הוצאה'},r.kind||'expense')}</select></div>
       <div class="f"><label>סכום ₪ *</label><input type="number" id="f_amount" value="${r.amount||''}"></div></div>
     <div class="f"><label>תיאור *</label><input id="f_label" value="${esc(r.label||'')}"></div>
-    <div class="f2"><div class="f"><label>חזרתיות</label><select id="f_recurring">${opts({once:'חד-פעמי',monthly:'חודשי'},r.recurring||'once')}</select></div>
-      <div class="f"><label>קטגוריה</label><input id="f_category" value="${esc(r.category||'')}" placeholder="כלים, שכ""ד, קבלן…"></div></div>
+    <div class="f2"><div class="f"><label>חזרתיות</label><select id="f_recurring">${opts({once:'חד-פעמי',monthly:'חודשי (מנוי)'},r.recurring||'once')}</select></div>
+      <div class="f"><label>יום חיוב בחודש (למנוי)</label><input type="number" id="f_billingDay" min="1" max="31" value="${r.billingDay||''}" placeholder="1–31"></div></div>
+    <div class="f"><label>קטגוריה</label><input id="f_category" value="${esc(r.category||'')}" placeholder="מנוי / כלים / שכ""ד / קבלן…"></div>
     <div class="f2"><div class="f"><label>תאריך התחלה</label><input type="date" id="f_startDate" value="${esc(r.startDate||todayISO())}"></div>
       <div class="f"><label>עד (לחודשי, אופציונלי)</label><input type="date" id="f_endDate" value="${esc(r.endDate||'')}"></div></div>
     <div class="f"><label>לקוח מקושר</label><select id="f_clientId">${clientOptions(r.clientId)}</select></div>
@@ -896,7 +907,7 @@ function cfForm(r={}){
       ${r.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delCf('${r.id}')">מחיקה</button>`:''}</div>`);
 }
 async function saveCf(id){
-  const body={kind:val('f_kind'),amount:valN('f_amount'),label:val('f_label'),recurring:val('f_recurring'),
+  const body={kind:val('f_kind'),amount:valN('f_amount'),label:val('f_label'),recurring:val('f_recurring'),billingDay:val('f_billingDay')||null,
     category:val('f_category'),startDate:val('f_startDate'),endDate:val('f_endDate')||null,clientId:val('f_clientId')||null};
   if(!body.label||!body.amount){toast('חסר תיאור או סכום','bad');return;}
   try{ id?await apiPatch('/finance/cashflow/'+id,body):await apiPost('/finance/cashflow',body); closeModal(); toast('נשמר'); go('cashflow'); }
