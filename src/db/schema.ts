@@ -167,6 +167,48 @@ export const feedbackItems = sqliteTable('feedback_items', {
   createdAt: integer('created_at').notNull(),
 });
 
+/**
+ * פלייבוק = פורמט/תבנית מקצועית לשלב במסע המוצר (אפיון, הצעה, אבטחה, מסירה…).
+ * ניתן לעריכה מלאה בתוך המערכת (config-over-code) ולהחלה על לקוח/מערכת.
+ * stage: discovery | proposal | design | build | quality | security | launch | handoff | care | advisory
+ * kind: checklist | template (מסמך markdown) | canvas
+ */
+export const playbooks = sqliteTable('playbooks', {
+  id: text('id').primaryKey(),
+  stage: text('stage').notNull().default('discovery'),
+  title: text('title').notNull(),
+  summary: text('summary'),                       // שורה אחת: מה זה ולמה
+  kind: text('kind').notNull().default('checklist'),
+  sections: text('sections').notNull().default('[]'), // JSON: [{title, items:[{label, hint}]}]
+  body: text('body'),                             // markdown לפורמט מסוג template/canvas
+  tags: text('tags'),
+  sort: integer('sort').notNull().default(0),
+  builtin: integer('builtin').notNull().default(0), // 1 = תבנית ברירת מחדל (ניתנת לעריכה/מחיקה)
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+});
+
+/**
+ * מהלך = החלה של פלייבוק על עבודה אמיתית. מצלם (snapshot) את הסעיפים כדי
+ * שיישאר עצמאי משינויים עתידיים בתבנית — בדיוק כמו checklist_items באורטק.
+ */
+export const playbookRuns = sqliteTable('playbook_runs', {
+  id: text('id').primaryKey(),
+  playbookId: text('playbook_id').references(() => playbooks.id),
+  title: text('title').notNull(),
+  stage: text('stage'),
+  clientId: text('client_id').references(() => clients.id),
+  systemId: text('system_id').references(() => systems.id),
+  status: text('status').notNull().default('active'), // active | done | archived
+  sections: text('sections').notNull().default('[]'), // צילום הסעיפים בזמן ההחלה
+  checked: text('checked').notNull().default('{}'),    // JSON: { "s-i": true }
+  notes: text('notes'),
+  progress: integer('progress').notNull().default(0),  // 0-100
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+  completedAt: integer('completed_at'),
+});
+
 export type Client = typeof clients.$inferSelect;
 export type System = typeof systems.$inferSelect;
 export type Engagement = typeof engagements.$inferSelect;
@@ -175,3 +217,5 @@ export type Cashflow = typeof cashflow.$inferSelect;
 export type ProfitCenter = typeof profitCenters.$inferSelect;
 export type Process = typeof processes.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
+export type Playbook = typeof playbooks.$inferSelect;
+export type PlaybookRun = typeof playbookRuns.$inferSelect;
