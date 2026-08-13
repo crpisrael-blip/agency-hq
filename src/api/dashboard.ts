@@ -1,20 +1,28 @@
 import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
-import { clients, systems, engagements, profitCenters, tasks } from '../db/schema';
-import { Env, db, num } from './util';
+import { clients, systems, engagements, profitCenters, tasks, leads } from '../db/schema';
+import { Env, db, num, todayIL } from './util';
 import { engagementMonthly } from './engagements';
 
 export const dashboardApp = new Hono<Env>();
 
 dashboardApp.get('/', async (c) => {
   const d = db(c);
-  const [cls, sys, engs, ideas, tks] = await Promise.all([
+  const [cls, sys, engs, ideas, tks, lds] = await Promise.all([
     d.select().from(clients).all(),
     d.select().from(systems).all(),
     d.select().from(engagements).all(),
     d.select().from(profitCenters).all(),
     d.select().from(tasks).all(),
+    d.select().from(leads).all(),
   ]);
+
+  const monthPrefix = todayIL().slice(0, 7);
+  const leadsMonth = lds.filter((l) => new Date(l.createdAt).toISOString().slice(0, 7) === monthPrefix).length;
+  const leadsBySystem = sys
+    .map((s) => ({ id: s.id, name: s.name, clientName: cls.find((cl) => cl.id === s.clientId)?.name || '—', count: lds.filter((l) => l.systemId === s.id).length }))
+    .filter((x) => x.count > 0)
+    .sort((a, b) => b.count - a.count);
 
   const activeEng = engs.filter((e) => e.status === 'active');
   const proposedEng = engs.filter((e) => e.status === 'proposed');
@@ -36,6 +44,8 @@ dashboardApp.get('/', async (c) => {
     ideasWeighted: ideas
       .filter((i) => !['dropped', 'active'].includes(i.status))
       .reduce((a, i) => a + num(i.potentialMonthly) * (num(i.confidence) / 100), 0),
+    leadsTotal: lds.length,
+    leadsMonth,
   };
 
   // התפלגות בריאות לקוחות פעילים
@@ -70,5 +80,5 @@ dashboardApp.get('/', async (c) => {
     .map((s) => ({ ...s, clientName: cls.find((cl) => cl.id === s.clientId)?.name || '—' }))
     .sort((a, b) => num(b.progress) - num(a.progress));
 
-  return c.json({ kpis, health, byModel, mrrByClient, recentTasks, activeSystems });
+  return c.json({ kpis, health, byModel, mrrByClient, recentTasks, activeSystems, leadsBySystem });
 });

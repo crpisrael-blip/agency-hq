@@ -156,6 +156,17 @@ export const tasks = sqliteTable('tasks', {
   doneAt: integer('done_at'),
 });
 
+/** ליד שנכנס דרך אחת המערכות שבניתי (נרשם דרך webhook ציבורי) */
+export const leads = sqliteTable('leads', {
+  id: text('id').primaryKey(),
+  systemId: text('system_id').references(() => systems.id),
+  clientId: text('client_id').references(() => clients.id),
+  source: text('source'),        // website | form | whatsapp | phone | other
+  name: text('name'),
+  note: text('note'),
+  createdAt: integer('created_at').notNull(),
+});
+
 /** מרכז מסמכים/תוצרים — כל הקישורים והנכסים של כל פרויקט במקום אחד */
 export const documents = sqliteTable('documents', {
   id: text('id').primaryKey(),
