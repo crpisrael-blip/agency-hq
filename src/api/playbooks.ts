@@ -77,6 +77,45 @@ playbooksApp.post('/reseed', async (c) => {
   return c.json({ ok: true, added });
 });
 
+/** מיפוי שלב-במסע-הלקוח → פורמט ברירת המחדל שנפתח אוטומטית */
+const STAGE_TO_PLAYBOOK: Record<string, string> = {
+  lead: 'pb_discovery_call',
+  discovery: 'pb_discovery_onepager',
+  proposal: 'pb_proposal_sow',
+  building: 'pb_build_dod',
+  live: 'pb_launch_golive',
+  retainer: 'pb_advisory_qbr',
+};
+
+// קישור אוטומטי: כשלקוח עובר שלב, נפתח לו המהלך המתאים (אידמפוטנטי — לא מכפיל)
+playbooksApp.post('/autolaunch', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const clientId = body.clientId;
+  const pbId = STAGE_TO_PLAYBOOK[body.clientStage];
+  if (!clientId || !pbId) return c.json({ created: false });
+  const d = db(c);
+  const pb = (await d.select().from(playbooks).where(eq(playbooks.id, pbId)).limit(1))[0];
+  if (!pb) return c.json({ created: false, reason: 'no_template' });
+  const runs = await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, clientId)).all();
+  if (runs.some((r) => r.playbookId === pbId)) return c.json({ created: false, reason: 'exists' });
+  const runId = uid();
+  await d.insert(playbookRuns).values({
+    id: runId,
+    playbookId: pb.id,
+    title: pb.title,
+    stage: pb.stage,
+    clientId,
+    systemId: null,
+    status: 'active',
+    sections: pb.sections,
+    checked: '{}',
+    notes: null,
+    progress: 0,
+    createdAt: now(),
+  } as any);
+  return c.json({ created: true, id: runId, title: pb.title });
+});
+
 playbooksApp.post('/', async (c) => {
   const body = await c.req.json().catch(() => ({} as any));
   if (!body.title) return c.json({ error: 'invalid_input' }, 400);
