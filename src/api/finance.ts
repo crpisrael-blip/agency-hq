@@ -23,7 +23,7 @@ const monthLabel = (ym: string) => {
 };
 
 // ---------- פנקס תזרים (CRUD) ----------
-const CF_FIELDS = ['kind', 'label', 'amount', 'clientId', 'engagementId', 'category', 'recurring', 'startDate', 'endDate', 'status', 'notes'];
+const CF_FIELDS = ['kind', 'label', 'amount', 'clientId', 'engagementId', 'category', 'recurring', 'billingDay', 'startDate', 'endDate', 'status', 'notes'];
 
 financeApp.get('/cashflow', async (c) => {
   const d = db(c);
@@ -41,6 +41,7 @@ financeApp.post('/cashflow', async (c) => {
     ...pick(body, CF_FIELDS),
     label: String(body.label),
     amount: num(body.amount),
+    billingDay: body.billingDay != null && body.billingDay !== '' ? num(body.billingDay) : null,
     startDate: String(body.startDate || todayIL()),
     createdAt: now(),
   } as any);
@@ -51,6 +52,7 @@ financeApp.patch('/cashflow/:id', async (c) => {
   const body = await c.req.json().catch(() => ({} as any));
   const data: any = pick(body, CF_FIELDS);
   if (data.amount !== undefined) data.amount = num(data.amount);
+  if (data.billingDay !== undefined) data.billingDay = data.billingDay === '' || data.billingDay == null ? null : num(data.billingDay);
   if (Object.keys(data).length) await db(c).update(cashflow).set(data).where(eq(cashflow.id, c.req.param('id')));
   return c.json({ ok: true });
 });
