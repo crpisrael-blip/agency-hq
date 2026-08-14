@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מערכות מידע לעסקים · תהליכים · מסע לקוח · מרכזי רווח</title>
+<meta name="description" content="לא עוד תוכנה — מערכת מידע חיה בהתאמה אישית שמריצה את העסק שלך: מיפוי תהליכי העבודה, מסע הלקוח ומרכזי הרווח, והפיכתם למערכת אחת שעובדת בשבילך.">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0a0e1a; --bg2:#0f1424; --card:#141a2e; --line:#232b45;
+    --txt:#eef2ff; --muted:#93a0c8; --accent:#37e0c0; --accent2:#6c8cff;
+    --amber:#f7b73c; --grad:linear-gradient(135deg,#37e0c0,#6c8cff);
+  }
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',-apple-system,Rubik,Arial,sans-serif;line-height:1.65;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  .accent{color:var(--accent)}
+  .grad-txt{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-family:inherit;font-weight:800;
+    padding:14px 26px;border-radius:14px;font-size:1.02rem;transition:transform .15s,box-shadow .15s}
+  .btn.primary{background:var(--grad);color:#04121a;box-shadow:0 10px 30px rgba(55,224,192,.28)}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(55,224,192,.4)}
+  .btn.ghost{background:rgba(255,255,255,.05);color:var(--txt);border:1px solid var(--line)}
+  .btn.ghost:hover{background:rgba(255,255,255,.09)}
+
+  /* header */
+  header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(10,14,26,.72);border-bottom:1px solid var(--line)}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:900;font-size:1.14rem}
+  .logo{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;color:#04121a;font-size:1.15rem;font-weight:900}
+  header .btn{padding:9px 18px;font-size:.9rem}
+  @media(max-width:620px){.brand small{display:none}}
+
+  /* hero */
+  .hero{position:relative;padding:84px 0 70px;text-align:center;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:-30% 20% auto;height:520px;background:radial-gradient(60% 60% at 50% 0,rgba(108,140,255,.22),transparent 70%);pointer-events:none}
+  .hero::after{content:"";position:absolute;inset:auto 30% -40%;height:420px;background:radial-gradient(50% 50% at 50% 100%,rgba(55,224,192,.16),transparent 70%);pointer-events:none}
+  .eyebrow{display:inline-block;font-size:.82rem;font-weight:800;letter-spacing:.4px;color:var(--accent);
+    border:1px solid rgba(55,224,192,.35);background:rgba(55,224,192,.08);padding:6px 15px;border-radius:999px;margin-bottom:22px}
+  .hero h1{font-size:clamp(2.05rem,5.4vw,3.5rem);font-weight:900;line-height:1.12;letter-spacing:-.5px;position:relative}
+  .hero p.lead{max-width:720px;margin:22px auto 0;color:var(--muted);font-size:clamp(1.05rem,2.4vw,1.28rem)}
+  .hero .cta-row{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;margin-top:34px;position:relative}
+  .trust{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;margin-top:44px;position:relative}
+  .trust div{text-align:center}
+  .trust b{display:block;font-size:1.7rem;font-weight:900}
+  .trust small{color:var(--muted);font-size:.86rem}
+
+  section{padding:64px 0}
+  .sec-head{text-align:center;max-width:680px;margin:0 auto 44px}
+  .sec-head .kick{color:var(--accent);font-weight:800;font-size:.86rem;letter-spacing:.5px;text-transform:uppercase}
+  .sec-head h2{font-size:clamp(1.6rem,3.8vw,2.4rem);font-weight:900;margin-top:8px;line-height:1.2}
+  .sec-head p{color:var(--muted);margin-top:12px;font-size:1.05rem}
+
+  .grid{display:grid;gap:18px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:860px){.g3{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 24px;transition:border-color .2s,transform .2s}
+  .card:hover{border-color:rgba(55,224,192,.4);transform:translateY(-3px)}
+  .card .ico{width:50px;height:50px;border-radius:14px;background:rgba(108,140,255,.13);display:grid;place-items:center;font-size:1.5rem;margin-bottom:15px}
+  .card h3{font-size:1.22rem;font-weight:800;margin-bottom:8px}
+  .card p{color:var(--muted);font-size:.98rem}
+
+  /* pillars (uniqueness) */
+  .pillars .card{background:linear-gradient(160deg,rgba(55,224,192,.06),rgba(20,26,46,.9))}
+  .pillars .num{font-size:.8rem;font-weight:800;color:var(--accent);opacity:.7}
+
+  /* domains */
+  .chips{display:flex;flex-wrap:wrap;gap:11px;justify-content:center;max-width:820px;margin:0 auto}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-weight:700;font-size:.96rem}
+  .chip span{color:var(--accent);margin-inline-end:6px}
+
+  /* steps */
+  .steps{counter-reset:s;display:grid;gap:14px}
+  .step{display:flex;gap:18px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+  .step .n{flex:none;width:42px;height:42px;border-radius:12px;background:var(--grad);color:#04121a;display:grid;place-items:center;font-weight:900;font-size:1.15rem}
+  .step h4{font-size:1.1rem;font-weight:800}
+  .step p{color:var(--muted);font-size:.96rem;margin-top:3px}
+
+  /* stack */
+  .stack{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .tech{border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:10px;padding:8px 15px;font-weight:700;font-size:.9rem;color:var(--muted)}
+
+  /* form */
+  .form-sec{background:linear-gradient(180deg,transparent,rgba(108,140,255,.05))}
+  .form-card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:34px;max-width:680px;margin:0 auto;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+  .form-card h2{font-size:clamp(1.5rem,3.5vw,2.1rem);font-weight:900;text-align:center}
+  .form-card .sub{color:var(--muted);text-align:center;margin:10px 0 26px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-weight:700;font-size:.9rem;margin-bottom:7px}
+  .field input,.field textarea,.field select{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:12px;
+    padding:13px 15px;color:var(--txt);font-family:inherit;font-size:1rem;transition:border-color .15s}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.row2{grid-template-columns:1fr}}
+  .form-card .btn{width:100%;justify-content:center;margin-top:8px;font-size:1.08rem;padding:16px}
+  .form-note{text-align:center;color:var(--muted);font-size:.85rem;margin-top:14px}
+  .ok-box{display:none;text-align:center;padding:30px 10px}
+  .ok-box .big{font-size:3rem}
+  .ok-box h3{font-size:1.5rem;font-weight:900;margin:10px 0 6px}
+  .ok-box p{color:var(--muted)}
+
+  footer{border-top:1px solid var(--line);padding:34px 0;text-align:center;color:var(--muted);font-size:.9rem}
+  footer a{color:var(--accent);font-weight:700}
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}
+  .reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand"><div class="logo">מ</div><div>מנחם <small class="muted" style="font-weight:600;color:var(--muted)">· מערכות מידע לעסקים</small></div></div>
+    <a href="#lead" class="btn primary">דברו איתי</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">בהתאמה אישית מלאה · פריסה בענן</span>
+    <h1>אני לא כותב תוכנה.<br><span class="grad-txt">אני בונה את המערכת שמריצה את העסק שלך.</span></h1>
+    <p class="lead">רוב המפתחים יבנו לך "אפליקציה". אני קודם ממפה את <b class="accent">תהליכי העבודה</b>, את <b class="accent">מסע הלקוח</b> ואת <b class="accent">מרכזי הרווח</b> שלך — ורק אז הופך אותם למערכת מידע אחת, חיה, שעובדת בשבילך 24/7.</p>
+    <div class="cta-row">
+      <a href="#lead" class="btn primary">בוא נבנה לך מערכת →</a>
+      <a href="#how" class="btn ghost">איך זה עובד</a>
+    </div>
+    <div class="trust">
+      <div><b class="grad-txt">9</b><small>מערכות חיות</small></div>
+      <div><b class="grad-txt">9</b><small>תחומים שונים</small></div>
+      <div><b class="grad-txt">100%</b><small>התאמה אישית</small></div>
+      <div><b class="grad-txt">☁️</b><small>ענן · זמין תמיד</small></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kick">הייחוד שלי</div>
+      <h2>שלושה דברים שאחרים מדלגים עליהם</h2>
+      <p>הם ההבדל בין תוכנה שמסתובבת ללא שימוש — לבין מערכת שהעסק לא יכול בלעדיה.</p>
+    </div>
+    <div class="grid g3 pillars">
+      <div class="card reveal"><div class="num">01</div><div class="ico">🔄</div><h3>תהליכי עבודה</h3><p>אני ממפה איך העבודה זורמת אצלך בפועל — מי עושה מה, מתי, ומה נופל בין הכיסאות — ומתרגם את זה לתהליך מובנה שהמערכת אוכפת אוטומטית.</p></div>
+      <div class="card reveal"><div class="num">02</div><div class="ico">🧭</div><h3>מסע הלקוח</h3><p>מהליד הראשון ועד הלקוח החוזר. אני בונה את כל נקודות המגע — כך שאף לקוח לא נשמט, וכל שלב מקדם אותו לשלב הבא.</p></div>
+      <div class="card reveal"><div class="num">03</div><div class="ico">💰</div><h3>מרכזי רווח</h3><p>המערכת לא רק מסדרת לך את הבלגן — היא חושפת הזדמנויות רווח חדשות מתוך המשאבים שכבר יש לך, והופכת אותן להכנסה.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--bg2)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kick">השירותים</div>
+      <h2>מה אני בונה</h2>
+      <p>מערכת אחת שמאחדת את הכול — או רכיב בודד שפותר לך כאב נקודתי.</p>
+    </div>
+    <div class="grid g3">
+      <div class="card reveal"><div class="ico">🗂️</div><h3>מערכות מידע בהתאמה אישית</h3><p>הליבה: מערכת ניהול שנתפרת בדיוק לעסק שלך — לקוחות, הזמנות, מלאי, תורים, כספים — הכול במקום אחד.</p></div>
+      <div class="card reveal"><div class="ico">🤝</div><h3>CRM ומסע לקוח</h3><p>ניהול לידים, מעקב, תזכורות אוטומטיות ופורטל לקוחות — כדי שכל קשר יהפוך לעסקה וכל לקוח יישאר.</p></div>
+      <div class="card reveal"><div class="ico">⚡</div><h3>אוטומציות</h3><p>המערכת עושה בשבילך את העבודה השחורה: הודעות, חיובים, סנכרון, התראות — בזמן אמת, בלי ידיים.</p></div>
+      <div class="card reveal"><div class="ico">📱</div><h3>אפליקציות מובייל</h3><p>אפליקציה לצוות או ללקוחות — עובדת גם אופליין, מסתנכרנת לענן, מותקנת ישירות מהדפדפן.</p></div>
+      <div class="card reveal"><div class="ico">📊</div><h3>דשבורדים ובקרה</h3><p>כל המספרים שחשובים לך על מסך אחד: הכנסות, תזרים, ביצועים — כדי שתקבל החלטות לפי נתונים.</p></div>
+      <div class="card reveal"><div class="ico">🎯</div><h3>דפי נחיתה ומנועי לידים</h3><p>עמוד מכירתי שמביא פניות — מחובר ישירות למערכת שלך, כך שכל ליד נכנס ומטופל אוטומטית.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kick">ניסיון מוכח</div>
+      <h2>תחומים שכבר בניתי בהם מערכות</h2>
+      <p>9 מערכות חיות ב-9 עולמות תוכן שונים לגמרי — ההוכחה שהשיטה עובדת בכל עסק.</p>
+    </div>
+    <div class="chips reveal">
+      <div class="chip"><span>●</span>אירוח ונופש</div>
+      <div class="chip"><span>●</span>בריאות ואיכות חיים</div>
+      <div class="chip"><span>●</span>דיור מוגן וקהילה</div>
+      <div class="chip"><span>●</span>קליניקות ותיאום תורים</div>
+      <div class="chip"><span>●</span>שירותי שטח וכוננות</div>
+      <div class="chip"><span>●</span>שירותים מקצועיים</div>
+      <div class="chip"><span>●</span>ספורט ואימון</div>
+      <div class="chip"><span>●</span>ניהול משפחתי ואישי</div>
+      <div class="chip"><span>●</span>מסחר ושירות</div>
+    </div>
+  </div>
+</section>
+
+<section id="process" style="background:var(--bg2)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kick">התהליך</div>
+      <h2>איך עובדים יחד</h2>
+      <p>שיטה מסודרת, שקופה, עם תוצר בכל שלב — בלי הפתעות.</p>
+    </div>
+    <div class="steps" style="max-width:760px;margin:0 auto">
+      <div class="step reveal"><div class="n">1</div><div><h4>אפיון והבנה</h4><p>נשב, אבין את העסק, אמפה את התהליכים והכאבים — ואגדיר איתך בדיוק מה המערכת צריכה לפתור.</p></div></div>
+      <div class="step reveal"><div class="n">2</div><div><h4>עיצוב מסע ומרכזי רווח</h4><p>אני בונה את מסע הלקוח ומזהה הזדמנויות רווח — כך שהמערכת לא רק מסדרת, אלא גם מרוויחה.</p></div></div>
+      <div class="step reveal"><div class="n">3</div><div><h4>פיתוח ופריסה</h4><p>בונה את המערכת בהתאמה אישית, פורס אותה בענן — מהירה, מאובטחת וזמינה מכל מכשיר.</p></div></div>
+      <div class="step reveal"><div class="n">4</div><div><h4>עלייה לאוויר וליווי</h4><p>מלמד אותך ואת הצוות, ונשאר איתך לאורך זמן — שיפורים, תמיכה, והתאמות ככל שהעסק גדל.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kick">היכולות</div>
+      <h2>טכנולוגיה ברמה שלא מתפשרים עליה</h2>
+      <p>תשתית ענן מודרנית — מהירה, מאובטחת, שגדלה עם העסק ולא נופלת ברגע האמת.</p>
+    </div>
+    <div class="stack reveal">
+      <div class="tech">☁️ Cloudflare</div><div class="tech">Supabase</div><div class="tech">Firebase</div>
+      <div class="tech">בסיסי נתונים בענן</div><div class="tech">זמן-אמת (Real-time)</div><div class="tech">PWA / מובייל</div>
+      <div class="tech">אבטחה והרשאות</div><div class="tech">אוטומציות ו-Webhooks</div><div class="tech">אינטגרציות</div>
+    </div>
+  </div>
+</section>
+
+<section id="lead" class="form-sec">
+  <div class="wrap">
+    <div class="form-card reveal">
+      <div id="formInner">
+        <h2>בוא נבנה לך מערכת</h2>
+        <p class="sub">ספר לי בכמה מילים על העסק — ואחזור אליך עם ראייה ראשונית, בלי התחייבות.</p>
+        <form id="leadForm" onsubmit="return submitLead(event)">
+          <div class="row2">
+            <div class="field"><label for="name">שם מלא *</label><input id="name" required placeholder="השם שלך"></div>
+            <div class="field"><label for="phone">טלפון *</label><input id="phone" required inputmode="tel" placeholder="050-0000000"></div>
+          </div>
+          <div class="field"><label for="field">תחום העסק</label><input id="field" placeholder="לדוגמה: קליניקה, בית אירוח, שירות שטח…"></div>
+          <div class="field"><label for="msg">מה תרצה שהמערכת תפתור לך?</label><textarea id="msg" rows="3" placeholder="ספר לי על הכאב הכי גדול בעסק היום…"></textarea></div>
+          <button type="submit" class="btn primary" id="submitBtn">שליחה — ונדבר 💬</button>
+          <p class="form-note">הפרטים נכנסים ישירות למערכת שלי ואחזור אליך אישית. אין ספאם.</p>
+        </form>
+      </div>
+      <div class="ok-box" id="okBox">
+        <div class="big">✅</div>
+        <h3>קיבלתי, תודה!</h3>
+        <p>הפרטים נכנסו למערכת ואחזור אליך בהקדם. בינתיים — יום נהדר 🙌</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>מנחם · מערכות מידע לעסקים — תהליכים · מסע לקוח · מרכזי רווח</p>
+    <p style="margin-top:8px">✉️ <a href="mailto:menahemtzik1@gmail.com">menahemtzik1@gmail.com</a></p>
+  </div>
+</footer>
+
+<script>
+  var SYSTEM_ID = 'sys-agency-hq-core';
+
+  function submitLead(e){
+    e.preventDefault();
+    var btn = document.getElementById('submitBtn');
+    var name = document.getElementById('name').value.trim();
+    var phone = document.getElementById('phone').value.trim();
+    var field = document.getElementById('field').value.trim();
+    var msg = document.getElementById('msg').value.trim();
+    if(!name || !phone){ return false; }
+    btn.disabled = true; btn.textContent = 'שולח…';
+    var note = '📞 ' + phone + (field ? ' · תחום: ' + field : '') + (msg ? ' · ' + msg : '');
+    fetch('/api/hook/lead', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ systemId: SYSTEM_ID, source: 'landing', name: name, note: note.slice(0,300) })
+    }).then(function(r){ return r.json().catch(function(){return {};}); })
+      .then(function(){
+        document.getElementById('formInner').style.display='none';
+        document.getElementById('okBox').style.display='block';
+      })
+      .catch(function(){
+        btn.disabled=false; btn.textContent='נסה שוב';
+        alert('אופס, משהו השתבש. אפשר גם לכתוב לי למייל.');
+      });
+    return false;
+  }
+
+  // reveal on scroll
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, {threshold:.12});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+</script>
+</body>
+</html>
