@@ -172,6 +172,19 @@ export const modules = sqliteTable('modules', {
   createdAt: integer('created_at').notNull(),
 });
 
+/**
+ * שיוך הוצאה לפרויקטים — מנוי/הוצאה אחת יכולה להתחלק בין כמה פרויקטים.
+ * העלות לכל יעד = amount * weight / סכום ה-weights (ברירת מחדל: חלוקה שווה).
+ * clientId ריק (NULL) = מערכת הניהול / בית התוכנה עצמו (Agency HQ).
+ */
+export const expenseAllocations = sqliteTable('expense_allocations', {
+  id: text('id').primaryKey(),
+  cashflowId: text('cashflow_id').notNull().references(() => cashflow.id),
+  clientId: text('client_id').references(() => clients.id), // NULL = בית התוכנה עצמו
+  weight: real('weight').notNull().default(1),
+  createdAt: integer('created_at').notNull(),
+});
+
 /** ליד שנכנס דרך אחת המערכות שבניתי (נרשם דרך webhook ציבורי) */
 export const leads = sqliteTable('leads', {
   id: text('id').primaryKey(),
@@ -260,3 +273,4 @@ export type Process = typeof processes.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type Playbook = typeof playbooks.$inferSelect;
 export type PlaybookRun = typeof playbookRuns.$inferSelect;
+export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;

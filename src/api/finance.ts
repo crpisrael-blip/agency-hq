@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
-import { cashflow, scenarios, engagements, clients, settings } from '../db/schema';
+import { cashflow, scenarios, engagements, clients, settings, expenseAllocations } from '../db/schema';
 import { Env, db, uid, now, pick, num, todayIL } from './util';
 import { engagementMonthly, engagementSetup } from './engagements';
+
+const INTERNAL_LABEL = 'מערכת הניהול (Agency HQ)';
 
 export const financeApp = new Hono<Env>();
 
@@ -29,7 +31,85 @@ financeApp.get('/cashflow', async (c) => {
   const d = db(c);
   const rows = await d.select().from(cashflow).orderBy(desc(cashflow.startDate)).all();
   const cls = await d.select().from(clients).all();
-  return c.json(rows.map((r) => ({ ...r, clientName: cls.find((cl) => cl.id === r.clientId)?.name || null })));
+  const allocs = await d.select().from(expenseAllocations).all();
+  const nameOf = (cid: string | null) => (cid ? cls.find((cl) => cl.id === cid)?.name || null : INTERNAL_LABEL);
+  return c.json(rows.map((r) => {
+    const mine = allocs.filter((a) => a.cashflowId === r.id);
+    const sumW = mine.reduce((a, x) => a + (num(x.weight) || 0), 0) || 1;
+    const allocations = mine.map((a) => ({
+      id: a.id,
+      clientId: a.clientId,
+      clientName: nameOf(a.clientId),
+      weight: num(a.weight),
+      share: Math.round((num(r.amount) * (num(a.weight) || 0)) / sumW * 100) / 100,
+    }));
+    return { ...r, clientName: cls.find((cl) => cl.id === r.clientId)?.name || null, allocations };
+  }));
+});
+
+// ---------- שיוך הוצאה לפרויקטים (פיצול עלות) ----------
+// גוף: { targets: [{ clientId: string|null, weight?: number }] }  · clientId ריק = מערכת הניהול
+financeApp.put('/cashflow/:id/allocations', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({} as any));
+  const targets: any[] = Array.isArray(body.targets) ? body.targets : [];
+  const d = db(c);
+  const row = (await d.select().from(cashflow).where(eq(cashflow.id, id)).limit(1))[0];
+  if (!row) return c.json({ error: 'not_found' }, 404);
+  await d.delete(expenseAllocations).where(eq(expenseAllocations.cashflowId, id));
+  const ts = now();
+  for (const t of targets) {
+    await d.insert(expenseAllocations).values({
+      id: uid(),
+      cashflowId: id,
+      clientId: t.clientId || null,
+      weight: t.weight != null && t.weight !== '' ? num(t.weight) : 1,
+      createdAt: ts,
+    } as any);
+  }
+  return c.json({ ok: true, count: targets.length });
+});
+
+// עלות תשתית/מנויים לפי פרויקט (חודשי) — לפי השיוכים
+financeApp.get('/by-project', async (c) => {
+  const d = db(c);
+  const cfs = await d.select().from(cashflow).all();
+  const cls = await d.select().from(clients).all();
+  const allocs = await d.select().from(expenseAllocations).all();
+  const nameOf = (cid: string | null) => (cid ? cls.find((cl) => cl.id === cid)?.name || '—' : INTERNAL_LABEL);
+  // צבירה לכל יעד: key = clientId או '__internal__'
+  const acc: Record<string, { clientId: string | null; name: string; monthly: number; items: any[] }> = {};
+  const bump = (cid: string | null, monthly: number, label: string) => {
+    const key = cid || '__internal__';
+    if (!acc[key]) acc[key] = { clientId: cid, name: nameOf(cid), monthly: 0, items: [] };
+    acc[key].monthly += monthly;
+    acc[key].items.push({ label, monthly: Math.round(monthly * 100) / 100 });
+  };
+  let unassignedMonthly = 0;
+  const unassignedItems: any[] = [];
+  for (const r of cfs) {
+    if (r.kind !== 'expense') continue;
+    if (r.recurring !== 'monthly') continue; // עלות חודשית קבועה בלבד
+    const amt = num(r.amount);
+    if (amt <= 0) continue;
+    const mine = allocs.filter((a) => a.cashflowId === r.id);
+    if (!mine.length) {
+      unassignedMonthly += amt;
+      unassignedItems.push({ label: r.label, monthly: amt });
+      continue;
+    }
+    const sumW = mine.reduce((a, x) => a + (num(x.weight) || 0), 0) || 1;
+    for (const a of mine) bump(a.clientId, (amt * (num(a.weight) || 0)) / sumW, r.label);
+  }
+  const projects = Object.values(acc)
+    .map((p) => ({ ...p, monthly: Math.round(p.monthly * 100) / 100 }))
+    .sort((a, b) => b.monthly - a.monthly);
+  const totalAllocated = projects.reduce((a, p) => a + p.monthly, 0);
+  return c.json({
+    projects,
+    unassigned: { monthly: Math.round(unassignedMonthly * 100) / 100, items: unassignedItems },
+    totalAllocated: Math.round(totalAllocated * 100) / 100,
+  });
 });
 
 financeApp.post('/cashflow', async (c) => {
