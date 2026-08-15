@@ -52,6 +52,7 @@ export const systems = sqliteTable('systems', {
   stack: text('stack'),                        // טכנולוגיות
   status: text('status').notNull().default('discovery'), // discovery | design | building | live | maintenance | retired
   url: text('url'),                            // כתובת חיה (עמוד ציבורי / נחיתה)
+  leadUrl: text('lead_url'),                   // דף נחיתה ציבורי שאוסף לידים
   adminUrl: text('admin_url'),                 // כתובת ממשק ניהול
   credentials: text('credentials'),            // פרטי כניסה ראשונית ללקוח
   authMethod: text('auth_method'),             // אופן הכניסה/הזדהות (PIN, אימייל+סיסמה, Google OAuth, ...)

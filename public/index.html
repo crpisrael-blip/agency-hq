@@ -570,14 +570,15 @@ RENDER.systems=async()=>{
         <button class="btn ghost" id="pingBtn" onclick="pingSystems()">🔄 בדוק חי/נפל</button>
         <button class="btn primary" onclick="systemForm()">+ מערכת</button></div></div>
     <div class="card" style="padding:6px 17px">
-      ${list.length?list.map(s=>{const st=SYS_STATUS[s.status]||[s.status,'p-gray'];return `
+      ${list.length?list.map(s=>{const st=SYS_STATUS[s.status]||[s.status,'p-gray'];const sysLink=s.adminUrl||s.url;const leadLink=s.leadUrl||s.url;return `
         <div class="list-item syRow" data-s="${esc(s.name+' '+s.clientName+' '+(s.stack||''))}" onclick='systemForm(${j(s)})'>
           <div class="li-main"><b><span data-syid="${s.id}" title="${s.url?'לא נבדק':'אין כתובת חיה'}" style="cursor:default">${s.url?'⚪':''}</span> ${esc(s.name)}</b>
             <small>${esc(s.clientName)} ${s.stack?'· '+esc(s.stack):''}${s.authMethod?' · 🔑 '+esc(s.authMethod):''}</small>
             <div class="bar" style="max-width:200px"><span style="width:${s.progress}%"></span></div></div>
           <div class="row" style="gap:6px">
+            ${sysLink?`<a class="pill p-blue" href="${esc(sysLink)}" target="_blank" onclick="event.stopPropagation()" title="כניסה למערכת">🛠️ מערכת</a>`:''}
+            ${leadLink?`<a class="pill p-teal" href="${esc(leadLink)}" target="_blank" onclick="event.stopPropagation()" title="דף ציבורי שאוסף לידים">🎯 דף לידים</a>`:''}
             ${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" onclick="event.stopPropagation()" title="Repo" style="font-size:1.05rem">📦</a>`:''}
-            ${s.url?`<a href="${esc(s.url)}" target="_blank" onclick="event.stopPropagation()" title="אתר חי" style="font-size:1.05rem">🌐</a>`:''}
             ${leadMap[s.id]?`<span class="pill p-teal" title="לידים שנכנסו דרך המערכת">📥 ${leadMap[s.id].count}</span>`:''}
             ${s.authScore?`<span class="pill ${s.authScore>=4?'p-green':s.authScore>=3?'p-blue':'p-amber'}" title="ציון אבטחת כניסה (5=הכי מאובטח)">🔒 ${s.authScore}/5</span>`:''}
             <span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b></div>
@@ -619,6 +620,8 @@ function systemForm(s={}){
     <div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:wrap">
       ${s.repoUrl?`<a class="btn small ghost" href="${esc(s.repoUrl)}" target="_blank">📦 Repo</a>`:''}
       ${s.url?`<a class="btn small ghost" href="${esc(s.url)}" target="_blank">🌐 אתר חי</a>`:''}
+      ${s.adminUrl?`<a class="btn small ghost" href="${esc(s.adminUrl)}" target="_blank">🛠️ ניהול</a>`:''}
+      ${s.leadUrl?`<a class="btn small ghost" href="${esc(s.leadUrl)}" target="_blank">🎯 דף לידים</a>`:''}
       <a class="btn small ghost" href="https://dash.cloudflare.com" target="_blank">☁️ Cloudflare</a>
     </div>
     <div class="f2"><div class="f"><label>שם המערכת *</label><input id="f_name" value="${esc(s.name||'')}"></div>
@@ -628,8 +631,9 @@ function systemForm(s={}){
     <div class="f"><label>Stack טכנולוגי</label><input id="f_stack" value="${esc(s.stack||'')}" placeholder="Cloudflare, D1, Hono…"></div>
     <div class="f2"><div class="f"><label>כתובת חיה (עמוד ציבורי)</label><input id="f_url" value="${esc(s.url||'')}"></div>
       <div class="f"><label>Repo</label><input id="f_repoUrl" value="${esc(s.repoUrl||'')}"></div></div>
-    <div class="f2"><div class="f"><label>כתובת ממשק ניהול</label><input id="f_adminUrl" value="${esc(s.adminUrl||'')}"></div>
-      <div class="f"><label>פרטי כניסה ראשונית ללקוח</label><input id="f_credentials" value="${esc(s.credentials||'')}" placeholder="משתמש / סיסמה / קוד"></div></div>
+    <div class="f2"><div class="f"><label>🎯 דף נחיתה ציבורי (איסוף לידים)</label><input id="f_leadUrl" value="${esc(s.leadUrl||'')}" placeholder="https://…/lp"></div>
+      <div class="f"><label>כתובת ממשק ניהול</label><input id="f_adminUrl" value="${esc(s.adminUrl||'')}"></div></div>
+    <div class="f"><label>פרטי כניסה ראשונית ללקוח</label><input id="f_credentials" value="${esc(s.credentials||'')}" placeholder="משתמש / סיסמה / קוד"></div>
     <div class="f2"><div class="f"><label>🔑 אופן כניסה / הזדהות</label><input id="f_authMethod" value="${esc(s.authMethod||'')}" placeholder="PIN מנהל / אימייל+סיסמה / Google OAuth…"></div>
       <div class="f"><label>ציון אבטחת כניסה (5 = הכי מאובטח)</label><select id="f_authScore">${opts({'':'— לא נקבע —','5':'5 · הכי מאובטח','4':'4 · טוב','3':'3 · סביר','2':'2 · חלש','1':'1 · חשוף'},s.authScore!=null?String(s.authScore):'')}</select></div></div>
     <div class="f3"><div class="f"><label>תחילת עבודה</label><input type="date" id="f_startDate" value="${esc(s.startDate||'')}"></div>
@@ -649,7 +653,7 @@ function systemForm(s={}){
 }
 async function saveSystem(id){
   const body={name:val('f_name'),clientId:val('f_clientId'),kind:val('f_kind'),status:val('f_status'),stack:val('f_stack'),
-    url:val('f_url'),adminUrl:val('f_adminUrl'),credentials:val('f_credentials'),authMethod:val('f_authMethod'),authScore:val('f_authScore')||null,repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
+    url:val('f_url'),leadUrl:val('f_leadUrl'),adminUrl:val('f_adminUrl'),credentials:val('f_credentials'),authMethod:val('f_authMethod'),authScore:val('f_authScore')||null,repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
   if(!body.name||!body.clientId){toast('חסר שם או לקוח','bad');return;}
   try{ id?await apiPatch('/systems/'+id,body):await apiPost('/systems',body); closeModal(); toast('נשמר'); go('systems'); }
   catch(e){toast('שגיאה: '+e.message,'bad');}
