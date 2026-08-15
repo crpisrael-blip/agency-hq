@@ -564,6 +564,7 @@ RENDER.systems=async()=>{
   await loadRefs(); const list=CACHE.systems;
   const withUrl=list.filter(s=>s.url).length;
   let leadMap={}; try{ const ls=await apiGet('/leads/summary'); (ls.bySystem||[]).forEach(x=>leadMap[x.systemId]={count:x.count,month:x.month}); }catch(e){}
+  let taskMap={}; try{ const ts=await apiGet('/tasks'); ts.forEach(t=>{ if(t.entityType==='system'&&t.entityId&&t.status!=='done') taskMap[t.entityId]=(taskMap[t.entityId]||0)+1; }); }catch(e){}
   $('view').innerHTML=`
     <div class="spread"><div><h2>מערכות</h2><div class="sub">${list.length} מערכות · ${list.filter(s=>s.status==='live').length} חיות · ${withUrl} עם כתובת חיה</div></div>
       <div class="row"><input class="search" id="syS" placeholder="חיפוש…" oninput="filterList('syS','syRow')">
@@ -580,6 +581,7 @@ RENDER.systems=async()=>{
             ${leadLink?`<a class="pill p-teal" href="${esc(leadLink)}" target="_blank" onclick="event.stopPropagation()" title="דף ציבורי שאוסף לידים">🎯 דף לידים</a>`:''}
             ${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" onclick="event.stopPropagation()" title="Repo" style="font-size:1.05rem">📦</a>`:''}
             ${leadMap[s.id]?`<span class="pill p-teal" title="לידים שנכנסו דרך המערכת">📥 ${leadMap[s.id].count}</span>`:''}
+            ${taskMap[s.id]?`<span class="pill p-amber" title="משימות פתוחות">📋 ${taskMap[s.id]}</span>`:''}
             ${s.authScore?`<span class="pill ${s.authScore>=4?'p-green':s.authScore>=3?'p-blue':'p-amber'}" title="ציון אבטחת כניסה (5=הכי מאובטח)">🔒 ${s.authScore}/5</span>`:''}
             <span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b></div>
         </div>`;}).join(''):'<div class="empty">אין עדיין מערכות</div>'}
@@ -615,6 +617,38 @@ async function loadGithub(id){
         <div class="hint">${esc(g.lastCommit.message||'')}${g.lastCommit.date?' — '+new Date(g.lastCommit.date).toLocaleDateString('he-IL'):''}</div>`:''}`;
   }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת GitHub</div>'; }
 }
+async function loadSysTasks(id){
+  const box=$('sysTasks'); if(!box)return;
+  const PRI={urgent:'🔴',high:'🟠',normal:'',low:'⚪'};
+  const ST={todo:['לביצוע','p-gray'],doing:['בעבודה','p-blue'],done:['הושלם','p-green']};
+  try{
+    const list=await apiGet('/tasks?entityType=system&entityId='+id);
+    const open=list.filter(t=>t.status!=='done').length;
+    box.innerHTML=`
+      <div class="spread" style="margin-bottom:8px"><small class="muted">${list.length} משימות · ${open} פתוחות</small></div>
+      ${list.map(t=>{const st=ST[t.status]||['',''];return `
+        <div class="list-item" style="padding:8px 0;cursor:default">
+          <div class="li-main"><b style="${t.status==='done'?'text-decoration:line-through;opacity:.6':''}">${PRI[t.priority]||''} ${esc(t.title)}</b>
+            <small>${st[0]}${t.dueDate?' · יעד '+t.dueDate:''}${t.details?' · '+esc(t.details).slice(0,70):''}</small></div>
+          <div class="row" style="gap:5px">
+            ${t.status!=='done'?`<button class="btn teal small" onclick="advanceSysTask('${t.id}','${t.status==='todo'?'doing':'done'}','${id}')">${t.status==='todo'?'התחל':'סיים'}</button>`
+              :`<button class="btn ghost small" onclick="advanceSysTask('${t.id}','todo','${id}')">↺</button>`}
+            <button class="btn ghost small" title="מחק" onclick="delSysTask('${t.id}','${id}')">🗑️</button>
+          </div>
+        </div>`;}).join('')||'<div class="muted hint">אין עדיין משימות למערכת זו.</div>'}
+      <div class="row" style="gap:6px;margin-top:10px">
+        <input id="sysNewTask" class="search" style="flex:1" placeholder="משימה חדשה למערכת…" onkeydown="if(event.key==='Enter')addSysTask('${id}')">
+        <button class="btn primary small" onclick="addSysTask('${id}')">+ הוסף</button>
+      </div>`;
+  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת משימות</div>'; }
+}
+async function advanceSysTask(taskId,status,systemId){ try{ await apiPatch('/tasks/'+taskId,{status}); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
+async function delSysTask(taskId,systemId){ if(!confirm('למחוק משימה?'))return; try{ await apiDel('/tasks/'+taskId); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
+async function addSysTask(systemId){
+  const el=$('sysNewTask'); const title=(el&&el.value||'').trim(); if(!title){return;}
+  try{ await apiPost('/tasks',{title,status:'todo',priority:'normal',entityType:'system',entityId:systemId}); if(el)el.value=''; loadSysTasks(systemId); toast('נוספה משימה'); }
+  catch(e){ toast('שגיאה','bad'); }
+}
 function systemForm(s={}){
   openModal(`<h3>${s.id?'עריכת מערכת':'מערכת חדשה'}</h3>
     <div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -640,7 +674,8 @@ function systemForm(s={}){
       <div class="f"><label>עלייה לאוויר</label><input type="date" id="f_launchDate" value="${esc(s.launchDate||'')}"></div>
       <div class="f"><label>התקדמות %</label><input type="number" id="f_progress" min="0" max="100" value="${s.progress||0}"></div></div>
     <div class="f"><label>תיאור / הערות</label><textarea id="f_description" rows="2">${esc(s.description||'')}</textarea></div>
-    ${s.id?`<div class="f"><label>מצב פיתוח (GitHub)</label><div id="ghBox" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
+    ${s.id?`<div class="f"><label>📋 משימות המערכת</label><div id="sysTasks" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
+    <div class="f"><label>מצב פיתוח (GitHub)</label><div id="ghBox" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
     <div class="f"><label>📥 Webhook לידים</label><div class="card" style="margin:0;padding:11px 13px">
       <div class="hint">כדי שהמערכת תספור לידים ב-Agency HQ — הוסף בה קריאה כשנכנס ליד:</div>
       <code id="hookCode" style="display:block;direction:ltr;text-align:left;font-size:.72rem;background:var(--bg-2);padding:8px;border-radius:8px;margin-top:6px;word-break:break-all">POST ${location.origin}/api/hook/lead&#10;{"systemId":"${s.id}","source":"website"}</code>
@@ -649,7 +684,7 @@ function systemForm(s={}){
     <div class="modal-actions"><button class="btn primary" onclick="saveSystem('${s.id||''}')">שמירה</button>
       <button class="btn ghost" onclick="closeModal()">ביטול</button>
       ${s.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delSystem('${s.id}')">מחיקה</button>`:''}</div>`);
-  if(s.id) setTimeout(()=>loadGithub(s.id),0);
+  if(s.id){ setTimeout(()=>loadGithub(s.id),0); setTimeout(()=>loadSysTasks(s.id),0); }
 }
 async function saveSystem(id){
   const body={name:val('f_name'),clientId:val('f_clientId'),kind:val('f_kind'),status:val('f_status'),stack:val('f_stack'),
