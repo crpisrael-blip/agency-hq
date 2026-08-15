@@ -1236,7 +1236,7 @@ function openPlaybook(id){
     ${p.summary?`<div class="sub" style="margin:4px 0 14px">${esc(p.summary)}</div>`:'<div style="height:8px"></div>'}
     ${inner}
     <div class="modal-actions">
-      ${p.kind==='checklist'?`<button class="btn primary" onclick="applyForm('${p.id}')">החל על עבודה →</button>`:''}
+      <button class="btn primary" onclick="applyForm('${p.id}')">החל על עבודה →</button>
       <button class="btn ghost" onclick='playbookForm(${j(p)})'>עריכה</button>
       <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
 }
@@ -1302,12 +1302,12 @@ function syncApplySys(){ $('f_systemId').innerHTML=systemOptions('',val('f_clien
 async function startRunForClient(clientId){
   await loadRefs();
   if(!PB_CACHE.length) PB_CACHE=await apiGet('/playbooks');
-  const list=PB_CACHE.filter(p=>p.kind==='checklist');
-  if(!list.length){toast('אין פורמטים מסוג צ׳ק־ליסט','bad');return;}
+  const list=PB_CACHE.slice();
+  if(!list.length){toast('אין פורמטים','bad');return;}
   const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
   const groups=STAGE_ORDER.filter(s=>byStage[s]).map(s=>
     `<optgroup label="${STAGE_LABELS[s]||s}">${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0))
-      .map(p=>`<option value="${p.id}">${esc(p.title)}</option>`).join('')}</optgroup>`).join('');
+      .map(p=>`<option value="${p.id}">${esc(p.title)}${p.kind==='checklist'?'':' (מסמך)'}</option>`).join('')}</optgroup>`).join('');
   openModal(`<h3>פתיחת מהלך חדש ללקוח</h3>
     <div class="sub" style="margin-bottom:12px">ייווצר טופס חי — שאלות + מקום לתשובות, מקושר לכרטיס הלקוח.</div>
     <div class="f"><label>פורמט</label><select id="f_pbId">${groups}</select></div>
@@ -1333,23 +1333,29 @@ async function openRun(id){
   drawRun(); window.scrollTo(0,0);
 }
 function drawRun(){
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
   const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked, ans=RUN._answers;
   let total=0,done=0,filled=0;
   secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{total++; if(ck[si+'-'+ii])done++; if(String(ans[si+'-'+ii]||'').trim())filled++;}));
-  const prog=total?Math.round(done/total*100):0;
+  const prog=isDoc?(RUN.status==='done'?100:0):(total?Math.round(done/total*100):0);
+  const counter=isDoc?'מסמך למילוי':`${done}/${total} · ${prog}% · ${filled} תשובות`;
   $('view').innerHTML=`
     <div class="row" style="gap:8px">
       <button class="btn ghost small" onclick="go('playbooks')">→ חזרה למתודולוגיה</button>
       ${RUN.clientId?`<button class="btn ghost small" onclick="openClient('${RUN.clientId}')">👤 כרטיס הלקוח</button>`:''}
     </div>
     <div class="spread" style="margin-top:10px"><div><h2 style="margin:0">${STAGE_EMOJI[RUN.stage]||''} ${esc(RUN.title)}</h2>
-      <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${done}/${total} · ${prog}% · ${filled} תשובות</div></div>
+      <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${counter}</div></div>
       <div class="row">${RUN.status==='done'?'<span class="pill p-green">הושלם ✓</span>':`<button class="btn teal" onclick="finishRun()">סימון כהושלם</button>`}
         <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
-    <div class="hint" style="margin-bottom:12px">כתוב את התשובה מתחת לכל שאלה — היא נשמרת אוטומטית ומסמנת את הסעיף. בסיום לחץ "טופס מלא" כדי לקבל את הכל כמסמך אחד.</div>
-    ${secs.map((s,si)=>`<div class="card">
+    <div class="hint" style="margin-bottom:12px">${isDoc
+      ? 'מלא את המסמך במקום ה-___ . נשמר אוטומטית ביציאה מהשדה. בסיום לחץ "טופס מלא" כדי לקבל אותו מוכן לשליחה.'
+      : 'כתוב את התשובה מתחת לכל שאלה — היא נשמרת אוטומטית ומסמנת את הסעיף. בסיום לחץ "טופס מלא" כדי לקבל את הכל כמסמך אחד.'}</div>
+    ${isDoc?`<div class="card"><h3>המסמך</h3>
+      <textarea id="runDoc" class="pb-answer" rows="24" style="font-size:.87rem" placeholder="גוף המסמך…" onchange="saveRunDoc()">${esc(RUN.doc||'')}</textarea></div>`
+    :(secs.map((s,si)=>`<div class="card">
       <h3>${esc(s.title||'')}</h3>
       ${(s.items||[]).map((it,ii)=>{const key=si+'-'+ii,on=!!ck[key],a=ans[key]||'';return `
         <div class="pb-item${on?' on':''}">
@@ -1359,24 +1365,28 @@ function drawRun(){
           <textarea class="pb-answer" id="ans_${key}" rows="${a?Math.min(8,a.split('\n').length+1):2}" placeholder="התשובה שלי…"
             oninput="RUN._answers['${key}']=this.value" onchange="saveRunAnswer('${key}')">${esc(a)}</textarea>
         </div>`;}).join('')}
-    </div>`).join('')||'<div class="empty">לפורמט הזה אין פריטים</div>'}
+    </div>`).join('')||'<div class="empty">לפורמט הזה אין פריטים</div>')}
     <div class="card"><h3>הערות כלליות</h3>
       <textarea id="runNotes" rows="3" placeholder="הערות למהלך…" onchange="saveRunNotes()">${esc(RUN.notes||'')}</textarea></div>`;
 }
 /** קולט את מה שהוקלד למסך לפני רענון, כדי שלא ילך לאיבוד */
 function grabRunInputs(){
-  document.querySelectorAll('.pb-answer').forEach(t=>{ RUN._answers[t.id.slice(4)]=t.value; });
+  document.querySelectorAll('.pb-answer[id^="ans_"]').forEach(t=>{ RUN._answers[t.id.slice(4)]=t.value; });
+  const dc=$('runDoc'); if(dc) RUN.doc=dc.value;
   const nt=$('runNotes'); if(nt) RUN.notes=nt.value;
 }
-async function saveRun(patch){
-  try{ const r=await apiPatch('/playbooks/runs/'+RUN.id,patch); if(r.progress!==undefined) RUN.progress=r.progress; return true; }
+/** שומר את כל מצב המהלך (תמיד הכל, כדי שכלום שהוקלד לא ילך לאיבוד) */
+async function saveRun(extra){
+  const payload={checked:RUN._checked,answers:RUN._answers,notes:RUN.notes||'',...(extra||{})};
+  if(RUN.doc!=null) payload.doc=RUN.doc;
+  try{ const r=await apiPatch('/playbooks/runs/'+RUN.id,payload); if(r.progress!==undefined) RUN.progress=r.progress; return true; }
   catch(e){ toast('שגיאה בשמירה','bad'); return false; }
 }
 async function toggleRun(key,on){
   grabRunInputs();
   RUN._checked[key]=on; if(!on) delete RUN._checked[key];
   drawRun();
-  await saveRun({checked:RUN._checked,answers:RUN._answers});
+  await saveRun();
 }
 /** תשובה שנכתבה מסמנת אוטומטית את הסעיף כבוצע (ומחיקתה מבטלת) */
 async function saveRunAnswer(key){
@@ -1385,18 +1395,19 @@ async function saveRunAnswer(key){
   const was=!!RUN._checked[key];
   if(has&&!was) RUN._checked[key]=true;
   if(!has&&was) delete RUN._checked[key];
-  const ok=await saveRun({checked:RUN._checked,answers:RUN._answers});
+  const ok=await saveRun();
   if(ok&&has!==was) drawRun();
 }
-async function saveRunNotes(){ grabRunInputs(); if(await saveRun({notes:RUN.notes,answers:RUN._answers})) toast('נשמר'); }
-async function finishRun(){ grabRunInputs(); if(await saveRun({status:'done',answers:RUN._answers})){ RUN.status='done'; toast('הושלם ✓'); drawRun(); } }
+async function saveRunDoc(){ grabRunInputs(); if(await saveRun()) toast('נשמר'); }
+async function saveRunNotes(){ grabRunInputs(); if(await saveRun()) toast('נשמר'); }
+async function finishRun(){ grabRunInputs(); if(await saveRun({status:'done'})){ RUN.status='done'; toast('הושלם ✓'); drawRun(); } }
 async function delRun(){ if(!confirm('למחוק מהלך זה?'))return; await apiDel('/playbooks/runs/'+RUN.id); toast('נמחק'); go('playbooks'); }
 
 // ---------- הטופס המלא: כל השאלות + התשובות כמסמך אחד ----------
 let RUN_FORM='';
 async function runFormDoc(){
   grabRunInputs();
-  await saveRun({checked:RUN._checked,answers:RUN._answers,notes:RUN.notes});
+  await saveRun();
   let f; try{ f=await apiGet('/playbooks/runs/'+RUN.id+'/form'); }catch(e){ toast('שגיאה','bad'); return; }
   RUN_FORM=f.markdown;
   openModal(`<div class="spread"><h3 style="margin:0">📄 טופס מלא — ${esc(RUN.title)}</h3></div>

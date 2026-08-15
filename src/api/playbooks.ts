@@ -9,12 +9,15 @@ const STAGE_LABEL: Record<string, string> = Object.fromEntries(STAGES.map((s) =>
 export const playbooksApp = new Hono<Env>();
 
 const PB_FIELDS = ['stage', 'title', 'summary', 'kind', 'sections', 'body', 'tags', 'sort'];
-const RUN_FIELDS = ['title', 'status', 'checked', 'answers', 'notes', 'clientId', 'systemId'];
+const RUN_FIELDS = ['title', 'status', 'checked', 'answers', 'doc', 'notes', 'clientId', 'systemId'];
 
 const asJson = (v: any, fallback: string) =>
   v === undefined ? undefined : typeof v === 'string' ? v : JSON.stringify(v ?? JSON.parse(fallback));
 
-/** מחשב אחוז השלמה מתוך צילום הסעיפים ומפת הסימונים */
+/**
+ * מחשב אחוז השלמה מתוך צילום הסעיפים ומפת הסימונים.
+ * למהלך מסוג תבנית אין פריטים — הוא נמדד בסימון ידני כהושלם.
+ */
 function calcProgress(sectionsRaw: string, checkedRaw: string): number {
   try {
     const sections = JSON.parse(sectionsRaw || '[]');
@@ -106,10 +109,12 @@ playbooksApp.post('/autolaunch', async (c) => {
     playbookId: pb.id,
     title: pb.title,
     stage: pb.stage,
+    kind: pb.kind,
     clientId,
     systemId: null,
     status: 'active',
     sections: pb.sections,
+    doc: pb.kind === 'checklist' ? null : pb.body,
     checked: '{}',
     answers: '{}',
     notes: null,
@@ -197,6 +202,13 @@ function buildForm(run: any): string {
   ].filter(Boolean);
 
   const out: string[] = [`# ${run.title}`, '', meta.join('  |  '), ''];
+  // מהלך מסוג תבנית: המסמך עצמו הוא הטופס
+  if (run.kind === 'template') {
+    out.push(String(run.doc || '').trim(), '');
+    const docNotes = String(run.notes || '').trim();
+    if (docNotes) out.push('## הערות', '', docNotes, '');
+    return out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+  }
   sections.forEach((s: any, si: number) => {
     out.push(`## ${s.title || ''}`, '');
     (s.items || []).forEach((it: any, ii: number) => {
@@ -233,10 +245,12 @@ playbooksApp.post('/:id/apply', async (c) => {
       playbookId: pb.id,
       title: body.title ? String(body.title) : pb.title,
       stage: pb.stage,
+      kind: pb.kind,
       clientId: body.clientId || null,
       systemId: body.systemId || null,
       status: 'active',
       sections: pb.sections,
+      doc: pb.kind === 'checklist' ? null : pb.body,
       checked: '{}',
       answers: '{}',
       notes: null,
@@ -255,7 +269,9 @@ playbooksApp.patch('/runs/:id', async (c) => {
   const cur = (await db(c).select().from(playbookRuns).where(eq(playbookRuns.id, id)).limit(1))[0];
   if (!cur) return c.json({ error: 'not_found' }, 404);
   const checkedRaw = data.checked !== undefined ? data.checked : cur.checked;
-  data.progress = calcProgress(cur.sections, checkedRaw);
+  const status = data.status || cur.status;
+  // תבנית מסמך נמדדת בסימון ידני; צ׳ק־ליסט לפי הפריטים שסומנו
+  data.progress = cur.kind === 'template' ? (status === 'done' ? 100 : 0) : calcProgress(cur.sections, checkedRaw);
   if (data.status === 'done' || (data.progress === 100 && cur.status === 'active')) {
     data.status = data.status || 'done';
     data.completedAt = now();
