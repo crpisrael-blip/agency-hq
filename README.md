@@ -78,3 +78,16 @@ npm run dev                    # http://localhost:8790
 ## עדכונים
 
 כל דחיפה ל-`main` ב-GitHub → Cloudflare Pages בונה ומעלה גרסה חדשה אוטומטית (ראה `.github/workflows/deploy.yml`; דורש את ה-secret `CLOUDFLARE_API_TOKEN` ואת `CLOUDFLARE_ACCOUNT_ID`).
+
+### הוספת מיגרציה לבסיס הנתונים החי
+
+⚠️ בבסיס הנתונים החי **אין טבלת `d1_migrations`** — המיגרציות הוחלו אחת-אחת ולא דרך
+מנגנון המעקב של wrangler. לכן `npm run db:migrate:remote` ייכשל: הוא ינסה להריץ מחדש
+את `0001` על טבלאות שכבר קיימות. מריצים רק את הקובץ החדש:
+
+```bash
+npx wrangler d1 execute agency-hq-db --remote --file=migrations/00NN_xxx.sql
+```
+
+(אפשר בהמשך לעבור למנגנון המעקב: יוצרים טבלת `d1_migrations` ומזינים לתוכה את שמות
+כל המיגרציות שכבר הוחלו — ומאז `db:migrate:remote` יעבוד כרגיל.)
