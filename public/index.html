@@ -138,6 +138,19 @@
   .pb-check span{display:flex;flex-direction:column;gap:2px;min-width:0}
   .pb-check.on b{opacity:.55;text-decoration:line-through}
   .pb-check .hint{margin-top:0}
+  .pb-item{border-bottom:1px solid var(--line);padding-bottom:9px}
+  .pb-item:last-child{border-bottom:0;padding-bottom:0}
+  .pb-item .pb-check{border-bottom:0;padding-bottom:4px}
+  /* בטופס השאלה נשארת קריאה גם אחרי מענה — הסימון עובר לתיבה ולתשובה */
+  .pb-item .pb-check.on b{opacity:1;text-decoration:none}
+  .pb-answer{width:100%;margin:0 0 4px;padding:9px 11px;font-size:.88rem;line-height:1.55;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:10px;color:var(--txt);resize:vertical}
+  .pb-answer:focus{outline:none;border-color:var(--accent)}
+  .pb-item.on .pb-answer{border-color:rgba(0,209,178,.35)}
+  .run-row{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);cursor:pointer}
+  .run-row:last-child{border-bottom:0}
+  .run-row .grow{min-width:0}
+  .run-row b{display:block;font-size:.9rem}
 </style>
 </head>
 <body>
@@ -476,6 +489,14 @@ async function openClient(id){
       <div class="row" style="flex-wrap:wrap;gap:6px">${d.modules.map(m=>`<span class="pill ${m.status==='planned'?'p-amber':m.status==='deprecated'?'p-gray':'p-teal'}" onclick='moduleForm(${j(m)})' style="cursor:pointer" title="${esc(m.description||'')}">${esc(m.name)}</span>`).join('')}</div></div>`:''}
     <div class="card"><h3>התקשרויות</h3>${d.engagements.length?d.engagements.map(e=>`<div class="stat-row"><span>${esc(e.title)} <span class="tag">${ENG_MODEL[e.model]||e.model}</span></span><b>${money(engMonthly(e))}/ח'</b></div>`).join(''):'<div class="muted">—</div>'}</div>
     ${d.ideas.length?`<div class="card"><h3>מרכזי רווח</h3>${d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><b>${money(i.potentialMonthly)}/ח'</b></div>`).join('')}</div>`:''}
+    <div class="card"><div class="spread" style="margin-bottom:6px"><h3 style="margin:0">🧭 מהלכי מתודולוגיה${d.runs&&d.runs.length?` (${d.runs.length})`:''}</h3>
+      <button class="btn ghost small" onclick="startRunForClient('${id}')">+ מהלך</button></div>
+      ${d.runs&&d.runs.length?d.runs.map(r=>`<div class="run-row" onclick="openRun('${r.id}')">
+        <div class="grow"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+          <div class="hint">${STAGE_LABELS[r.stage]||''}${r.status==='done'?' · הושלם':''}</div>
+          <div class="bar" style="max-width:200px"><span style="width:${r.progress||0}%"></span></div></div>
+        <span class="pill ${r.status==='done'?'p-green':r.progress?'p-amber':'p-gray'}">${r.status==='done'?'✓':(r.progress||0)+'%'}</span>
+      </div>`).join(''):'<div class="muted">אין עדיין מהלכים. פתח את הפורמט המתאים לשלב שבו הלקוח נמצא.</div>'}</div>
     ${d.documents&&d.documents.length?`<div class="card"><h3>מסמכים ותוצרים (${d.documents.length})</h3>${d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join('')}</div>`:''}
     ${c.notes?`<div class="card"><h3>הערות</h3><div class="muted">${esc(c.notes)}</div></div>`:''}
     <div class="modal-actions"><button class="btn primary" onclick='clientForm(${j(c)})'>עריכה</button>
@@ -1277,46 +1298,131 @@ async function applyForm(id){
       <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
 }
 function syncApplySys(){ $('f_systemId').innerHTML=systemOptions('',val('f_clientId')); }
+/** פתיחת מהלך חדש ישירות מכרטיס הלקוח — בחירת הפורמט לפי שלב במסע */
+async function startRunForClient(clientId){
+  await loadRefs();
+  if(!PB_CACHE.length) PB_CACHE=await apiGet('/playbooks');
+  const list=PB_CACHE.filter(p=>p.kind==='checklist');
+  if(!list.length){toast('אין פורמטים מסוג צ׳ק־ליסט','bad');return;}
+  const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
+  const groups=STAGE_ORDER.filter(s=>byStage[s]).map(s=>
+    `<optgroup label="${STAGE_LABELS[s]||s}">${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0))
+      .map(p=>`<option value="${p.id}">${esc(p.title)}</option>`).join('')}</optgroup>`).join('');
+  openModal(`<h3>פתיחת מהלך חדש ללקוח</h3>
+    <div class="sub" style="margin-bottom:12px">ייווצר טופס חי — שאלות + מקום לתשובות, מקושר לכרטיס הלקוח.</div>
+    <div class="f"><label>פורמט</label><select id="f_pbId">${groups}</select></div>
+    <div class="f"><label>מערכת (אופציונלי)</label><select id="f_systemId">${systemOptions('',clientId)}</select></div>
+    <div class="modal-actions"><button class="btn primary" onclick="doStartRunForClient('${clientId}')">יצירת מהלך</button>
+      <button class="btn ghost" onclick="openClient('${clientId}')">ביטול</button></div>`);
+}
+async function doStartRunForClient(clientId){
+  const pb=val('f_pbId'); if(!pb)return;
+  try{ const r=await apiPost('/playbooks/'+pb+'/apply',{clientId,systemId:val('f_systemId')||null});
+    closeModal(); toast('המהלך נוצר ✓'); openRun(r.id); }
+  catch(e){ toast('שגיאה','bad'); }
+}
 async function doApply(id){
   const body={title:val('f_title'),clientId:val('f_clientId')||null,systemId:val('f_systemId')||null};
   try{ const r=await apiPost('/playbooks/'+id+'/apply',body); closeModal(); toast('המהלך נוצר ✓'); openRun(r.id); }catch(e){toast('שגיאה','bad');}
 }
 async function openRun(id){
-  const runs=await apiGet('/playbooks/runs'); const r=runs.find(x=>x.id===id);
-  if(!r){toast('המהלך לא נמצא','bad'); go('playbooks'); return;}
-  RUN={...r,_checked:JSON.parse(r.checked||'{}')};
-  drawRun();
+  closeModal();
+  let r; try{ r=await apiGet('/playbooks/runs/'+id); }catch(e){ toast('המהלך לא נמצא','bad'); go('playbooks'); return; }
+  CURRENT='playbooks'; document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p==='playbooks'));
+  RUN={...r,_checked:JSON.parse(r.checked||'{}'),_answers:JSON.parse(r.answers||'{}')};
+  drawRun(); window.scrollTo(0,0);
 }
 function drawRun(){
-  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked;
-  let total=0,done=0; secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{total++;if(ck[si+'-'+ii])done++;}));
+  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked, ans=RUN._answers;
+  let total=0,done=0,filled=0;
+  secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{total++; if(ck[si+'-'+ii])done++; if(String(ans[si+'-'+ii]||'').trim())filled++;}));
   const prog=total?Math.round(done/total*100):0;
   $('view').innerHTML=`
-    <button class="btn ghost small" onclick="go('playbooks')">→ חזרה למתודולוגיה</button>
+    <div class="row" style="gap:8px">
+      <button class="btn ghost small" onclick="go('playbooks')">→ חזרה למתודולוגיה</button>
+      ${RUN.clientId?`<button class="btn ghost small" onclick="openClient('${RUN.clientId}')">👤 כרטיס הלקוח</button>`:''}
+    </div>
     <div class="spread" style="margin-top:10px"><div><h2 style="margin:0">${STAGE_EMOJI[RUN.stage]||''} ${esc(RUN.title)}</h2>
-      <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${done}/${total} · ${prog}%</div></div>
+      <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${done}/${total} · ${prog}% · ${filled} תשובות</div></div>
       <div class="row">${RUN.status==='done'?'<span class="pill p-green">הושלם ✓</span>':`<button class="btn teal" onclick="finishRun()">סימון כהושלם</button>`}
+        <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
+    <div class="hint" style="margin-bottom:12px">כתוב את התשובה מתחת לכל שאלה — היא נשמרת אוטומטית ומסמנת את הסעיף. בסיום לחץ "טופס מלא" כדי לקבל את הכל כמסמך אחד.</div>
     ${secs.map((s,si)=>`<div class="card">
       <h3>${esc(s.title||'')}</h3>
-      ${(s.items||[]).map((it,ii)=>{const key=si+'-'+ii,on=!!ck[key];return `
-        <label class="pb-check${on?' on':''}">
-          <input type="checkbox" ${on?'checked':''} onchange="toggleRun('${key}',this.checked)">
-          <span><b>${esc(it.label||'')}</b>${it.hint?`<span class="hint">${esc(it.hint)}</span>`:''}</span></label>`;}).join('')}
+      ${(s.items||[]).map((it,ii)=>{const key=si+'-'+ii,on=!!ck[key],a=ans[key]||'';return `
+        <div class="pb-item${on?' on':''}">
+          <label class="pb-check${on?' on':''}">
+            <input type="checkbox" ${on?'checked':''} onchange="toggleRun('${key}',this.checked)">
+            <span><b>${esc(it.label||'')}</b>${it.hint?`<span class="hint">${esc(it.hint)}</span>`:''}</span></label>
+          <textarea class="pb-answer" id="ans_${key}" rows="${a?Math.min(8,a.split('\n').length+1):2}" placeholder="התשובה שלי…"
+            oninput="RUN._answers['${key}']=this.value" onchange="saveRunAnswer('${key}')">${esc(a)}</textarea>
+        </div>`;}).join('')}
     </div>`).join('')||'<div class="empty">לפורמט הזה אין פריטים</div>'}
-    <div class="card"><h3>הערות</h3>
+    <div class="card"><h3>הערות כלליות</h3>
       <textarea id="runNotes" rows="3" placeholder="הערות למהלך…" onchange="saveRunNotes()">${esc(RUN.notes||'')}</textarea></div>`;
 }
-async function toggleRun(key,on){
-  RUN._checked[key]=on; if(!on) delete RUN._checked[key];
+/** קולט את מה שהוקלד למסך לפני רענון, כדי שלא ילך לאיבוד */
+function grabRunInputs(){
+  document.querySelectorAll('.pb-answer').forEach(t=>{ RUN._answers[t.id.slice(4)]=t.value; });
   const nt=$('runNotes'); if(nt) RUN.notes=nt.value;
-  drawRun();
-  try{ const r=await apiPatch('/playbooks/runs/'+RUN.id,{checked:RUN._checked}); RUN.progress=r.progress; }catch(e){toast('שגיאה בשמירה','bad');}
 }
-async function saveRunNotes(){ RUN.notes=val('runNotes'); try{ await apiPatch('/playbooks/runs/'+RUN.id,{notes:RUN.notes}); toast('נשמר'); }catch(e){} }
-async function finishRun(){ try{ await apiPatch('/playbooks/runs/'+RUN.id,{status:'done'}); RUN.status='done'; toast('הושלם ✓'); drawRun(); }catch(e){toast('שגיאה','bad');} }
+async function saveRun(patch){
+  try{ const r=await apiPatch('/playbooks/runs/'+RUN.id,patch); if(r.progress!==undefined) RUN.progress=r.progress; return true; }
+  catch(e){ toast('שגיאה בשמירה','bad'); return false; }
+}
+async function toggleRun(key,on){
+  grabRunInputs();
+  RUN._checked[key]=on; if(!on) delete RUN._checked[key];
+  drawRun();
+  await saveRun({checked:RUN._checked,answers:RUN._answers});
+}
+/** תשובה שנכתבה מסמנת אוטומטית את הסעיף כבוצע (ומחיקתה מבטלת) */
+async function saveRunAnswer(key){
+  grabRunInputs();
+  const has=!!String(RUN._answers[key]||'').trim();
+  const was=!!RUN._checked[key];
+  if(has&&!was) RUN._checked[key]=true;
+  if(!has&&was) delete RUN._checked[key];
+  const ok=await saveRun({checked:RUN._checked,answers:RUN._answers});
+  if(ok&&has!==was) drawRun();
+}
+async function saveRunNotes(){ grabRunInputs(); if(await saveRun({notes:RUN.notes,answers:RUN._answers})) toast('נשמר'); }
+async function finishRun(){ grabRunInputs(); if(await saveRun({status:'done',answers:RUN._answers})){ RUN.status='done'; toast('הושלם ✓'); drawRun(); } }
 async function delRun(){ if(!confirm('למחוק מהלך זה?'))return; await apiDel('/playbooks/runs/'+RUN.id); toast('נמחק'); go('playbooks'); }
+
+// ---------- הטופס המלא: כל השאלות + התשובות כמסמך אחד ----------
+let RUN_FORM='';
+async function runFormDoc(){
+  grabRunInputs();
+  await saveRun({checked:RUN._checked,answers:RUN._answers,notes:RUN.notes});
+  let f; try{ f=await apiGet('/playbooks/runs/'+RUN.id+'/form'); }catch(e){ toast('שגיאה','bad'); return; }
+  RUN_FORM=f.markdown;
+  openModal(`<div class="spread"><h3 style="margin:0">📄 טופס מלא — ${esc(RUN.title)}</h3></div>
+    <div class="sub" style="margin:4px 0 12px">כל השאלות והתשובות במסמך אחד. אפשר לערוך כאן לפני העתקה/שליחה.</div>
+    <textarea id="runFormTxt" rows="16" style="font-size:.86rem;line-height:1.6">${esc(RUN_FORM)}</textarea>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="copyRunForm()">📋 העתקה</button>
+      <button class="btn teal" onclick="waRunForm()">💬 וואטסאפ</button>
+      <button class="btn ghost" onclick="saveRunFormDoc()">💾 שמירה במסמכים</button>
+      <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+const runFormText=()=> $('runFormTxt')?.value || RUN_FORM;
+function copyRunForm(){ const t=runFormText(); (navigator.clipboard?.writeText(t)||Promise.reject()).then(()=>toast('הועתק ✓')).catch(()=>toast('בחר והעתק ידנית','bad')); }
+function waRunForm(){
+  // מספר הלקוח רק אם הכרטיס הטעון הוא באמת של אותו לקוח — אחרת בוחרים נמען בוואטסאפ
+  const c=CLIENT360?.client;
+  const phone=(c&&RUN.clientId&&c.id===RUN.clientId)?c.phone:'';
+  window.open(waLink(phone)+'?text='+encodeURIComponent(runFormText()),'_blank');
+}
+async function saveRunFormDoc(){
+  try{
+    await apiPost('/documents',{title:RUN.title+' — '+todayISO(),clientId:RUN.clientId||null,systemId:RUN.systemId||null,
+      category:'spec',source:'other',notes:runFormText()});
+    toast('נשמר במרכז המסמכים ✓'); closeModal();
+  }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
 
 // ---------- בריאות מסירה ----------
 const HEALTH_GATES=[['discovery','אפיון'],['proposal','הצעה'],['build','פיתוח'],['quality','QA'],['security','אבטחה'],['launch','עלייה'],['handoff','מסירה']];

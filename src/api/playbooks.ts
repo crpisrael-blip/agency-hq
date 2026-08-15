@@ -1,13 +1,15 @@
 import { Hono } from 'hono';
 import { asc, desc, eq } from 'drizzle-orm';
 import { playbooks, playbookRuns, clients, systems } from '../db/schema';
-import { Env, db, uid, now, pick } from './util';
+import { Env, db, uid, now, pick, todayIL } from './util';
 import { STAGES, DEFAULT_PLAYBOOKS } from './playbook-seed';
+
+const STAGE_LABEL: Record<string, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.label]));
 
 export const playbooksApp = new Hono<Env>();
 
 const PB_FIELDS = ['stage', 'title', 'summary', 'kind', 'sections', 'body', 'tags', 'sort'];
-const RUN_FIELDS = ['title', 'status', 'checked', 'notes', 'clientId', 'systemId'];
+const RUN_FIELDS = ['title', 'status', 'checked', 'answers', 'notes', 'clientId', 'systemId'];
 
 const asJson = (v: any, fallback: string) =>
   v === undefined ? undefined : typeof v === 'string' ? v : JSON.stringify(v ?? JSON.parse(fallback));
@@ -109,6 +111,7 @@ playbooksApp.post('/autolaunch', async (c) => {
     status: 'active',
     sections: pb.sections,
     checked: '{}',
+    answers: '{}',
     notes: null,
     progress: 0,
     createdAt: now(),
@@ -150,13 +153,69 @@ playbooksApp.get('/runs', async (c) => {
   const rows = await d.select().from(playbookRuns).orderBy(desc(playbookRuns.createdAt)).all();
   const cls = await d.select().from(clients).all();
   const sys = await d.select().from(systems).all();
+  const clientId = c.req.query('clientId');
+  const filtered = clientId ? rows.filter((r) => r.clientId === clientId) : rows;
   return c.json(
-    rows.map((r) => ({
+    filtered.map((r) => ({
       ...r,
       clientName: cls.find((cl) => cl.id === r.clientId)?.name || null,
       systemName: sys.find((s) => s.id === r.systemId)?.name || null,
     }))
   );
+});
+
+/** מהלך בודד + שמות הלקוח/המערכת */
+async function loadRun(c: any, id: string) {
+  const d = db(c);
+  const r = (await d.select().from(playbookRuns).where(eq(playbookRuns.id, id)).limit(1))[0];
+  if (!r) return null;
+  const cl = r.clientId ? (await d.select().from(clients).where(eq(clients.id, r.clientId)).limit(1))[0] : null;
+  const sy = r.systemId ? (await d.select().from(systems).where(eq(systems.id, r.systemId)).limit(1))[0] : null;
+  return { ...r, clientName: cl?.name || null, systemName: sy?.name || null };
+}
+
+playbooksApp.get('/runs/:id', async (c) => {
+  const run = await loadRun(c, c.req.param('id'));
+  return run ? c.json(run) : c.json({ error: 'not_found' }, 404);
+});
+
+/**
+ * הטופס המלא — הופך את המהלך (שאלות + התשובות שמילאתי) למסמך מוכן
+ * להעתקה/שליחה/שמירה במרכז המסמכים. זה ה"פלט" של המתודולוגיה.
+ */
+function buildForm(run: any): string {
+  const sections = JSON.parse(run.sections || '[]');
+  const answers = JSON.parse(run.answers || '{}');
+  const checked = JSON.parse(run.checked || '{}');
+  const meta = [
+    run.clientName ? `**לקוח:** ${run.clientName}` : null,
+    run.systemName ? `**מערכת:** ${run.systemName}` : null,
+    run.stage ? `**שלב:** ${STAGE_LABEL[run.stage] || run.stage}` : null,
+    `**תאריך:** ${todayIL()}`,
+    `**התקדמות:** ${run.progress || 0}%`,
+    run.status === 'done' ? '**סטטוס:** הושלם ✓' : null,
+  ].filter(Boolean);
+
+  const out: string[] = [`# ${run.title}`, '', meta.join('  |  '), ''];
+  sections.forEach((s: any, si: number) => {
+    out.push(`## ${s.title || ''}`, '');
+    (s.items || []).forEach((it: any, ii: number) => {
+      const key = `${si}-${ii}`;
+      const ans = String(answers[key] ?? '').trim();
+      out.push(`**${checked[key] ? '✓' : '○'} ${it.label || ''}**`);
+      out.push(ans ? ans.split('\n').map((l: string) => l.trim()).join('\n') : '_(טרם נענה)_');
+      out.push('');
+    });
+  });
+  const notes = String(run.notes || '').trim();
+  if (notes) out.push('## הערות', '', notes, '');
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+}
+
+playbooksApp.get('/runs/:id/form', async (c) => {
+  const run = await loadRun(c, c.req.param('id'));
+  if (!run) return c.json({ error: 'not_found' }, 404);
+  return c.json({ title: run.title, clientId: run.clientId, clientName: run.clientName, markdown: buildForm(run) });
 });
 
 // החלת פורמט → יוצר מהלך עם צילום הסעיפים
@@ -179,6 +238,7 @@ playbooksApp.post('/:id/apply', async (c) => {
       status: 'active',
       sections: pb.sections,
       checked: '{}',
+      answers: '{}',
       notes: null,
       progress: 0,
       createdAt: now(),
@@ -191,6 +251,7 @@ playbooksApp.patch('/runs/:id', async (c) => {
   const body = await c.req.json().catch(() => ({} as any));
   const data: any = pick(body, RUN_FIELDS);
   if (data.checked !== undefined) data.checked = asJson(data.checked, '{}');
+  if (data.answers !== undefined) data.answers = asJson(data.answers, '{}');
   const cur = (await db(c).select().from(playbookRuns).where(eq(playbookRuns.id, id)).limit(1))[0];
   if (!cur) return c.json({ error: 'not_found' }, 404);
   const checkedRaw = data.checked !== undefined ? data.checked : cur.checked;

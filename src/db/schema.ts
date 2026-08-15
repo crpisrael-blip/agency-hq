@@ -259,6 +259,7 @@ export const playbookRuns = sqliteTable('playbook_runs', {
   status: text('status').notNull().default('active'), // active | done | archived
   sections: text('sections').notNull().default('[]'), // צילום הסעיפים בזמן ההחלה
   checked: text('checked').notNull().default('{}'),    // JSON: { "s-i": true }
+  answers: text('answers').notNull().default('{}'),    // JSON: { "s-i": "התשובה שכתבתי" }
   notes: text('notes'),
   progress: integer('progress').notNull().default(0),  // 0-100
   createdAt: integer('created_at').notNull(),
