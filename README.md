@@ -65,4 +65,17 @@ npm run dev                    # http://localhost:8790
 
 ## עדכונים
 
-כל דחיפה ל-`main` ב-GitHub → Cloudflare Pages בונה ומעלה גרסה חדשה אוטומטית (ראה `.github/workflows/deploy.yml`; דורש את ה-secret `CLOUDFLARE_API_TOKEN` ואת `CLOUDFLARE_ACCOUNT_ID`).
+כל דחיפה ל-`main` ב-GitHub מריצה את `.github/workflows/deploy.yml`: בדיקת טיפוסים → מיגרציות על ה-D1 החי → פריסה ל-Cloudflare Pages. המיגרציות רצות תמיד לפני הפריסה, כדי שקוד חדש לא יפגוש סכמה ישנה.
+
+### הגדרה חד-פעמית
+
+הצינור דורש secret בשם `CLOUDFLARE_API_TOKEN` תחת **Settings → Secrets and variables → Actions**, עם הרשאות `D1:Edit` ו-`Cloudflare Pages:Edit`. (`CLOUDFLARE_ACCOUNT_ID` כבר מוגדר בקובץ ואינו סוד.)
+
+בלי הטוקן ה-workflow **נכשל במפורש** בשלב הראשון. זו התנהגות מכוונת: בגרסה קודמת הוא דילג בשקט וסיים ירוק, כך שמיזוגים נראו כאילו עלו לאוויר בזמן ששום דבר לא נפרס ושום מיגרציה לא רצה.
+
+### פריסה ידנית
+
+```bash
+npx wrangler d1 migrations apply agency-hq-db --remote   # תמיד קודם
+npx wrangler pages deploy public --project-name agency-hq --branch main
+```
