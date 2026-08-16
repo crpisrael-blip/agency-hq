@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { desc, eq, and } from 'drizzle-orm';
-import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules } from '../db/schema';
-import { Env, db, uid, now, pick } from './util';
+import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules, expenseAllocations, playbookRuns } from '../db/schema';
+import { Env, db, uid, now, pick, num } from './util';
 import { engagementMonthly } from './engagements';
 
 export const clientsApp = new Hono<Env>();
@@ -46,11 +46,29 @@ clientsApp.get('/:id', async (c) => {
   const cf = await d.select().from(cashflow).where(eq(cashflow.clientId, id)).orderBy(desc(cashflow.startDate)).all();
   const docs = await d.select().from(documents).where(eq(documents.clientId, id)).orderBy(desc(documents.pinned), desc(documents.createdAt)).all();
   const mods = await d.select().from(modules).where(eq(modules.clientId, id)).all();
+  // מהלכי המתודולוגיה של הלקוח — כל תהליך שפתחתי מולו
+  const runs = await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, id))
+    .orderBy(desc(playbookRuns.createdAt)).all();
   const linkedTasks = await d.select().from(tasks)
     .where(and(eq(tasks.entityType, 'client'), eq(tasks.entityId, id)))
     .orderBy(desc(tasks.createdAt)).all();
   const mrr = eng.filter((e) => e.status === 'active').reduce((a, e) => a + engagementMonthly(e), 0);
-  return c.json({ client: cl, systems: sys, engagements: eng, processes: procs, ideas, cashflow: cf, documents: docs, modules: mods, tasks: linkedTasks, mrr });
+  // עלות תשתית/מנויים משויכת לחודש (חלק יחסי מהמנויים המשותפים)
+  const allAlloc = await d.select().from(expenseAllocations).all();
+  const cfMap = new Map((await d.select().from(cashflow).all()).map((r) => [r.id, r]));
+  const sumWByCf = new Map<string, number>();
+  for (const a of allAlloc) sumWByCf.set(a.cashflowId, (sumWByCf.get(a.cashflowId) || 0) + (num(a.weight) || 0));
+  const infraItems = allAlloc
+    .filter((a) => a.clientId === id)
+    .map((a) => {
+      const row: any = cfMap.get(a.cashflowId);
+      if (!row || row.kind !== 'expense' || row.recurring !== 'monthly') return null;
+      const sw = sumWByCf.get(a.cashflowId) || 1;
+      return { label: row.label, monthly: Math.round((num(row.amount) * (num(a.weight) || 0)) / sw * 100) / 100 };
+    })
+    .filter(Boolean) as { label: string; monthly: number }[];
+  const infraMonthly = Math.round(infraItems.reduce((s, x) => s + x.monthly, 0) * 100) / 100;
+  return c.json({ client: cl, systems: sys, engagements: eng, processes: procs, ideas, cashflow: cf, documents: docs, modules: mods, runs, tasks: linkedTasks, mrr, infraMonthly, infraItems });
 });
 
 clientsApp.patch('/:id', async (c) => {

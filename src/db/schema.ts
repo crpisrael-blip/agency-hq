@@ -52,8 +52,11 @@ export const systems = sqliteTable('systems', {
   stack: text('stack'),                        // טכנולוגיות
   status: text('status').notNull().default('discovery'), // discovery | design | building | live | maintenance | retired
   url: text('url'),                            // כתובת חיה (עמוד ציבורי / נחיתה)
+  leadUrl: text('lead_url'),                   // דף נחיתה ציבורי שאוסף לידים
   adminUrl: text('admin_url'),                 // כתובת ממשק ניהול
   credentials: text('credentials'),            // פרטי כניסה ראשונית ללקוח
+  authMethod: text('auth_method'),             // אופן הכניסה/הזדהות (PIN, אימייל+סיסמה, Google OAuth, ...)
+  authScore: integer('auth_score'),            // ציון אבטחת כניסה 1–5 (5 = הכי מאובטח)
   repoUrl: text('repo_url'),
   startDate: text('start_date'),               // YYYY-MM-DD
   launchDate: text('launch_date'),
@@ -172,6 +175,19 @@ export const modules = sqliteTable('modules', {
   createdAt: integer('created_at').notNull(),
 });
 
+/**
+ * שיוך הוצאה לפרויקטים — מנוי/הוצאה אחת יכולה להתחלק בין כמה פרויקטים.
+ * העלות לכל יעד = amount * weight / סכום ה-weights (ברירת מחדל: חלוקה שווה).
+ * clientId ריק (NULL) = מערכת הניהול / בית התוכנה עצמו (Agency HQ).
+ */
+export const expenseAllocations = sqliteTable('expense_allocations', {
+  id: text('id').primaryKey(),
+  cashflowId: text('cashflow_id').notNull().references(() => cashflow.id),
+  clientId: text('client_id').references(() => clients.id), // NULL = בית התוכנה עצמו
+  weight: real('weight').notNull().default(1),
+  createdAt: integer('created_at').notNull(),
+});
+
 /** ליד שנכנס דרך אחת המערכות שבניתי (נרשם דרך webhook ציבורי) */
 export const leads = sqliteTable('leads', {
   id: text('id').primaryKey(),
@@ -238,11 +254,14 @@ export const playbookRuns = sqliteTable('playbook_runs', {
   playbookId: text('playbook_id').references(() => playbooks.id),
   title: text('title').notNull(),
   stage: text('stage'),
+  kind: text('kind').notNull().default('checklist'), // checklist | template | canvas
   clientId: text('client_id').references(() => clients.id),
   systemId: text('system_id').references(() => systems.id),
   status: text('status').notNull().default('active'), // active | done | archived
   sections: text('sections').notNull().default('[]'), // צילום הסעיפים בזמן ההחלה
+  doc: text('doc'),                                   // מהלך מסוג תבנית: המסמך שממלאים
   checked: text('checked').notNull().default('{}'),    // JSON: { "s-i": true }
+  answers: text('answers').notNull().default('{}'),    // JSON: { "s-i": "התשובה שכתבתי" }
   notes: text('notes'),
   progress: integer('progress').notNull().default(0),  // 0-100
   createdAt: integer('created_at').notNull(),
@@ -260,3 +279,4 @@ export type Process = typeof processes.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type Playbook = typeof playbooks.$inferSelect;
 export type PlaybookRun = typeof playbookRuns.$inferSelect;
+export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;

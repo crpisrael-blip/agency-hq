@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מנוע · המערכת שמריצה את העסק שלך</title>
+<meta name="description" content="מנוע — לא עוד תוכנה. השרטוט ההנדסי של העסק שלך: תהליכי עבודה, מסע לקוח ומרכזי רווח מחוברים למערכת מידע אחת, חיה, בהתאמה אישית מלאה.">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#070d1a; --bg2:#0a1326; --node:#0c1a33; --line:#173056; --line2:#20406e;
+    --grid:rgba(92,160,230,.07); --gridM:rgba(92,160,230,.13);
+    --txt:#e8f1ff; --muted:#8aa2c8; --cyan:#5cc8ff; --cyan2:#8fe3ff; --amber:#ffcf6b;
+    --glow:rgba(92,200,255,.35);
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,'Courier New',monospace;
+    --sans:'Segoe UI',-apple-system,Rubik,Arial,sans-serif;
+  }
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.65;overflow-x:hidden;position:relative}
+  /* blueprint grid */
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+      linear-gradient(var(--gridM) 1px,transparent 1px),
+      linear-gradient(90deg,var(--gridM) 1px,transparent 1px);
+    background-size:26px 26px,26px 26px,130px 130px,130px 130px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
+  a{color:inherit;text-decoration:none}
+  .mono{font-family:var(--mono)}
+  .cy{color:var(--cyan)}
+  .kick{font-family:var(--mono);color:var(--cyan);font-size:.82rem;letter-spacing:.5px;opacity:.9}
+  .btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-family:inherit;font-weight:800;
+    padding:14px 26px;border-radius:10px;font-size:1.02rem;transition:transform .15s,box-shadow .15s,background .15s}
+  .btn.primary{background:linear-gradient(135deg,var(--cyan),#4aa8ff);color:#031523;box-shadow:0 8px 26px var(--glow)}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 14px 38px var(--glow)}
+  .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line2)}
+  .btn.ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+
+  header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(7,13,26,.78);border-bottom:1px solid var(--line)}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:900;font-size:1.2rem;letter-spacing:.5px}
+  .logo{width:40px;height:40px;position:relative;display:grid;place-items:center}
+  .logo svg{width:40px;height:40px}
+  .brand small{font-family:var(--mono);font-weight:600;color:var(--muted);font-size:.68rem;letter-spacing:0}
+  header .btn{padding:9px 18px;font-size:.88rem}
+  @media(max-width:600px){.brand small{display:none}}
+
+  /* hero */
+  .hero{padding:70px 0 30px;text-align:center;position:relative}
+  .eyebrow{display:inline-block;font-family:var(--mono);font-size:.8rem;color:var(--cyan);
+    border:1px solid var(--line2);background:rgba(92,200,255,.06);padding:6px 14px;border-radius:6px;margin-bottom:22px}
+  .hero h1{font-size:clamp(2.1rem,5.6vw,3.6rem);font-weight:900;line-height:1.1;letter-spacing:-.5px}
+  .hero h1 .big{display:block;background:linear-gradient(120deg,var(--cyan2),#5c9dff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p.lead{max-width:720px;margin:20px auto 0;color:var(--muted);font-size:clamp(1.05rem,2.4vw,1.26rem)}
+  .cta-row{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+
+  /* blueprint diagram */
+  .blueprint{margin:46px 0 20px}
+  .bp-frame{border:1px solid var(--line2);border-radius:16px;background:linear-gradient(180deg,rgba(12,26,51,.6),rgba(8,16,32,.4));
+    position:relative;padding:14px}
+  .bp-frame::before,.bp-frame::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--cyan);opacity:.5}
+  .bp-frame::before{top:-1px;right:-1px;border-left:none;border-bottom:none;border-radius:0 14px 0 0}
+  .bp-frame::after{bottom:-1px;left:-1px;border-right:none;border-top:none;border-radius:0 0 0 14px}
+  .bp-cap{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.72rem;color:var(--muted);padding:2px 8px 10px}
+  .bp-cap b{color:var(--cyan)}
+  .diagram-wrap{overflow-x:auto;overflow-y:hidden}
+  svg.engine{display:block;width:100%;min-width:660px;height:auto}
+  .node-box{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:var(--node);border:1.5px solid var(--line2);border-radius:12px;gap:3px;
+    box-shadow:0 0 0 4px rgba(92,200,255,.04);transition:border-color .3s,box-shadow .3s}
+  .in .node-box{border-color:rgba(92,200,255,.55);box-shadow:0 0 22px rgba(92,200,255,.18)}
+  .node-box .ni{font-size:1.5rem;line-height:1}
+  .node-box .nt{font-weight:800;font-size:.98rem}
+  .node-box .ns{font-family:var(--mono);font-size:.62rem;color:var(--cyan);opacity:.85}
+  .io-tag{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.72rem}
+  .wire{fill:none;stroke:var(--cyan);stroke-width:2;stroke-dasharray:6 5;
+    stroke-dashoffset:400;transition:stroke-dashoffset 1.4s ease}
+  .in .wire{stroke-dashoffset:0;animation:flow 1s linear .2s infinite}
+  @keyframes flow{to{stroke-dashoffset:-11}}
+  .gear{fill:none;stroke:var(--line2);stroke-width:1.4;opacity:.6}
+  .in .gear{animation:spin 14s linear infinite;transform-origin:center;transform-box:fill-box}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .dim{stroke:var(--line2);stroke-width:1;stroke-dasharray:3 3}
+  .dim-t{fill:var(--muted);font-family:var(--mono);font-size:11px}
+
+  .trust{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:12px 20px;background:rgba(12,26,51,.4);min-width:120px}
+  .stat b{display:block;font-size:1.55rem;font-weight:900;color:var(--cyan2)}
+  .stat small{color:var(--muted);font-family:var(--mono);font-size:.74rem}
+
+  section{padding:58px 0;position:relative;z-index:1}
+  .sec-head{max-width:700px;margin:0 auto 40px}
+  .sec-head.ctr{text-align:center}
+  .sec-head h2{font-size:clamp(1.6rem,3.8vw,2.35rem);font-weight:900;margin-top:8px;line-height:1.2}
+  .sec-head p{color:var(--muted);margin-top:12px;font-size:1.05rem}
+
+  .grid{display:grid;gap:16px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:860px){.g3{grid-template-columns:1fr}}
+  .card{background:linear-gradient(160deg,rgba(12,26,51,.7),rgba(8,16,32,.5));border:1px solid var(--line);border-radius:14px;
+    padding:24px 22px;position:relative;transition:border-color .2s,transform .2s}
+  .card:hover{border-color:var(--cyan);transform:translateY(-3px)}
+  .card .tag{font-family:var(--mono);font-size:.7rem;color:var(--cyan);opacity:.8}
+  .card .ico{font-size:1.7rem;margin:6px 0 10px}
+  .card h3{font-size:1.2rem;font-weight:800;margin-bottom:7px}
+  .card p{color:var(--muted);font-size:.97rem}
+  .card .cn{position:absolute;top:14px;left:16px;font-family:var(--mono);font-size:.72rem;color:var(--line2)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:840px;margin:0 auto}
+  .chip{font-family:var(--mono);border:1px solid var(--line2);border-radius:8px;padding:9px 16px;font-size:.9rem;background:rgba(12,26,51,.4)}
+  .chip b{color:var(--cyan);margin-inline-end:7px}
+
+  .pipe{display:grid;gap:0;max-width:800px;margin:0 auto}
+  .pstep{display:flex;gap:18px;align-items:flex-start;padding:18px 0;border-bottom:1px dashed var(--line)}
+  .pstep:last-child{border-bottom:none}
+  .pstep .n{flex:none;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--cyan);color:var(--cyan);
+    display:grid;place-items:center;font-family:var(--mono);font-weight:800;font-size:1.05rem;background:rgba(92,200,255,.06)}
+  .pstep h4{font-size:1.12rem;font-weight:800}
+  .pstep p{color:var(--muted);font-size:.96rem;margin-top:3px}
+
+  .stack{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .tech{font-family:var(--mono);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:.86rem;color:var(--muted);background:rgba(12,26,51,.35)}
+
+  .form-card{background:linear-gradient(180deg,rgba(12,26,51,.85),rgba(8,16,32,.7));border:1px solid var(--line2);border-radius:18px;
+    padding:34px;max-width:660px;margin:0 auto;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+  .form-card .stamp{position:absolute;top:16px;left:20px;font-family:var(--mono);font-size:.68rem;color:var(--cyan);opacity:.7;text-align:left}
+  .form-card h2{font-size:clamp(1.5rem,3.5vw,2.05rem);font-weight:900;text-align:center}
+  .form-card .sub{color:var(--muted);text-align:center;margin:10px 0 26px}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-family:var(--mono);font-weight:700;font-size:.82rem;margin-bottom:6px;color:var(--muted)}
+  .field label b{color:var(--cyan)}
+  .field input,.field textarea{width:100%;background:var(--bg);border:1px solid var(--line2);border-radius:9px;
+    padding:13px 15px;color:var(--txt);font-family:inherit;font-size:1rem;transition:border-color .15s,box-shadow .15s}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(92,200,255,.12)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  @media(max-width:560px){.row2{grid-template-columns:1fr}}
+  .form-card .btn{width:100%;justify-content:center;margin-top:8px;font-size:1.06rem;padding:16px}
+  .form-note{text-align:center;color:var(--muted);font-family:var(--mono);font-size:.78rem;margin-top:14px}
+  .ok-box{display:none;text-align:center;padding:26px 10px}
+  .ok-box .big{font-size:2.8rem}
+  .ok-box h3{font-size:1.45rem;font-weight:900;margin:10px 0 6px}
+  .ok-box p{color:var(--muted)}
+
+  footer{border-top:1px solid var(--line);padding:30px 0;color:var(--muted);position:relative;z-index:1}
+  .revblock{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:.78rem;
+    border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+  .revblock a{color:var(--cyan);font-weight:700}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
+  .reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="13" stroke="#5cc8ff" stroke-width="2"/><circle cx="20" cy="20" r="4.5" fill="#5cc8ff"/><g stroke="#5cc8ff" stroke-width="2"><line x1="20" y1="3" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="37"/><line x1="3" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="37" y2="20"/></g></svg></span>
+      <span>מנוע <small>מערכות מידע לעסקים</small></span>
+    </div>
+    <a href="#lead" class="btn primary">שרטט לי מערכת</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow mono">// שרטוט מערכת · בהתאמה אישית · פריסה בענן</span>
+    <h1>לא עוד תוכנה.<span class="big">המנוע שמריץ את העסק שלך.</span></h1>
+    <p class="lead">רוב המפתחים יבנו לך "אפליקציה". אני קודם <b class="cy">משרטט את המנוע</b> — ממפה את תהליכי העבודה, את מסע הלקוח ואת מרכזי הרווח — ורק אז מרכיב אותם למערכת אחת, חיה, שרצה בשבילך 24/7.</p>
+
+    <div class="blueprint reveal">
+      <div class="bp-frame">
+        <div class="bp-cap mono"><span>// המנוע — סכמת הרכבה</span><span>שרטוט <b>#001</b> · גרסה A</span></div>
+        <div class="diagram-wrap">
+          <svg class="engine" viewBox="0 0 760 300" role="img" aria-label="סכמת המנוע: תהליכי עבודה, מסע לקוח, מרכזי רווח">
+            <defs>
+              <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10z" fill="#5cc8ff"/>
+              </marker>
+            </defs>
+            <!-- housing -->
+            <rect x="18" y="70" width="724" height="150" rx="14" fill="none" stroke="#20406e" stroke-width="1.4" stroke-dasharray="7 5"/>
+            <!-- decorative gears -->
+            <g class="gear"><circle cx="60" cy="255" r="16"/><circle cx="60" cy="255" r="6"/></g>
+            <g class="gear"><circle cx="700" cy="45" r="13"/><circle cx="700" cy="45" r="5"/></g>
+            <!-- input arrow (right) -->
+            <line x1="742" y1="145" x2="690" y2="145" class="wire" marker-end="url(#arr)"/>
+            <!-- wires between nodes (flow right -> left) -->
+            <path d="M535 145 L455 145" class="wire" marker-end="url(#arr)"/>
+            <path d="M305 145 L225 145" class="wire" marker-end="url(#arr)"/>
+            <!-- output arrow (left) -->
+            <line x1="85" y1="145" x2="30" y2="145" class="wire" marker-end="url(#arr)"/>
+            <!-- dimension line -->
+            <line x1="90" y1="248" x2="670" y2="248" class="dim"/>
+            <text x="380" y="264" text-anchor="middle" class="dim-t">כאוס ורעש  ⟶  מערכת אחת שרצה</text>
+            <!-- input tag -->
+            <foreignObject x="690" y="98" width="66" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="io-tag" style="color:#8aa2c8">// INPUT</div></foreignObject>
+            <!-- nodes -->
+            <foreignObject x="535" y="105" width="150" height="80"><div xmlns="http://www.w3.org/1999/xhtml" class="node-box"><div class="ni">🔄</div><div class="nt">תהליכי עבודה</div><div class="ns mono">PROCESS</div></div></foreignObject>
+            <foreignObject x="305" y="105" width="150" height="80"><div xmlns="http://www.w3.org/1999/xhtml" class="node-box"><div class="ni">🧭</div><div class="nt">מסע לקוח</div><div class="ns mono">JOURNEY</div></div></foreignObject>
+            <foreignObject x="75" y="105" width="150" height="80"><div xmlns="http://www.w3.org/1999/xhtml" class="node-box"><div class="ni">💰</div><div class="nt">מרכזי רווח</div><div class="ns mono">PROFIT</div></div></foreignObject>
+            <!-- output tag -->
+            <foreignObject x="6" y="98" width="70" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="io-tag" style="color:#5cc8ff">OUTPUT //</div></foreignObject>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="trust">
+      <div class="stat"><b>9</b><small>מערכות חיות</small></div>
+      <div class="stat"><b>9</b><small>תחומים שונים</small></div>
+      <div class="stat"><b>100%</b><small>התאמה אישית</small></div>
+      <div class="stat"><b>☁️</b><small>ענן · 24/7</small></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head ctr reveal">
+      <div class="kick">// שלושת רכיבי המנוע</div>
+      <h2>הייחוד: מה שאחרים מדלגים עליו</h2>
+      <p>ההבדל בין תוכנה שמתאבקת אבק — לבין מערכת שהעסק לא יכול בלעדיה.</p>
+    </div>
+    <div class="grid g3">
+      <div class="card reveal"><span class="cn mono">01</span><div class="tag mono">// PROCESS</div><div class="ico">🔄</div><h3>תהליכי עבודה</h3><p>ממפה איך העבודה זורמת אצלך בפועל — מי, מה, מתי, ומה נופל בין הכיסאות — והופך את זה לתהליך שהמערכת אוכפת אוטומטית.</p></div>
+      <div class="card reveal"><span class="cn mono">02</span><div class="tag mono">// JOURNEY</div><div class="ico">🧭</div><h3>מסע הלקוח</h3><p>מהליד הראשון ועד הלקוח החוזר. בונה כל נקודת מגע — כך שאף לקוח לא נשמט, וכל שלב מקדם לשלב הבא.</p></div>
+      <div class="card reveal"><span class="cn mono">03</span><div class="tag mono">// PROFIT</div><div class="ico">💰</div><h3>מרכזי רווח</h3><p>המערכת לא רק מסדרת את הבלגן — היא חושפת הזדמנויות רווח חדשות מהמשאבים שכבר יש לך, והופכת אותן להכנסה.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="background:rgba(10,19,38,.5)">
+  <div class="wrap">
+    <div class="sec-head ctr reveal">
+      <div class="kick">// המודולים</div>
+      <h2>מה אני מרכיב</h2>
+      <p>מערכת אחת שמאחדת הכול — או מודול בודד שפותר כאב נקודתי.</p>
+    </div>
+    <div class="grid g3">
+      <div class="card reveal"><div class="ico">🗂️</div><h3>מערכת מידע בהתאמה</h3><p>הליבה: ניהול שנתפר בדיוק לעסק שלך — לקוחות, הזמנות, מלאי, תורים, כספים — במקום אחד.</p></div>
+      <div class="card reveal"><div class="ico">🤝</div><h3>CRM ומסע לקוח</h3><p>ניהול לידים, מעקב, תזכורות אוטומטיות ופורטל לקוחות — כל קשר הופך לעסקה.</p></div>
+      <div class="card reveal"><div class="ico">⚡</div><h3>אוטומציות</h3><p>העבודה השחורה נעשית לבד: הודעות, חיובים, סנכרון, התראות — בזמן אמת.</p></div>
+      <div class="card reveal"><div class="ico">📱</div><h3>אפליקציות מובייל</h3><p>לצוות או ללקוחות — עובדת גם אופליין, מסתנכרנת לענן, מותקנת מהדפדפן.</p></div>
+      <div class="card reveal"><div class="ico">📊</div><h3>דשבורדים ובקרה</h3><p>כל המספרים שחשובים לך על מסך אחד — החלטות לפי נתונים, לא לפי תחושה.</p></div>
+      <div class="card reveal"><div class="ico">🎯</div><h3>דפי נחיתה ומנועי לידים</h3><p>עמוד מכירתי מחובר ישירות למערכת — כל ליד נכנס ומטופל אוטומטית (בדיוק כמו הדף הזה).</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head ctr reveal">
+      <div class="kick">// שדה מוכח</div>
+      <h2>תחומים שכבר הרכבתי בהם מנוע</h2>
+      <p>9 מערכות חיות ב-9 עולמות תוכן שונים לגמרי — ההוכחה שהשיטה עובדת בכל עסק.</p>
+    </div>
+    <div class="chips reveal">
+      <div class="chip"><b>▸</b>אירוח ונופש</div>
+      <div class="chip"><b>▸</b>בריאות ואיכות חיים</div>
+      <div class="chip"><b>▸</b>דיור מוגן וקהילה</div>
+      <div class="chip"><b>▸</b>קליניקות ותיאום תורים</div>
+      <div class="chip"><b>▸</b>שירותי שטח וכוננות</div>
+      <div class="chip"><b>▸</b>שירותים מקצועיים</div>
+      <div class="chip"><b>▸</b>ספורט ואימון</div>
+      <div class="chip"><b>▸</b>ניהול משפחתי ואישי</div>
+      <div class="chip"><b>▸</b>מסחר ושירות</div>
+    </div>
+  </div>
+</section>
+
+<section style="background:rgba(10,19,38,.5)">
+  <div class="wrap">
+    <div class="sec-head ctr reveal">
+      <div class="kick">// קו ההרכבה</div>
+      <h2>איך עובדים יחד</h2>
+      <p>שיטה מסודרת, שקופה, עם תוצר בכל שלב — בלי הפתעות.</p>
+    </div>
+    <div class="pipe">
+      <div class="pstep reveal"><div class="n">01</div><div><h4>אפיון והבנה</h4><p>נשב, אבין את העסק, אמפה את התהליכים והכאבים — ואגדיר איתך בדיוק מה המנוע צריך לפתור.</p></div></div>
+      <div class="pstep reveal"><div class="n">02</div><div><h4>שרטוט מסע ומרכזי רווח</h4><p>בונה את מסע הלקוח ומזהה הזדמנויות רווח — כך שהמערכת לא רק מסדרת, אלא גם מרוויחה.</p></div></div>
+      <div class="pstep reveal"><div class="n">03</div><div><h4>הרכבה ופריסה</h4><p>בונה את המערכת בהתאמה אישית ופורס בענן — מהירה, מאובטחת, זמינה מכל מכשיר.</p></div></div>
+      <div class="pstep reveal"><div class="n">04</div><div><h4>הנעה וליווי</h4><p>מלמד אותך ואת הצוות, ונשאר איתך לאורך זמן — שיפורים, תמיכה והתאמות ככל שהעסק גדל.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head ctr reveal">
+      <div class="kick">// מפרט טכני</div>
+      <h2>תשתית שלא נופלת ברגע האמת</h2>
+      <p>ענן מודרני — מהיר, מאובטח, שגדל עם העסק.</p>
+    </div>
+    <div class="stack reveal">
+      <div class="tech">☁️ Cloudflare</div><div class="tech">Supabase</div><div class="tech">Firebase</div>
+      <div class="tech">DB בענן</div><div class="tech">Real-time</div><div class="tech">PWA / מובייל</div>
+      <div class="tech">אבטחה והרשאות</div><div class="tech">Webhooks</div><div class="tech">אינטגרציות</div>
+    </div>
+  </div>
+</section>
+
+<section id="lead">
+  <div class="wrap">
+    <div class="form-card reveal">
+      <div class="stamp mono">מנוע<br>REV.A · 001</div>
+      <div id="formInner">
+        <h2>נתחיל שרטוט</h2>
+        <p class="sub">ספר לי בכמה מילים על העסק — ואחזור אליך עם ראייה ראשונית, בלי התחייבות.</p>
+        <form id="leadForm" onsubmit="return submitLead(event)">
+          <div class="row2">
+            <div class="field"><label for="name">שם מלא <b>*</b></label><input id="name" required placeholder="השם שלך"></div>
+            <div class="field"><label for="phone">טלפון <b>*</b></label><input id="phone" required inputmode="tel" placeholder="050-0000000"></div>
+          </div>
+          <div class="field"><label for="field">תחום העסק</label><input id="field" placeholder="קליניקה, בית אירוח, שירות שטח…"></div>
+          <div class="field"><label for="msg">מה תרצה שהמנוע יפתור לך?</label><textarea id="msg" rows="3" placeholder="הכאב הכי גדול בעסק היום…"></textarea></div>
+          <button type="submit" class="btn primary" id="submitBtn">שליחה — ונדבר 💬</button>
+          <p class="form-note">// הפרטים נכנסים ישירות למערכת שלי · אחזור אליך אישית · אין ספאם</p>
+        </form>
+      </div>
+      <div class="ok-box" id="okBox">
+        <div class="big">✅</div>
+        <h3>קיבלתי, תודה!</h3>
+        <p>הפרטים נכנסו למערכת ואחזור אליך בהקדם. יום נהדר 🙌</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="revblock">
+      <span>מנוע · מערכות מידע לעסקים</span>
+      <span>תהליכים · מסע לקוח · מרכזי רווח</span>
+      <span>✉️ <a href="mailto:menahemtzik1@gmail.com">menahemtzik1@gmail.com</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  var SYSTEM_ID = 'sys-agency-hq-core';
+  function submitLead(e){
+    e.preventDefault();
+    var btn=document.getElementById('submitBtn');
+    var name=document.getElementById('name').value.trim();
+    var phone=document.getElementById('phone').value.trim();
+    var field=document.getElementById('field').value.trim();
+    var msg=document.getElementById('msg').value.trim();
+    if(!name||!phone){return false;}
+    btn.disabled=true; btn.textContent='שולח…';
+    var note='📞 '+phone+(field?' · תחום: '+field:'')+(msg?' · '+msg:'');
+    fetch('/api/hook/lead',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({systemId:SYSTEM_ID,source:'landing',name:name,note:note.slice(0,300)})})
+      .then(function(r){return r.json().catch(function(){return {};});})
+      .then(function(){document.getElementById('formInner').style.display='none';document.getElementById('okBox').style.display='block';})
+      .catch(function(){btn.disabled=false;btn.textContent='נסה שוב';alert('אופס, משהו השתבש. אפשר גם לכתוב לי למייל.');});
+    return false;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+</script>
+</body>
+</html>
