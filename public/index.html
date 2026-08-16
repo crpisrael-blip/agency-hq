@@ -1070,7 +1070,8 @@ RENDER.ideas=async()=>{
   const totalWeighted=list.filter(i=>!['dropped','active'].includes(i.status)).reduce((a,i)=>a+(i.weighted||0),0);
   $('view').innerHTML=`
     <div class="spread"><div><h2>מרכזי רווח</h2><div class="sub">רעיונות והכנסות חדשות · ${money(totalWeighted)} פוטנציאל משוקלל</div></div>
-      <button class="btn primary" onclick="ideaForm()">+ רעיון</button></div>
+      <div class="row"><button class="btn ghost" onclick="seedIdeas()" title="טעינת שירותים מוכנים למכירה (אינטגרציות, קמפיינים)">+ רעיונות מוכנים</button>
+        <button class="btn primary" onclick="ideaForm()">+ רעיון</button></div></div>
     <div class="card" style="padding:6px 17px">
       ${list.length?list.map(i=>`<div class="list-item" onclick='ideaForm(${j(i)})'>
         <div class="li-main"><b>💡 ${esc(i.title)}</b><small>${i.clientName?esc(i.clientName)+' · ':''}${i.model?esc(i.model)+' · ':''}מאמץ ${EFFORT[i.effort]||i.effort} · סבירות ${i.confidence}%</small></div>
@@ -1099,6 +1100,7 @@ async function saveIdea(id){
   try{ id?await apiPatch('/ideas/'+id,body):await apiPost('/ideas',body); closeModal(); toast('נשמר'); go('ideas'); }catch(e){toast('שגיאה','bad');}
 }
 async function delIdea(id){ if(!confirm('למחוק?'))return; await apiDel('/ideas/'+id); closeModal(); toast('נמחק'); go('ideas'); }
+async function seedIdeas(){ try{ const r=await apiPost('/ideas/seed'); toast(r.added?`נוספו ${r.added} רעיונות מוכנים`:'כל הרעיונות כבר קיימים'); go('ideas'); }catch(e){toast('שגיאה','bad');} }
 
 // ---------- תהליכים ----------
 RENDER.processes=async()=>{
