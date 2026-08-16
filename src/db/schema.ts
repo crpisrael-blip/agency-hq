@@ -255,11 +255,14 @@ export const playbookRuns = sqliteTable('playbook_runs', {
   playbookId: text('playbook_id').references(() => playbooks.id),
   title: text('title').notNull(),
   stage: text('stage'),
+  kind: text('kind').notNull().default('checklist'), // checklist | template | canvas
   clientId: text('client_id').references(() => clients.id),
   systemId: text('system_id').references(() => systems.id),
   status: text('status').notNull().default('active'), // active | done | archived
   sections: text('sections').notNull().default('[]'), // צילום הסעיפים בזמן ההחלה
+  doc: text('doc'),                                   // מהלך מסוג תבנית: המסמך שממלאים
   checked: text('checked').notNull().default('{}'),    // JSON: { "s-i": true }
+  answers: text('answers').notNull().default('{}'),    // JSON: { "s-i": "התשובה שכתבתי" }
   notes: text('notes'),
   progress: integer('progress').notNull().default(0),  // 0-100
   createdAt: integer('created_at').notNull(),

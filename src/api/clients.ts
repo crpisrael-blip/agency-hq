@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { desc, eq, and } from 'drizzle-orm';
-import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules, expenseAllocations } from '../db/schema';
+import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules, expenseAllocations, playbookRuns } from '../db/schema';
 import { Env, db, uid, now, pick, num } from './util';
 import { engagementMonthly } from './engagements';
 
@@ -46,6 +46,9 @@ clientsApp.get('/:id', async (c) => {
   const cf = await d.select().from(cashflow).where(eq(cashflow.clientId, id)).orderBy(desc(cashflow.startDate)).all();
   const docs = await d.select().from(documents).where(eq(documents.clientId, id)).orderBy(desc(documents.pinned), desc(documents.createdAt)).all();
   const mods = await d.select().from(modules).where(eq(modules.clientId, id)).all();
+  // מהלכי המתודולוגיה של הלקוח — כל תהליך שפתחתי מולו
+  const runs = await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, id))
+    .orderBy(desc(playbookRuns.createdAt)).all();
   const linkedTasks = await d.select().from(tasks)
     .where(and(eq(tasks.entityType, 'client'), eq(tasks.entityId, id)))
     .orderBy(desc(tasks.createdAt)).all();
@@ -65,7 +68,7 @@ clientsApp.get('/:id', async (c) => {
     })
     .filter(Boolean) as { label: string; monthly: number }[];
   const infraMonthly = Math.round(infraItems.reduce((s, x) => s + x.monthly, 0) * 100) / 100;
-  return c.json({ client: cl, systems: sys, engagements: eng, processes: procs, ideas, cashflow: cf, documents: docs, modules: mods, tasks: linkedTasks, mrr, infraMonthly, infraItems });
+  return c.json({ client: cl, systems: sys, engagements: eng, processes: procs, ideas, cashflow: cf, documents: docs, modules: mods, runs, tasks: linkedTasks, mrr, infraMonthly, infraItems });
 });
 
 clientsApp.patch('/:id', async (c) => {

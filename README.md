@@ -77,17 +77,30 @@ npm run dev                    # http://localhost:8790
 
 ## עדכונים
 
-כל דחיפה ל-`main` ב-GitHub → Cloudflare Pages בונה ומעלה גרסה חדשה אוטומטית (ראה `.github/workflows/deploy.yml`; דורש את ה-secret `CLOUDFLARE_API_TOKEN` ואת `CLOUDFLARE_ACCOUNT_ID`).
+כל דחיפה ל-`main` ב-GitHub מריצה את `.github/workflows/deploy.yml`: בדיקת טיפוסים → מיגרציות על ה-D1 החי → פריסה ל-Cloudflare Pages. המיגרציות רצות תמיד לפני הפריסה, כדי שקוד חדש לא יפגוש סכמה ישנה.
 
-### הוספת מיגרציה לבסיס הנתונים החי
+### הגדרה חד-פעמית
 
-⚠️ בבסיס הנתונים החי **אין טבלת `d1_migrations`** — המיגרציות הוחלו אחת-אחת ולא דרך
-מנגנון המעקב של wrangler. לכן `npm run db:migrate:remote` ייכשל: הוא ינסה להריץ מחדש
-את `0001` על טבלאות שכבר קיימות. מריצים רק את הקובץ החדש:
+הצינור דורש secret בשם `CLOUDFLARE_API_TOKEN` תחת **Settings → Secrets and variables → Actions**, עם הרשאות `D1:Edit` ו-`Cloudflare Pages:Edit`. (`CLOUDFLARE_ACCOUNT_ID` כבר מוגדר בקובץ ואינו סוד.)
+
+בלי הטוקן ה-workflow **נכשל במפורש** בשלב הראשון. זו התנהגות מכוונת: בגרסה קודמת הוא דילג בשקט וסיים ירוק, כך שמיזוגים נראו כאילו עלו לאוויר בזמן ששום דבר לא נפרס ושום מיגרציה לא רצה.
+
+### פריסה ידנית
 
 ```bash
-npx wrangler d1 execute agency-hq-db --remote --file=migrations/00NN_xxx.sql
+npx wrangler d1 migrations apply agency-hq-db --remote   # תמיד קודם
+npx wrangler pages deploy public --project-name agency-hq --branch main
 ```
 
-(אפשר בהמשך לעבור למנגנון המעקב: יוצרים טבלת `d1_migrations` ומזינים לתוכה את שמות
-כל המיגרציות שכבר הוחלו — ומאז `db:migrate:remote` יעבוד כרגיל.)
+### מעקב המיגרציות (רקע)
+
+עד 16/08/2026 לא הייתה בבסיס הנתונים החי טבלת `d1_migrations` — המיגרציות הוחלו ידנית,
+ומנגנון המעקב של wrangler לא ידע על אף אחת מהן. במצב הזה `migrations apply` היה מנסה
+להריץ מחדש את `0001` על טבלאות קיימות ונופל, כלומר הצינור לא היה יכול לפרוס בכלל.
+
+הטבלה נוצרה והוזנה בכל 15 המיגרציות שכבר הוחלו, כך שמעכשיו הצינור מריץ רק מיגרציות
+חדשות. **אין להחיל מיגרציה ידנית בלי לרשום אותה בטבלה** — אחרת הפער הזה נפתח מחדש:
+
+```sql
+INSERT OR IGNORE INTO d1_migrations (name) VALUES ('00NN_xxx.sql');
+```
