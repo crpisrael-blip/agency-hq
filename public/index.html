@@ -961,6 +961,7 @@ RENDER.cashflow=async()=>{
   $('view').innerHTML=`
     <div class="spread"><div><h2>תזרים</h2><div class="sub">תחזית מבוססת התקשרויות פעילות + תנועות ידניות</div></div>
       <div class="row"><div class="seg">${[6,12,24].map(n=>`<button class="${n===CF_MONTHS?'on':''}" onclick="CF_MONTHS=${n};go('cashflow')">${n} ח'</button>`).join('')}</div>
+        <button class="btn ghost" onclick="infraForm()">🧩 תשתית</button>
         <button class="btn primary" onclick="cfForm()">+ תנועה</button></div></div>
     <div class="kpis">
       <div class="kpi accent"><b>${money(s.mrr)}</b><small>MRR נוכחי</small></div>
@@ -1064,6 +1065,65 @@ async function saveCf(id){
   catch(e){toast('שגיאה','bad');}
 }
 async function delCf(id){ if(!confirm('למחוק תנועה?'))return; await apiDel('/finance/cashflow/'+id); closeModal(); toast('נמחק'); go('cashflow'); }
+
+// ---------- קטלוג הוצאות תשתית / ממשקים (דומיין, אירוח, דוא״ל, DB, ניטור…) ----------
+// אומדני מחיר ניתנים לעריכה לפני ההוספה. כל פריט נוסף כהוצאה חודשית — ואז ניתן לעריכה ולשיוך לפרויקטים ככל מנוי אחר.
+const INFRA_CATALOG=[
+  {label:'דומיין (חידוש שנתי)',            amount:12, category:'דומיין',        note:'≈ ₪120–₪150 לשנה · שווה-ערך חודשי'},
+  {label:'אירוח / Cloudflare Workers',    amount:20, category:'אירוח וענן',    note:'תוכנית Paid · $5 לחודש'},
+  {label:'Cloudflare Pro (אופציונלי)',    amount:75, category:'אירוח וענן',    note:'$20 לחודש · חומת אש ואנליטיקס'},
+  {label:'בסיס נתונים מנוהל (D1)',         amount:20, category:'בסיס נתונים',   note:'מעבר למכסה החינמית'},
+  {label:'דוא״ל עסקי (Google Workspace)', amount:25, category:'דוא״ל',         note:'לכל תיבה בחודש'},
+  {label:'GitHub (Team)',                 amount:16, category:'קוד ו-DevOps',  note:'$4 למשתמש בחודש'},
+  {label:'ניטור זמינות (Uptime)',          amount:30, category:'ניטור',         note:'BetterStack / UptimeRobot'},
+  {label:'גיבויים מנוהלים',               amount:20, category:'גיבוי',          note:'גיבוי אוטומטי של נתונים'},
+  {label:'שירות SMS / וואטסאפ',           amount:50, category:'תקשורת',        note:'לפי נפח הודעות'},
+  {label:'AI API (Anthropic / OpenAI)',   amount:80, category:'AI',            note:'לפי צריכה בפועל'},
+  {label:'כלי עיצוב (Figma / Canva)',      amount:45, category:'עיצוב',         note:'מנוי חודשי'},
+  {label:'סליקת אשראי (מנוי בסיס)',        amount:30, category:'סליקה',         note:'ללא עמלות עסקה'},
+  {label:'תעודת SSL בתשלום',              amount:0,  category:'אבטחה',         note:'בד״כ חינם ב-Cloudflare — ערכו אם בתשלום'},
+  {label:'CDN בתשלום',                    amount:0,  category:'אירוח וענן',    note:'בד״כ כלול — ערכו אם בתשלום'},
+];
+async function infraForm(){
+  let existing=new Set();
+  try{ const led=await apiGet('/finance/cashflow'); existing=new Set(led.map(r=>r.label)); }catch(e){}
+  const rows=INFRA_CATALOG.map((it,i)=>{
+    const dup=existing.has(it.label);
+    return `<label class="list-item" style="cursor:pointer;align-items:center;gap:10px">
+      <input type="checkbox" class="infra-cb" data-i="${i}" ${dup?'':'checked'} onchange="infraPreview()" style="width:20px;height:20px">
+      <div class="li-main" style="flex:1">
+        <b>${esc(it.label)}${dup?' <span class="chip">כבר קיים</span>':''}</b>
+        <small>${esc(it.category)}${it.note?' · '+esc(it.note):''}</small></div>
+      <div class="row" style="gap:4px;align-items:center">
+        <input type="number" id="infra_amt_${i}" value="${it.amount}" min="0" style="width:82px;text-align:end" onchange="infraPreview()">
+        <small class="sub">₪/ח׳</small></div>
+    </label>`;
+  }).join('');
+  openModal(`<h3>🧩 קטלוג הוצאות תשתית / ממשקים</h3>
+    <div class="sub" style="margin-bottom:10px">סמנו את השירותים שאתם משלמים עליהם וערכו את הסכום. כל פריט נוסף כהוצאה חודשית — ניתן לעריכה ולשיוך לפרויקטים אחר כך (כפתור 🔗 שיוך).</div>
+    <div style="max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:6px">${rows}</div>
+    <div id="infraPrev" class="sub" style="margin-top:10px"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="addInfra()">הוספת נבחרים</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+  infraPreview();
+}
+function infraCbs(){ return [...document.querySelectorAll('.infra-cb:checked')]; }
+function infraPreview(){
+  const p=$('infraPrev'); if(!p)return;
+  const sel=infraCbs(); let sum=0; sel.forEach(cb=>{ sum+=valN('infra_amt_'+cb.dataset.i)||0; });
+  p.textContent=sel.length?`${sel.length} שירותים · סה״כ ${money(sum)}/חודש`:'לא נבחרו שירותים';
+}
+async function addInfra(){
+  const sel=infraCbs(); if(!sel.length){ toast('לא נבחרו שירותים','bad'); return; }
+  let n=0;
+  for(const cb of sel){
+    const it=INFRA_CATALOG[+cb.dataset.i];
+    const amount=valN('infra_amt_'+cb.dataset.i)||0;
+    try{ await apiPost('/finance/cashflow',{kind:'expense',amount,label:it.label,recurring:'monthly',category:it.category,startDate:todayISO()}); n++; }
+    catch(e){}
+  }
+  closeModal(); toast(`נוספו ${n} הוצאות תשתית`); go('cashflow');
+}
 function openingForm(v){
   openModal(`<h3>יתרת פתיחה</h3><div class="f"><label>יתרת מזומן נוכחית ₪</label><input type="number" id="f_open" value="${v||0}"></div>
     <div class="modal-actions"><button class="btn primary" onclick="saveOpening()">שמירה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
