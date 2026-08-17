@@ -521,7 +521,7 @@ function handoffMsg(){
       <div class="f"><label>שם המערכת</label><input id="h_sysname" value="${esc(sys.name||'')}" oninput="handoffBuild()"></div>
     </div>
     <div class="f2">
-      <div class="f"><label>עמוד ציבורי / נחיתה</label><input id="h_landing" value="${esc(sys.url||'')}" oninput="handoffBuild()"></div>
+      <div class="f"><label>עמוד ציבורי / נחיתה</label><input id="h_landing" value="${esc(sys.leadUrl||sys.url||'')}" oninput="handoffBuild()"></div>
       <div class="f"><label>ממשק ניהול</label><input id="h_admin" value="${esc(sys.adminUrl||'')}" oninput="handoffBuild()"></div>
     </div>
     <div class="f"><label>פרטי כניסה ראשונית</label><input id="h_creds" value="${esc(sys.credentials||'')}" oninput="handoffBuild()" placeholder="משתמש / סיסמה / קוד"></div>
