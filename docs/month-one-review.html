@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>החודש הראשון של בית התוכנה</title>
+</head>
+<body>
+<style>
+:root{
+  --bg:#E7EBE9; --panel:#FAFBFA; --panel-2:#F1F4F2;
+  --ink:#111917; --ink-2:#33403D; --muted:#5A6764;
+  --line:#CDD7D4; --line-soft:#DDE4E2;
+  --accent:#16665F; --accent-soft:#16665F1F; --accent-ink:#0E4E48;
+  --clay:#A75536; --clay-soft:#A755361A;
+  --grid:#C6D1CE;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1513; --panel:#171F1D; --panel-2:#1D2624;
+    --ink:#E4EAE7; --ink-2:#C2CCC9; --muted:#8FA09C;
+    --line:#293331; --line-soft:#222B29;
+    --accent:#52B3A4; --accent-soft:#52B3A426; --accent-ink:#7FCCBF;
+    --clay:#D08360; --clay-soft:#D0836026;
+    --grid:#2A3533;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1513; --panel:#171F1D; --panel-2:#1D2624;
+  --ink:#E4EAE7; --ink-2:#C2CCC9; --muted:#8FA09C;
+  --line:#293331; --line-soft:#222B29;
+  --accent:#52B3A4; --accent-soft:#52B3A426; --accent-ink:#7FCCBF;
+  --clay:#D08360; --clay-soft:#D0836026;
+  --grid:#2A3533;
+}
+
+*{box-sizing:border-box}
+
+html{ -webkit-text-size-adjust:100%; }
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  direction:rtl;
+  font-family:"Segoe UI","Noto Sans Hebrew","Arial Hebrew","Alef","Rubik",system-ui,-apple-system,Arial,sans-serif;
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.mono{
+  font-family:ui-monospace,"SFMono-Regular","Menlo","Consolas","DejaVu Sans Mono",monospace;
+  font-variant-numeric:tabular-nums;
+}
+
+.wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+.prose{max-width:68ch}
+
+/* ---------- eyebrow / section heads ---------- */
+.eyebrow{
+  font-family:ui-monospace,"SFMono-Regular","Menlo","Consolas",monospace;
+  font-size:12px; letter-spacing:.14em; color:var(--muted);
+  display:flex; align-items:center; gap:12px; margin:0;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--line)}
+
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.2;letter-spacing:-.01em}
+h1{font-size:clamp(34px,6.4vw,58px);font-weight:800;letter-spacing:-.025em}
+h2{font-size:clamp(23px,3.4vw,30px);font-weight:750;margin:14px 0 0}
+h3{font-size:19px;font-weight:700}
+p{margin:14px 0}
+
+/* ---------- hero ---------- */
+header.hero{
+  padding:64px 0 44px;
+  border-bottom:1px solid var(--line);
+  background:
+    linear-gradient(180deg, var(--accent-soft), transparent 62%);
+}
+.hero .stamp{
+  display:inline-flex;align-items:center;gap:10px;
+  border:1px solid var(--line); border-radius:2px;
+  padding:5px 11px; font-size:12.5px; letter-spacing:.1em;
+  color:var(--muted); background:var(--panel);
+}
+.hero .stamp b{color:var(--accent-ink);font-weight:600;letter-spacing:.06em}
+.hero h1{margin:22px 0 0}
+.lede{font-size:19.5px;color:var(--ink-2);margin-top:18px}
+.lede strong{color:var(--ink);font-weight:650}
+
+/* ---------- sections ---------- */
+section{padding:52px 0;border-bottom:1px solid var(--line-soft)}
+section:last-of-type{border-bottom:0}
+
+/* ---------- stat tiles ---------- */
+.tiles{
+  display:grid;gap:2px;margin-top:26px;
+  grid-template-columns:repeat(auto-fit,minmax(158px,1fr));
+  background:var(--line-soft);border:1px solid var(--line-soft);
+}
+.tile{background:var(--panel);padding:18px 18px 16px}
+.tile .n{
+  display:block;font-size:38px;line-height:1.05;font-weight:600;
+  color:var(--accent-ink);letter-spacing:-.03em;
+}
+.tile .n small{font-size:17px;color:var(--muted);font-weight:500;letter-spacing:0}
+.tile .k{display:block;margin-top:7px;font-size:14px;color:var(--muted);line-height:1.45}
+
+/* ---------- chart ---------- */
+.chartbox{
+  margin-top:26px;background:var(--panel);
+  border:1px solid var(--line-soft);padding:22px 18px 12px;
+  position:relative;
+}
+.chartscroll{overflow-x:auto}
+#chart{display:block;min-width:620px;width:100%;height:auto}
+.tick{font-size:11px;fill:var(--muted)}
+.tick-mono{font-family:ui-monospace,"Menlo","Consolas",monospace}
+.bar{fill:var(--accent);transition:opacity .12s}
+.bar:hover{opacity:.72}
+.peak-label{font-size:11.5px;fill:var(--muted);font-family:ui-monospace,"Menlo","Consolas",monospace}
+.gridline{stroke:var(--grid);stroke-width:1;shape-rendering:crispEdges}
+.baseline{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges}
+.monthrule{stroke:var(--line);stroke-width:1;stroke-dasharray:2 3}
+#tip{
+  position:absolute;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--ink);color:var(--bg);padding:5px 9px;border-radius:3px;
+  font-size:12.5px;white-space:nowrap;transform:translate(50%,-130%);z-index:5;
+}
+.chart-note{font-size:13.5px;color:var(--muted);margin:10px 2px 0}
+details.tabledrop{margin-top:14px;font-size:14px}
+details.tabledrop summary{cursor:pointer;color:var(--accent-ink);width:fit-content}
+details.tabledrop summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.daytable{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px}
+.daytable th,.daytable td{border-bottom:1px solid var(--line-soft);padding:5px 8px;text-align:right}
+.daytable th{color:var(--muted);font-weight:600}
+
+/* ---------- projects ---------- */
+.projects{display:grid;gap:16px;margin-top:26px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{
+  background:var(--panel);border:1px solid var(--line-soft);
+  padding:20px 20px 18px;display:flex;flex-direction:column;gap:10px;
+}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.card h3{margin:0}
+.card .sub{font-size:13.5px;color:var(--muted);margin-top:2px}
+.card .sub .repo{white-space:nowrap;font-family:ui-monospace,"Menlo","Consolas",monospace;font-size:12.5px}
+.chip{
+  flex-shrink:0;display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;padding:3px 9px;border-radius:99px;
+  border:1px solid var(--line);color:var(--ink-2);background:var(--panel-2);
+  white-space:nowrap;
+}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.chip.live{color:var(--accent-ink);border-color:var(--accent);background:var(--accent-soft)}
+.chip.work{color:var(--clay);border-color:var(--clay);background:var(--clay-soft)}
+.chip.hold{color:var(--muted)}
+.card p{margin:0;font-size:15px;color:var(--ink-2);line-height:1.62}
+.meta{
+  display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:auto;padding-top:12px;
+  border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--muted);
+}
+.meta b{color:var(--ink-2);font-weight:600}
+.stackline{font-size:12.5px;color:var(--muted);line-height:1.5}
+
+/* ---------- timeline ---------- */
+.wave{
+  display:grid;grid-template-columns:64px 1fr;gap:0 20px;
+  padding:22px 0;border-bottom:1px solid var(--line-soft);
+}
+.wave:last-child{border-bottom:0}
+.wave .num{
+  font-family:ui-monospace,"Menlo","Consolas",monospace;font-size:13px;
+  color:var(--muted);padding-top:5px;letter-spacing:.04em;
+}
+.wave h3{margin-bottom:4px}
+.wave p{margin:6px 0 0;font-size:15.5px;color:var(--ink-2)}
+
+/* ---------- learning list ---------- */
+.learn{display:grid;gap:14px;margin-top:26px}
+.learn li{
+  list-style:none;background:var(--panel);border:1px solid var(--line-soft);
+  border-inline-start:3px solid var(--accent);padding:16px 18px;
+}
+.learn.gaps li{border-inline-start-color:var(--clay)}
+.learn h3{font-size:17px;margin-bottom:2px}
+.learn p{margin:6px 0 0;font-size:15px;color:var(--ink-2)}
+ul.learn{margin:26px 0 0;padding:0}
+.evidence{
+  display:block;margin-top:9px;font-size:12.5px;color:var(--muted);
+  font-family:ui-monospace,"Menlo","Consolas",monospace;
+}
+
+/* ---------- next steps ---------- */
+.steps{margin:26px 0 0;padding:0;counter-reset:s}
+.steps li{
+  list-style:none;counter-increment:s;position:relative;
+  padding-block:14px;padding-inline-start:46px;padding-inline-end:0;
+  border-bottom:1px solid var(--line-soft);
+}
+.steps li::before{
+  content:counter(s);position:absolute;inset-inline-start:0;top:15px;
+  width:28px;height:28px;border-radius:50%;border:1px solid var(--accent);
+  color:var(--accent-ink);display:grid;place-items:center;
+  font-family:ui-monospace,"Menlo","Consolas",monospace;font-size:13px;
+}
+.steps b{display:block;font-size:16.5px;font-weight:680}
+.steps span{display:block;font-size:14.5px;color:var(--muted);margin-top:2px}
+
+footer{padding:40px 0 60px;color:var(--muted);font-size:13.5px}
+footer .rule{height:1px;background:var(--line);margin-bottom:20px}
+
+@media (max-width:560px){
+  body{font-size:16px}
+  .wave{grid-template-columns:1fr;gap:0}
+  .wave .num{padding:0 0 4px}
+  section{padding:40px 0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="stamp mono"><b dir="ltr">13.07.2026 — 17.08.2026</b> · 36 ימים</span>
+    <h1>החודש הראשון של בית התוכנה</h1>
+    <p class="lede prose">
+      בחודש אחד נבנו <strong>שמונה מערכות עובדות</strong> בחמישה סטאקים שונים — מאפליקציית ניתוחים
+      עם מידע רפואי ועד מערכת־על שמנהלת את העסק עצמו. המסמך הזה מסכם מה נבנה, מה נלמד,
+      ומה עדיין חסר כדי שהחודש הבא יהיה של <strong>עסק</strong> ולא של פרויקטים.
+    </p>
+  </div>
+</header>
+
+<main>
+
+<section id="numbers">
+  <div class="wrap">
+    <p class="eyebrow">במספרים</p>
+    <h2>מה קרה בפועל</h2>
+    <div class="tiles">
+      <div class="tile"><span class="n mono">611</span><span class="k">קומיטים בכל המאגרים</span></div>
+      <div class="tile"><span class="n mono">8</span><span class="k">מערכות שנבנו</span></div>
+      <div class="tile"><span class="n mono">94<small>K</small></span><span class="k">שורות קוד במעקב</span></div>
+      <div class="tile"><span class="n mono">31</span><span class="k">ימי עבודה מתוך 36</span></div>
+      <div class="tile"><span class="n mono">195</span><span class="k">קבצי מיגרציה למסד</span></div>
+      <div class="tile"><span class="n mono">5</span><span class="k">סטאקים טכנולוגיים</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="rhythm">
+  <div class="wrap">
+    <p class="eyebrow">קצב</p>
+    <h2>קומיטים ליום</h2>
+    <p class="prose">
+      הקצב לא היה אחיד, וזה בסדר. הפסגות הן ימים שבהם נפתחה מערכת חדשה ונדחפה בבת אחת;
+      הימים הריקים הם הפסקה אמיתית. מה שבולט הוא הרצף — 31 מתוך 36 ימים עם עבודה.
+    </p>
+
+    <div class="chartbox">
+      <div class="chartscroll"><svg id="chart" role="img" aria-label="גרף עמודות: מספר הקומיטים בכל יום בין 13 ביולי ל-17 באוגוסט 2026"></svg></div>
+      <div id="tip" class="mono" role="status" aria-live="polite"></div>
+      <p class="chart-note">ההפסקה ב-7–9 באוגוסט הייתה שלושה ימים; מיד אחריה נפתחו ארבע מערכות חדשות.</p>
+      <details class="tabledrop">
+        <summary>הצגת הנתונים כטבלה</summary>
+        <div style="max-height:280px;overflow:auto">
+          <table class="daytable mono"><thead><tr><th>תאריך</th><th>קומיטים</th></tr></thead><tbody id="daybody"></tbody></table>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="systems">
+  <div class="wrap">
+    <p class="eyebrow">המערכות</p>
+    <h2>שמונה מערכות, אחת־אחת</h2>
+    <p class="prose">
+      כל מערכת נבנתה מקצה לקצה: מודל נתונים, הרשאות, ממשק בעברית מלאה, ופריסה חיה.
+      הסטטוס משקף את המצב היום.
+    </p>
+
+    <div class="projects">
+
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>מערכת ניהול זמני ניתוח</h3>
+            <div class="sub">אורטק · ללקוח: כללית אסתטיקה</div>
+          </div>
+          <span class="chip live">מוכן ללקוח</span>
+        </div>
+        <p>
+          הפרויקט הגדול והבוגר ביותר: תיאום בלוקים בחדרי ניתוח מול בתי חולים —
+          שיבוץ אטומי שמונע כפילות, שבעה תפקידי משתמש, צ׳ק־ליסטים דינמיים,
+          הקדמת ניתוחים, רשימת המתנה, דוחות וייבוא מאקסל. עוסק במידע רפואי ומזהה.
+        </p>
+        <div class="stackline mono">Vanilla JS · Supabase (Postgres + RLS) · Netlify</div>
+        <div class="meta mono">
+          <span><b>171</b> קומיטים</span><span><b>22,700</b> שורות</span>
+          <span><b>108</b> מיגרציות</span><span>13.07 — 12.08</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>my-life-app</h3>
+            <div class="sub">אפליקציית אנדרואיד לניהול אישי</div>
+          </div>
+          <span class="chip live">בשימוש</span>
+        </div>
+        <p>
+          33 מודולים בקוד אחד: משימות, תזרים מזומנים ותקציבים, יומן וזמני היום,
+          קניות ומזווה, רכב, מילואים, תרומות ומשחקים לילדים בדרך.
+          נבנית אוטומטית בענן ומותקנת כ-APK מהטלפון — כולל ווידג׳טים ו-Android Auto.
+        </p>
+        <div class="stackline mono">Flutter / Dart · Firebase · GitHub Actions</div>
+        <div class="meta mono">
+          <span><b>117</b> קומיטים</span><span><b>21,100</b> שורות</span>
+          <span><b>3</b> תהליכי CI</span><span>24.07 — 16.08</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>מצב פלוגה</h3>
+            <div class="sub">ניהול כוח אדם · מאגר <span class="repo">beauty-salon</span></div>
+          </div>
+          <span class="chip live">חי</span>
+        </div>
+        <p>
+          נוכחות חיה, מפקד, שמירות ותורנויות, ציוד וחתימות, צ׳אט והודעות, מפה ואירועים
+          מבצעיים — 34 טבלאות נתונים. כאן נעשה גם המהלך המקצועי ביותר של החודש:
+          חילוץ רכיבי UI לספרייה משותפת והמרת צבעים קשיחים ל־design tokens.
+        </p>
+        <div class="stackline mono">Next.js 16 · React 19 · Prisma · PostgreSQL · Vercel</div>
+        <div class="meta mono">
+          <span><b>100</b> קומיטים</span><span><b>14,600</b> שורות</span>
+          <span><b>34</b> טבלאות</span><span>19.07 — 04.08</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>אורביט</h3>
+            <div class="sub">דיור מלווה · מאגר <span class="repo">hosting-system</span></div>
+          </div>
+          <span class="chip hold">מוקפא</span>
+        </div>
+        <p>
+          CRM ו-ERP לחברת דיור מלווה: דיירים, בתים ויחידות, ספקים ועובדים, קליטת דייר,
+          כספים ומלאי, פורטל משפחה ודוחות. 40 מיגרציות בארבעה ימים — כולל שכבת
+          הקשחה שלמה (בקרת שורות, מיסוך שדות, הרשאות אדמין).
+        </p>
+        <div class="stackline mono">React · Vite · Supabase · TanStack Query · Zustand</div>
+        <div class="meta mono">
+          <span><b>71</b> קומיטים</span><span><b>12,500</b> שורות</span>
+          <span><b>16</b> מודולים</span><span>16.07 — 19.07</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>צימר נווה זית</h3>
+            <div class="sub">אתר תדמית + ניהול הזמנות</div>
+          </div>
+          <span class="chip work">בפיתוח פעיל</span>
+        </div>
+        <p>
+          מנוע תמחור שמקודד מחירון אמיתי לפי ימי שבוע וחבילות, בדיקת זמינות שמונעת
+          דאבל־בוקינג, יומן עם תאריכים עבריים וחגים, אזור אישי לאורח,
+          ומדריך "מה בסביבה" שמוזן פעם אחת ומוצג גם באתר וגם ללקוח.
+        </p>
+        <div class="stackline mono">Cloudflare Workers · D1 · Hono · Drizzle</div>
+        <div class="meta mono">
+          <span><b>58</b> קומיטים</span><span><b>8,200</b> שורות</span>
+          <span><b>11</b> טבלאות</span><span>12.08 — 17.08</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>Agency HQ</h3>
+            <div class="sub">מרכז הבקרה של בית התוכנה</div>
+          </div>
+          <span class="chip work">בפיתוח פעיל</span>
+        </div>
+        <p>
+          המערכת היחידה שאין לה לקוח — היא מנהלת אותך: לקוחות, מערכות, התקשרויות,
+          מחשבון שמשווה שישה מודלי חיוב, תחזית תזרים, ומסך מתודולוגיה שהופך את
+          הידע שצברת לפלייבוק חוזר. גם שני דפי נחיתה ב-A/B עם מדידת לידים.
+        </p>
+        <div class="stackline mono">Cloudflare Pages · D1 · Hono · Drizzle</div>
+        <div class="meta mono">
+          <span><b>38</b> קומיטים</span><span><b>5,500</b> שורות</span>
+          <span><b>12</b> טבלאות</span><span>11.08 — 17.08</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>עוצמה פנימית</h3>
+            <div class="sub">קרב מגע ו-CBT · מאגר <span class="repo">kravmaga-app</span></div>
+          </div>
+          <span class="chip live">חי</span>
+        </div>
+        <p>
+          ניהול עסק הדרכה: לידים ומסע לקוח, קורסים והרשמה עצמית, ציוד ומשאבים לכל
+          משתתף, הזמנות רכש וספקים, תקציב ותוכנית שיווק, ומחשבון היתכנות שמכריע
+          אם קורס או מוצר שווים הפעלה.
+        </p>
+        <div class="stackline mono">Cloudflare Pages · D1 · Hono · Drizzle</div>
+        <div class="meta mono">
+          <span><b>28</b> קומיטים</span><span><b>5,700</b> שורות</span>
+          <span>מסמך אבטחה</span><span>10.08 — 15.08</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>טבע האדם</h3>
+            <div class="sub">הדרכת טיולים וחוויות</div>
+          </div>
+          <span class="chip live">נמסר</span>
+        </div>
+        <p>
+          המערכת הקטנה ביותר — ובעלת החבילה המקצועית ביותר. לצד הקוד נבנו
+          <span class="mono">HANDOFF.md</span>, <span class="mono">SECURITY.md</span>,
+          מסמך סקירה ממותג ללקוח והסכם שירותי פיתוח. זו הפעם הראשונה שהמסירה
+          עצמה טופלה כמוצר.
+        </p>
+        <div class="stackline mono">אתר סטטי מקובץ יחיד · Cloudflare Worker</div>
+        <div class="meta mono">
+          <span><b>28</b> קומיטים</span><span><b>3,900</b> שורות</span>
+          <span><b>4</b> מסמכי מסירה</span><span>10.08 — 17.08</span>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<section id="arc">
+  <div class="wrap">
+    <p class="eyebrow">הקשת</p>
+    <h2>איך החודש התפתח</h2>
+    <p class="prose">
+      חמישה גלים, בסדר שקרה בפועל. הרצף הזה הוא הסיפור האמיתי של החודש —
+      כל גל למד משהו מהקודם.
+    </p>
+
+    <div class="wave">
+      <div class="num">13—19.07</div>
+      <div>
+        <h3>הצלילה העמוקה</h3>
+        <p>
+          אורטק ואורביט. שתי מערכות ארגוניות כבדות, שתיהן על Supabase, שתיהן עם
+          הרשאות מורכבות. כאן נלמדו RLS, מיגרציות ממוספרות ותפקידי משתמש — בדרך הקשה,
+          תוך כדי בנייה.
+        </p>
+      </div>
+    </div>
+
+    <div class="wave">
+      <div class="num">19.07—05.08</div>
+      <div>
+        <h3>שתי חזיתות במקביל</h3>
+        <p>
+          מצב פלוגה על Next.js ו-my-life-app על Flutter. שתי טכנולוגיות חדשות לגמרי,
+          בשני עולמות — ווב ומובייל נייטיב. בסוף התקופה גם המהלך הראשון של
+          <em>סדר בבית</em>: design tokens ורכיבי UI משותפים.
+        </p>
+      </div>
+    </div>
+
+    <div class="wave">
+      <div class="num">07—09.08</div>
+      <div>
+        <h3>הפסקה</h3>
+        <p>
+          שלושה ימים בלי קומיט. מה שבא אחריהם היה שונה באופיו — לא עוד מערכת גדולה
+          אחת, אלא ארבע מערכות ממוקדות על תשתית אחת.
+        </p>
+      </div>
+    </div>
+
+    <div class="wave">
+      <div class="num">10—17.08</div>
+      <div>
+        <h3>ההתכנסות לסטאק אחד</h3>
+        <p>
+          עוצמה פנימית, טבע האדם, צימר נווה זית — כולן על Cloudflare + D1 + Hono + Drizzle,
+          עם פריסה אוטומטית מ-GitHub. אותה תבנית, שלוש פעמים, מהר יותר בכל פעם.
+          זה הרגע שבו "לבנות מערכת" הפך למיומנות חוזרת ולא להרפתקה.
+        </p>
+      </div>
+    </div>
+
+    <div class="wave">
+      <div class="num">11—17.08</div>
+      <div>
+        <h3>המבט מלמעלה</h3>
+        <p>
+          Agency HQ. אחרי שבע מערכות ללקוחות, נבנתה המערכת שמנהלת את העסק:
+          מודלי חיוב, MRR, תזרים ומתודולוגיה. שינוי כובע — ממי שבונה, למי שמנהל
+          בית תוכנה.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="learned">
+  <div class="wrap">
+    <p class="eyebrow">מה למדתי</p>
+    <h2>שבעה דברים שנקנו החודש</h2>
+
+    <ul class="learn">
+      <li>
+        <h3>אבטחה נאכפת בשרת, לא בממשק</h3>
+        <p>
+          זה הלקח הכי יקר של החודש, והוא נלמד מתיקון תקלות אמיתיות: הסתרת כפתור
+          איננה הרשאה. הגבול האמיתי הוא RLS ופונקציות מסד — הקוד בצד הלקוח רק מציג
+          ומסתיר. ההבנה הזאת הגיעה אחרי סדרת תיקוני דליפות בין בתי חולים.
+        </p>
+        <span class="evidence">אורטק: "סגירת פרצות חשיפת מטופלים", "שלילת execute מ-anon" · אורביט: 0025_row_enforcement, 0029_field_masking</span>
+      </li>
+      <li>
+        <h3>מיגרציות ממוספרות ואידמפוטנטיות</h3>
+        <p>
+          195 קבצי SQL בשמונה מאגרים, כל אחד מסודר לפי מספר וניתן להרצה חוזרת בלי נזק.
+          זו התשתית שמאפשרת לשנות מסד נתונים חי בלי לשבור אותו — ובלי לזכור בעל־פה
+          מה כבר הורץ.
+        </p>
+        <span class="evidence">108 באורטק · 41 באורביט · 46 במערכות Cloudflare</span>
+      </li>
+      <li>
+        <h3>בחירת סטאק היא החלטה, לא הרגל</h3>
+        <p>
+          התחלת ב-Supabase, עברת ל-Next.js, ל-Flutter, ובסוף התכנסת ל-Cloudflare + D1 +
+          Hono + Drizzle. ההתכנסות הזאת היא הבשלה: אחרי שהתנסית בכמה עולמות, בחרת אחד
+          שמתאים לגודל הפרויקטים שלך — ומאז כל מערכת נבנית מהר יותר.
+        </p>
+      </li>
+      <li>
+        <h3>פריסה אוטומטית מקצה לקצה</h3>
+        <p>
+          דחיפה ל-GitHub → בנייה → אתר חי, בלי מגע יד. בשלושה מאגרים יש
+          <span class="mono"> deploy.yml</span> משלהם, וב-my-life-app תהליך שמייצר
+          APK חתום ומפרסם אותו כשחרור. גם תקלה בצינור הפריסה כבר זוהתה ותוקנה.
+        </p>
+        <span class="evidence">agency-hq: "צינור הפריסה דיווח הצלחה בלי לפרוס כלום"</span>
+      </li>
+      <li>
+        <h3>מיחזור תשתית במקום התחלה מאפס</h3>
+        <p>
+          מצב פלוגה נבנתה על גבי מאגר קיים שמוחזר במלואו; "בועת הרעיונות" נכתבה פעם
+          אחת באורטק והושתלה באורביט, בעוצמה פנימית ובצימר. זה בדיוק ההבדל בין
+          לבנות שמונה פרויקטים לבין לבנות בית תוכנה.
+        </p>
+      </li>
+      <li>
+        <h3>המסירה ללקוח היא מוצר בפני עצמו</h3>
+        <p>
+          בטבע האדם נבנו לצד הקוד מסמך העברה טכני, מסמך אבטחה, סקירה ממותגת ללקוח
+          והסכם שירותי פיתוח. באורטק נכתב מסמך מוכנוּת למכירה שממפה את כל חסמי
+          הרגולציה. "שלחתי לינק" הפך לתהליך.
+        </p>
+      </li>
+      <li>
+        <h3>המעבר מקוד לעסק</h3>
+        <p>
+          Agency HQ היא ההוכחה: מודלי חיוב מחושבים, תעריף אפקטיבי לשעה, נקודת החזר,
+          תחזית תזרים, ושני דפי נחיתה שרצים ב-A/B עם ספירת לידים לפי מקור.
+          התחלת לשאול "כמה זה שווה" ולא רק "איך בונים את זה".
+        </p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section id="gaps">
+  <div class="wrap">
+    <p class="eyebrow">הפערים</p>
+    <h2>מה עוד צריך ללמוד</h2>
+    <p class="prose">
+      הרשימה הזאת לא מפחיתה מהחודש — היא מה שמפריד בין מפתח מהיר לבין ספק שאפשר
+      לסמוך עליו. כל פער כאן נובע מראיה בקוד עצמו.
+    </p>
+
+    <ul class="learn gaps">
+      <li>
+        <h3>אין ולו בדיקה אוטומטית אחת</h3>
+        <p>
+          בשמונה המאגרים יחד לא קיים אף קובץ בדיקות. במצב פלוגה אפילו הותקנה תשתית
+          בדיקות — ומעולם לא נכתבה בדיקה. המשמעות: כל שינוי נבדק ידנית, וכל תיקון
+          עלול לשבור משהו שכבר עבד, בלי שתדע. זה הפער מספר אחת.
+        </p>
+        <span class="evidence">0 קבצי בדיקות ב-8 מאגרים · vitest מוגדר ב-beauty-salon ללא שימוש</span>
+      </li>
+      <li>
+        <h3>אתה מתחיל מהחזון שלך, לא מהצורך של הלקוח</h3>
+        <p>
+          כל פרויקט נפתח בקובץ אפיון שאתה כתבת — לא בשיחת גילוי עם הלקוח ובמסמך
+          שהוא אישר. זה מייצר מערכות מרשימות שאולי פותרות את הבעיה הלא־נכונה,
+          ובעיקר מקשה לגבות עליהן כסף.
+        </p>
+      </li>
+      <li>
+        <h3>רגולציה ופרטיות — שאלות פתוחות שחוסמות מכירה</h3>
+        <p>
+          מסמך המוכנוּת של אורטק מונה סעיפי P0 שעדיין לא סומנו: מסד הנתונים יושב
+          בטוקיו, אין הסכם עיבוד נתונים מול הספקים, אין אימות דו־שלבי, ולא הוכרע מי
+          בעל המאגר. במערכת שמחזיקה מידע רפואי ותעודות זהות — אלה חסמים אמיתיים.
+        </p>
+        <span class="evidence">docs/מוכנות-למכירה.md · סעיפים 1.1—1.4</span>
+      </li>
+      <li>
+        <h3>גיבוי שלא נבדק אינו גיבוי</h3>
+        <p>
+          אין עדות לשחזור אחד שבוצע בפועל. הבדיקה היחידה שנחשבת היא לשחזר מסד נתונים
+          לסביבה נקייה ולראות שהמערכת עולה. עד שזה לא נעשה — יש הנחה, לא גיבוי.
+        </p>
+      </li>
+      <li>
+        <h3>הידע יושב בראש, לא במאגר</h3>
+        <p>
+          רק שני מאגרים מכילים מסמך העברה. בשאר, ההקשר קיים רק אצלך. אם תחזור
+          לפרויקט בעוד חצי שנה — או שמישהו אחר ייגע בו — הזמן יילך על שחזור החלטות.
+        </p>
+      </li>
+      <li>
+        <h3>אין שער איכות חוזר לפני שחרור</h3>
+        <p>
+          תיקוני האבטחה באורטק הגיעו <em>אחרי</em> שהמערכת כבר עבדה. בדיקה קבועה
+          בכל תפקיד, וניסיון אקטיבי לדלוף מידע לפני כל עלייה לאוויר, היו תופסים
+          אותם מראש.
+        </p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section id="next">
+  <div class="wrap">
+    <p class="eyebrow">הצעד הבא</p>
+    <h2>מה לעשות בחודש הקרוב</h2>
+    <p class="prose">
+      לפי סדר תועלת. הראשונים משפיעים על כל שמונה המערכות; האחרונים בונים את העסק.
+    </p>
+
+    <ol class="steps">
+      <li><b>בדיקה אחת בכל מאגר</b><span>לא חבילה מלאה — בדיקה אחת שרצה בכל דחיפה. אחרי שהראשונה קיימת, השנייה כבר קלה.</span></li>
+      <li><b>שער אבטחה לפני כל עלייה לאוויר</b><span>כניסה בכל תפקיד וניסיון אקטיבי לראות מה אסור. שלוש פעמים — וזה הרגל.</span></li>
+      <li><b>תרגיל שחזור אחד</b><span>לשחזר את מסד אורטק לסביבה נקייה ולוודא שהמערכת עולה. לתעד כמה זמן זה לקח.</span></li>
+      <li><b>לסגור את סעיפי ה-P0 של אורטק</b><span>מיקום המסד, DPA מול הספקים, אימות דו־שלבי, ובעלות על המאגר — לפני הלקוח המשלם הראשון.</span></li>
+      <li><b>שיחת גילוי לפני הפרויקט הבא</b><span>מסמך אפיון של עמוד אחד שהלקוח מאשר בכתב — לפני שורת הקוד הראשונה.</span></li>
+      <li><b>מסמך העברה בכל מאגר</b><span>עמוד אחד: מה המערכת עושה, איך מפרסים, איפה הסודות, מה שביר.</span></li>
+      <li><b>להכניס את כל הלקוחות ל-Agency HQ</b><span>המערכת כבר בנויה — עכשיו היא צריכה נתונים אמיתיים כדי להראות MRR ותזרים אמיתיים.</span></li>
+    </ol>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="rule"></div>
+    <p>
+      הנתונים בדף הזה נאספו ישירות מהיסטוריית ה-git של שמונת המאגרים, 13.07.2026—17.08.2026.
+      "שורות קוד" סופר קבצי מקור במעקב גרסאות (‎.ts/.tsx/.js/.dart/.sql/.css/.html) ואינו כולל ספריות חיצוניות.
+    </p>
+  </div>
+</footer>
+
+<script>
+const DATA=[["2026-07-13",35],["2026-07-14",69],["2026-07-15",29],["2026-07-16",74],["2026-07-17",8],["2026-07-18",0],["2026-07-19",8],["2026-07-20",0],["2026-07-21",4],["2026-07-22",6],["2026-07-23",6],["2026-07-24",26],["2026-07-25",4],["2026-07-26",10],["2026-07-27",10],["2026-07-28",1],["2026-07-29",66],["2026-07-30",12],["2026-07-31",14],["2026-08-01",13],["2026-08-02",17],["2026-08-03",7],["2026-08-04",4],["2026-08-05",23],["2026-08-06",7],["2026-08-07",0],["2026-08-08",0],["2026-08-09",0],["2026-08-10",17],["2026-08-11",22],["2026-08-12",21],["2026-08-13",36],["2026-08-14",19],["2026-08-15",23],["2026-08-16",15],["2026-08-17",5]];
+
+const NS="http://www.w3.org/2000/svg";
+const W=900,H=270,PT=22,PB=34,PL=10,PR=34;
+const plotW=W-PL-PR, plotH=H-PT-PB;
+const max=80, slot=plotW/DATA.length, bw=Math.max(6,slot-3);
+const svg=document.getElementById("chart");
+svg.setAttribute("viewBox","0 0 "+W+" "+H);
+
+function el(n,a){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);return e;}
+const y=v=>PT+plotH-(v/max)*plotH;
+// RTL: first day on the right
+const x=i=>PL+plotW-(i+1)*slot+(slot-bw)/2;
+
+[0,20,40,60,80].forEach(v=>{
+  svg.appendChild(el("line",{class:v===0?"baseline":"gridline",x1:PL,x2:PL+plotW,y1:y(v),y2:y(v)}));
+  const t=el("text",{class:"tick tick-mono",x:PL+plotW+7,y:y(v)+4});
+  t.textContent=v; svg.appendChild(t);
+});
+
+// month divider between July and August
+const augIdx=DATA.findIndex(d=>d[0].startsWith("2026-08"));
+const mx=PL+plotW-augIdx*slot;
+svg.appendChild(el("line",{class:"monthrule",x1:mx,x2:mx,y1:PT-6,y2:PT+plotH}));
+
+const tip=document.getElementById("tip"),box=document.querySelector(".chartbox");
+const HE=["ינו","פבר","מרץ","אפר","מאי","יוני","יולי","אוג","ספט","אוק","נוב","דצמ"];
+function fmt(iso){const p=iso.split("-");return (+p[2])+" ב"+HE[+p[1]-1];}
+
+DATA.forEach((d,i)=>{
+  const v=d[1], bx=x(i);
+  if(v>0){
+    const h=Math.max(3,plotH*(v/max)), r=Math.min(4,bw/2), top=y(v);
+    const path=`M${bx} ${PT+plotH} L${bx} ${top+r} Q${bx} ${top} ${bx+r} ${top} L${bx+bw-r} ${top} Q${bx+bw} ${top} ${bx+bw} ${top+r} L${bx+bw} ${PT+plotH} Z`;
+    const b=el("path",{class:"bar",d:path});
+    const show=ev=>{
+      tip.textContent=fmt(d[0])+" · "+v+" קומיטים";
+      const r=box.getBoundingClientRect();
+      tip.style.right=(r.right-ev.clientX)+"px";
+      tip.style.top=(ev.clientY-r.top)+"px";
+      tip.style.opacity=1;
+    };
+    b.addEventListener("mouseenter",show);
+    b.addEventListener("mousemove",show);
+    b.addEventListener("mouseleave",()=>{tip.style.opacity=0});
+    svg.appendChild(b);
+  }
+  // label the three peaks only
+  if(v>=66){
+    const l=el("text",{class:"peak-label",x:bx+bw/2,y:y(v)-7,"text-anchor":"middle"});
+    l.textContent=v; svg.appendChild(l);
+  }
+  // date ticks: every 5th day
+  if(i%5===0){
+    const t=el("text",{class:"tick tick-mono",x:bx+bw/2,y:H-13,"text-anchor":"middle"});
+    t.textContent=d[0].slice(8)+"."+d[0].slice(5,7); svg.appendChild(t);
+  }
+});
+
+document.getElementById("daybody").innerHTML=
+  DATA.map(d=>`<tr><td>${d[0]}</td><td>${d[1]}</td></tr>`).join("");
+</script>
+</body>
+</html>
