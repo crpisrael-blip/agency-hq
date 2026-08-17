@@ -525,9 +525,11 @@ function handoffMsg(){
       <div class="f"><label>ממשק ניהול</label><input id="h_admin" value="${esc(sys.adminUrl||'')}" oninput="handoffBuild()"></div>
     </div>
     <div class="f"><label>פרטי כניסה ראשונית</label><input id="h_creds" value="${esc(sys.credentials||'')}" oninput="handoffBuild()" placeholder="משתמש / סיסמה / קוד"></div>
+    <div class="f"><label>📖 מדריך למערכת (לינק)</label><input id="h_guide" value="${esc(sys.guideUrl||'')}" oninput="handoffBuild()" placeholder="https://…/guide"></div>
     <input type="hidden" id="h_desc" value="${esc(sys.description||'')}">
     <input type="hidden" id="h_mods" value="${esc(mods.join(', '))}">
     <input type="hidden" id="h_collab" value="${collab?'1':''}">
+    <input type="hidden" id="h_bubble" value="${sys.ideaBubble?'1':''}">
     <div class="f"><label>ההודעה (ניתנת לעריכה)</label><textarea id="h_msg" rows="11" style="font-size:.9rem;line-height:1.6"></textarea></div>
     <div class="modal-actions">
       <button class="btn primary" onclick="handoffCopy()">📋 העתק</button>
@@ -537,14 +539,16 @@ function handoffMsg(){
 }
 function handoffBuild(){
   const contact=val('h_contact')||'', sysname=val('h_sysname')||'המערכת';
-  const landing=val('h_landing'), admin=val('h_admin'), creds=val('h_creds');
+  const landing=val('h_landing'), admin=val('h_admin'), creds=val('h_creds'), guide=val('h_guide');
   const desc=val('h_desc'), mods=val('h_mods');
   let m=`היי ${contact}, המערכת מוכנה עבורך 🎉\n\n`;
   m+=`${sysname}${desc?' — '+desc:''}\n`;
   if(landing) m+=`\n🌐 עמוד ציבורי:\n${landing}\n`;
   if(admin) m+=`\n🛠️ ממשק ניהול:\n${admin}\n`;
   if(creds) m+=`\n🔑 פרטי כניסה ראשונית:\n${creds}\n`;
+  if(guide) m+=`\n📖 מדריך למערכת:\n${guide}\n`;
   if(mods) m+=`\nמה המערכת יודעת לעשות:\n${mods.split(', ').map(x=>'• '+x).join('\n')}\n`;
+  if($('h_bubble')&&$('h_bubble').value) m+=`\n💡 בועת רעיונות:\nבפינת המסך תמצא בועה — לחיצה עליה מאפשרת לך לשלוח לי רעיון לשיפור או דיווח על באג תוך כדי עבודה, ואני מטפל. כך המערכת ממשיכה להשתפר בדיוק לפי הצורך שלך.\n`;
   if($('h_collab')&&$('h_collab').value) m+=`\n🤝 שיתופי פעולה (שת״פ):\nהמערכת מאפשרת לך לצרף שותפים ולמכור חבילות/תוספות להזמנה — מרכז רווח נוסף, עם מעקב הכנסה ורווחיות.\n`;
   m+=`\nמוזמן להיכנס, להתרשם ולשחק עם המערכת — היא בנויה בהתאמה אישית לעסק שלך. אשמח לשמוע התרשמות ולעבור יחד על הכל. 🙌`;
   const el=$('h_msg'); if(el) el.value=m;
@@ -719,6 +723,8 @@ function systemForm(s={}){
     <div class="f"><label>פרטי כניסה ראשונית ללקוח</label><input id="f_credentials" value="${esc(s.credentials||'')}" placeholder="משתמש / סיסמה / קוד"></div>
     <div class="f2"><div class="f"><label>🔑 אופן כניסה / הזדהות</label><input id="f_authMethod" value="${esc(s.authMethod||'')}" placeholder="PIN מנהל / אימייל+סיסמה / Google OAuth…"></div>
       <div class="f"><label>ציון אבטחת כניסה (5 = הכי מאובטח)</label><select id="f_authScore">${opts({'':'— לא נקבע —','5':'5 · הכי מאובטח','4':'4 · טוב','3':'3 · סביר','2':'2 · חלש','1':'1 · חשוף'},s.authScore!=null?String(s.authScore):'')}</select></div></div>
+    <div class="f2"><div class="f"><label>📖 מדריך למערכת (לינק ללקוח)</label><input id="f_guideUrl" value="${esc(s.guideUrl||'')}" placeholder="https://…/guide"></div>
+      <div class="f"><label>בועת רעיונות</label><label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer"><input type="checkbox" id="f_ideaBubble" ${s.ideaBubble?'checked':''} style="width:18px;height:18px"> יש בועת רעיונות (יוסבר בהודעת המסירה)</label></div></div>
     <div class="f3"><div class="f"><label>תחילת עבודה</label><input type="date" id="f_startDate" value="${esc(s.startDate||'')}"></div>
       <div class="f"><label>עלייה לאוויר</label><input type="date" id="f_launchDate" value="${esc(s.launchDate||'')}"></div>
       <div class="f"><label>התקדמות %</label><input type="number" id="f_progress" min="0" max="100" value="${s.progress||0}"></div></div>
@@ -738,7 +744,7 @@ function systemForm(s={}){
 }
 async function saveSystem(id){
   const body={name:val('f_name'),clientId:val('f_clientId'),kind:val('f_kind'),status:val('f_status'),stack:val('f_stack'),
-    url:val('f_url'),leadUrl:val('f_leadUrl'),leadUrlB:val('f_leadUrlB'),adminUrl:val('f_adminUrl'),credentials:val('f_credentials'),authMethod:val('f_authMethod'),authScore:val('f_authScore')||null,repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
+    url:val('f_url'),leadUrl:val('f_leadUrl'),leadUrlB:val('f_leadUrlB'),adminUrl:val('f_adminUrl'),credentials:val('f_credentials'),authMethod:val('f_authMethod'),authScore:val('f_authScore')||null,guideUrl:val('f_guideUrl'),ideaBubble:$('f_ideaBubble')&&$('f_ideaBubble').checked?1:0,repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
   if(!body.name||!body.clientId){toast('חסר שם או לקוח','bad');return;}
   try{ id?await apiPatch('/systems/'+id,body):await apiPost('/systems',body); closeModal(); toast('נשמר'); go('systems'); }
   catch(e){toast('שגיאה: '+e.message,'bad');}

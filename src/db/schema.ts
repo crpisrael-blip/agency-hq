@@ -58,6 +58,8 @@ export const systems = sqliteTable('systems', {
   credentials: text('credentials'),            // פרטי כניסה ראשונית ללקוח
   authMethod: text('auth_method'),             // אופן הכניסה/הזדהות (PIN, אימייל+סיסמה, Google OAuth, ...)
   authScore: integer('auth_score'),            // ציון אבטחת כניסה 1–5 (5 = הכי מאובטח)
+  guideUrl: text('guide_url'),                 // לינק למדריך למערכת (ללקוח)
+  ideaBubble: integer('idea_bubble').notNull().default(0), // 1 = יש בועת רעיונות (מוסבר בהודעת המסירה)
   repoUrl: text('repo_url'),
   startDate: text('start_date'),               // YYYY-MM-DD
   launchDate: text('launch_date'),
