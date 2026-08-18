@@ -2222,6 +2222,8 @@ const CMDS_DATA=[
 ["jira","cmd-ecc","שליפה או עדכון של כרטיס Jira וניתוח דרישות","jira-integration,tdd-workflow"],
 ];
 let SK_VIEW='all', SK_STAR=false, SK_CAT='';
+let SK_WITHINSTR=(function(){try{return localStorage.getItem('skInstr')!=='0';}catch(e){return true;}})();
+function skSetInstr(v){ SK_WITHINSTR=v; try{localStorage.setItem('skInstr',v?'1':'0');}catch(e){} }
 const SK_SEL=new Set(); // בחירה מרובה: 'skill:<name>' / 'cmd:<name>'
 function skCopy(name,type){
   const t=(type==='cmd'?'/':'')+name; let ok=false;
@@ -2322,6 +2324,7 @@ function skTray(){
   box.className='sk-tray open';
   box.innerHTML='<div class="sk-tray-in"><div class="sk-tray-chips">'+grp('סקילז',skills,'','skill:')+grp('פקודות',cmds,'/','cmd:')+'</div>'
     +'<div class="sk-tray-act"><b>'+SK_SEL.size+' נבחרו</b>'
+    +'<label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);font-weight:600" title="לכלול הוראות התקנה מלאות (כבה בשימוש חוזר באותו סשן)"><input type="checkbox" id="skInstr" '+(SK_WITHINSTR?'checked':'')+' onchange="skSetInstr(this.checked)" style="width:16px;height:16px;accent-color:var(--accent)"> הוראות</label>'
     +'<button class="btn small primary" onclick="skCopySel()">📋 העתק</button>'
     +'<button class="btn small ghost" onclick="skClearSel()">נקה</button></div></div>';
 }
@@ -2329,7 +2332,7 @@ function skCopySel(){
   const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
   const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
   let out=[];
-  if(skills.length||cmds.length){
+  if((skills.length||cmds.length) && SK_WITHINSTR){
     out.push('התקן לי את הסקילז/פקודות הבאים מהמאגר הציבורי affaan-m/ecc לפרויקט הנוכחי:');
     out.push('1) שכפל: GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/affaan-m/ecc /tmp/ecc');
     out.push('2) לכל סקיל: קרא /tmp/ecc/skills/<שם>/SKILL.md (ודא שאין hooks מפוקפקים), והעתק את התיקייה כולה ל-.claude/skills/<שם>/');
