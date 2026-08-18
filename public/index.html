@@ -11,6 +11,7 @@
     --bg:#0f1424;--bg-2:#171d33;--card:#1b2340;--card-2:#212a4d;--line:#2c3760;
     --txt:#eaf0ff;--muted:#93a0c8;--accent:#6c5ce7;--accent-2:#00d1b2;--amber:#f6b73c;
     --green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;
+    --shadow-sm:0 2px 10px rgba(0,0,0,.22);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Heebo',system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;padding-bottom:40px}
@@ -151,6 +152,69 @@
   .run-row:last-child{border-bottom:0}
   .run-row .grow{min-width:0}
   .run-row b{display:block;font-size:.9rem}
+  /* ===== ליטוש ממשק — make-interfaces-feel-better (ECC) ===== */
+  html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  /* טקסט: איזון כותרות, ריכוך תיאורים, מספרים מיושרים */
+  h2,.card h3,.modal h3,.login-card h1{text-wrap:balance}
+  .sub,.hint,.li-main small,.kpi small,.empty{text-wrap:pretty}
+  .kpi b,.li-val,.big{font-variant-numeric:tabular-nums}
+  /* צללים עדינים לעומק כרטיסים */
+  .kpi,.card{box-shadow:var(--shadow-sm)}
+  /* תנועה: מאפיינים מפורשים בלבד, לחיצה טקטילית ואזורי-מגע נוחים */
+  .btn{transition-property:transform,background-color,border-color,color,box-shadow;transition-duration:140ms;transition-timing-function:ease-out;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .btn.small{min-height:34px}
+  .btn:active{transform:scale(.96)}
+  .nav button{min-height:36px}
+  .nav button,.seg button{transition:color .14s ease-out,background-color .14s ease-out,border-color .14s ease-out}
+  .nav button:active,.seg button:active{transform:scale(.97)}
+  input,select,textarea{transition:border-color .14s ease-out,box-shadow .14s ease-out}
+  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(108,92,231,.22)}
+  .list-item,.run-row,.pb-check{transition:background-color .14s ease-out}
+  .list-item:hover,.run-row:hover,.pb-check:hover{background:rgba(108,92,231,.06)}
+  /* מצבי-פוקוס נראים למקלדת */
+  button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* קו-מתאר עדין לתמונות כדי שלא יטשטשו לרקע */
+  img{outline:1px solid rgba(255,255,255,.1);outline-offset:-1px}
+  /* כיבוד העדפת הפחתת-תנועה */
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+  /* ===== מאגר סקילז (ECC) ===== */
+  .sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:9px;margin-top:8px}
+  .sk-item{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;position:relative;transition:border-color .14s ease-out,transform .06s}
+  .sk-item:hover{border-color:var(--accent)}
+  .sk-item:active{transform:scale(.99)}
+  .sk-item.star{border-color:rgba(246,183,60,.5)}
+  .sk-name{font-weight:800;font-size:.84rem;direction:ltr;text-align:right;color:var(--accent-2);word-break:break-word}
+  .sk-item.cmd .sk-name{color:var(--amber)}
+  .sk-desc{color:var(--muted);font-size:.79rem;margin-top:3px;line-height:1.45}
+  .sk-rel{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+  .sk-rel .t{font-size:.65rem;direction:ltr;background:var(--card-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--muted)}
+  .sk-star-tag{position:absolute;top:8px;left:10px;font-size:.72rem}
+  .sk-cat-count{color:var(--muted);font-weight:700;font-size:.76rem;margin-inline-start:4px}
+  .sk-sec{padding-bottom:14px}
+  /* ===== לוח בקרה — היררכיה ויזואלית ===== */
+  .rev{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:8px 0 12px;box-shadow:var(--shadow-sm)}
+  @media(max-width:640px){.rev{grid-template-columns:1fr}}
+  .rev-hero{border-inline-end:1px solid var(--line);padding-inline-end:18px}
+  @media(max-width:640px){.rev-hero{border-inline-end:0;border-bottom:1px solid var(--line);padding-inline-end:0;padding-bottom:14px}}
+  .rev-hero .lbl{color:var(--muted);font-size:.82rem;font-weight:700}
+  .rev-hero .val{font-size:2.6rem;font-weight:900;line-height:1.04;color:var(--accent-2);font-variant-numeric:tabular-nums;margin:2px 0 3px}
+  .rev-hero .note{color:var(--muted);font-size:.82rem}
+  .rev-side{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:center}
+  @media(max-width:400px){.rev-side{grid-template-columns:1fr}}
+  .rev-stat .n{font-size:1.45rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;display:block;color:var(--amber)}
+  .rev-stat .l{color:var(--muted);font-size:.77rem}
+  .att{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px}
+  .att-item{display:flex;align-items:center;gap:10px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:10px 13px;cursor:pointer;transition:border-color .14s ease-out,transform .06s;flex:1 1 155px}
+  .att-item:hover{border-color:var(--accent)}
+  .att-item:active{transform:scale(.99)}
+  .att-ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:1.05rem;flex:none}
+  .att-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .att-txt .n{font-size:1.3rem;font-weight:900;font-variant-numeric:tabular-nums}
+  .att-txt .l{color:var(--muted);font-size:.76rem}
+  .att-item.red .att-ico{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.42);color:#f6a1a1}
+  .att-item.blue .att-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.42);color:#8fbcff}
+  .att-item.amber .att-ico{background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.42);color:#f7cd78}
+  .att-item.teal .att-ico{background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.42);color:#6ee7d3}
 </style>
 </head>
 <body>
@@ -288,6 +352,7 @@ const PAGES = [
   ['playbooks','מתודולוגיה'],
   ['health','בריאות מסירה'],
   ['tasks','משימות'],
+  ['skills','🧩 סקילז'],
 ];
 function buildNav(){
   $('nav').innerHTML = PAGES.map(([k,l])=>`<button data-p="${k}" class="${k===CURRENT?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
@@ -348,24 +413,43 @@ RENDER.dashboard=async()=>{
   const k=d.kpis;
   const modelRows=Object.entries(d.byModel||{}).sort((a,b)=>b[1]-a[1]);
   const modelTotal=modelRows.reduce((a,[,v])=>a+v,0)||1;
+  const att=[
+    ['blue','🛠️',k.systemsBuilding,'מערכות בפיתוח','systems'],
+    ['amber','📋',k.openTasks,'משימות פתוחות','tasks'],
+    ['red','⚠️',d.health.red,'לקוחות בסיכון','clients'],
+    ['teal','📥',k.leadsMonth||0,'לידים החודש','systems'],
+  ];
   $('view').innerHTML=`
     <h2>לוח בקרה</h2>
     <div class="sub">התמונה הכוללת של בית התוכנה — ${todayISO()}</div>
+
+    <div class="rev">
+      <div class="rev-hero">
+        <div class="lbl">הכנסה חוזרת חודשית · MRR</div>
+        <div class="val">${money(k.mrr)}</div>
+        <div class="note">≈ ${money(k.arr)} בשנה · בריאות לקוחות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
+      </div>
+      <div class="rev-side">
+        <div class="rev-stat"><span class="n">${money(k.pipeline)}</span><span class="l">בצנרת · הצעות פתוחות</span></div>
+        <div class="rev-stat"><span class="n">${money(k.ideasWeighted)}</span><span class="l">פוטנציאל מרווח (משוקלל)</span></div>
+      </div>
+    </div>
+
+    <div class="att">
+      ${att.map(a=>`<div class="att-item ${a[0]}" onclick="go('${a[4]}')"><div class="att-ico">${a[1]}</div><div class="att-txt"><span class="n">${a[2]}</span><span class="l">${a[3]}</span></div></div>`).join('')}
+    </div>
+
     <div class="kpis">
-      <div class="kpi accent"><b>${money(k.mrr)}</b><small>הכנסה חוזרת חודשית (MRR)</small></div>
-      <div class="kpi"><b>${money(k.arr)}</b><small>הכנסה שנתית (ARR)</small></div>
-      <div class="kpi amber"><b>${money(k.pipeline)}</b><small>בצנרת (הצעות פתוחות)</small></div>
       <div class="kpi"><b>${k.clientsActive}</b><small>לקוחות פעילים${k.clientsProspect?` · ${k.clientsProspect} לידים`:''}</small></div>
       <div class="kpi green"><b>${k.systemsLive}</b><small>מערכות חיות מתוך ${k.systemsTotal}</small></div>
-      <div class="kpi"><b>${k.systemsBuilding}</b><small>מערכות בפיתוח</small></div>
-      <div class="kpi"><b>${k.openTasks}</b><small>משימות פתוחות</small></div>
-      <div class="kpi amber"><b>${money(k.ideasWeighted)}</b><small>פוטנציאל מרכזי רווח (משוקלל)</small></div>
-      <div class="kpi green"><b>📥 ${k.leadsMonth||0}</b><small>לידים החודש · ${k.leadsTotal||0} סה"כ</small></div>
+      <div class="kpi"><b>${k.leadsTotal||0}</b><small>סה"כ לידים שנאספו</small></div>
     </div>
+
     ${d.leadsBySystem&&d.leadsBySystem.length?`<div class="card">
       <h3>📥 לידים לפי מערכת</h3>
       ${d.leadsBySystem.map(l=>`<div class="list-item" onclick="go('systems')"><div class="li-main"><b>${esc(l.name)}</b><small>${esc(l.clientName)}</small></div><b class="li-val" style="color:var(--accent-2)">${l.count}</b></div>`).join('')}
     </div>`:''}
+
     <div class="grid2">
       <div class="card">
         <h3>MRR לפי לקוח</h3>
@@ -382,7 +466,6 @@ RENDER.dashboard=async()=>{
             <div class="row" style="justify-content:space-between"><b>${ENG_MODEL[m]||m}</b><span style="color:var(--accent-2);font-weight:800">${money(v)}</span></div>
             <div class="bar"><span style="width:${Math.round(v/modelTotal*100)}%"></span></div>
           </div>`).join(''):'<div class="empty">אין נתונים</div>'}
-        <div class="hint">בריאות לקוחות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
       </div>
     </div>
     <div class="grid2">
@@ -404,7 +487,7 @@ RENDER.dashboard=async()=>{
           </div>`).join(''):'<div class="empty">אין משימות פתוחות 🎉</div>'}
       </div>
     </div>`;
-};
+}
 
 // ---------- לקוחות ----------
 RENDER.clients=async()=>{
@@ -525,9 +608,11 @@ function handoffMsg(){
       <div class="f"><label>ממשק ניהול</label><input id="h_admin" value="${esc(sys.adminUrl||'')}" oninput="handoffBuild()"></div>
     </div>
     <div class="f"><label>פרטי כניסה ראשונית</label><input id="h_creds" value="${esc(sys.credentials||'')}" oninput="handoffBuild()" placeholder="משתמש / סיסמה / קוד"></div>
+    <div class="f"><label>📖 מדריך למערכת (לינק)</label><input id="h_guide" value="${esc(sys.guideUrl||'')}" oninput="handoffBuild()" placeholder="https://…/guide"></div>
     <input type="hidden" id="h_desc" value="${esc(sys.description||'')}">
     <input type="hidden" id="h_mods" value="${esc(mods.join(', '))}">
     <input type="hidden" id="h_collab" value="${collab?'1':''}">
+    <input type="hidden" id="h_bubble" value="${sys.ideaBubble?'1':''}">
     <div class="f"><label>ההודעה (ניתנת לעריכה)</label><textarea id="h_msg" rows="11" style="font-size:.9rem;line-height:1.6"></textarea></div>
     <div class="modal-actions">
       <button class="btn primary" onclick="handoffCopy()">📋 העתק</button>
@@ -537,14 +622,16 @@ function handoffMsg(){
 }
 function handoffBuild(){
   const contact=val('h_contact')||'', sysname=val('h_sysname')||'המערכת';
-  const landing=val('h_landing'), admin=val('h_admin'), creds=val('h_creds');
+  const landing=val('h_landing'), admin=val('h_admin'), creds=val('h_creds'), guide=val('h_guide');
   const desc=val('h_desc'), mods=val('h_mods');
   let m=`היי ${contact}, המערכת מוכנה עבורך 🎉\n\n`;
   m+=`${sysname}${desc?' — '+desc:''}\n`;
   if(landing) m+=`\n🌐 עמוד ציבורי:\n${landing}\n`;
   if(admin) m+=`\n🛠️ ממשק ניהול:\n${admin}\n`;
   if(creds) m+=`\n🔑 פרטי כניסה ראשונית:\n${creds}\n`;
+  if(guide) m+=`\n📖 מדריך למערכת:\n${guide}\n`;
   if(mods) m+=`\nמה המערכת יודעת לעשות:\n${mods.split(', ').map(x=>'• '+x).join('\n')}\n`;
+  if($('h_bubble')&&$('h_bubble').value) m+=`\n💡 בועת רעיונות:\nבפינת המסך תמצא בועה — לחיצה עליה מאפשרת לך לשלוח לי רעיון לשיפור או דיווח על באג תוך כדי עבודה, ואני מטפל. כך המערכת ממשיכה להשתפר בדיוק לפי הצורך שלך.\n`;
   if($('h_collab')&&$('h_collab').value) m+=`\n🤝 שיתופי פעולה (שת״פ):\nהמערכת מאפשרת לך לצרף שותפים ולמכור חבילות/תוספות להזמנה — מרכז רווח נוסף, עם מעקב הכנסה ורווחיות.\n`;
   m+=`\nמוזמן להיכנס, להתרשם ולשחק עם המערכת — היא בנויה בהתאמה אישית לעסק שלך. אשמח לשמוע התרשמות ולעבור יחד על הכל. 🙌`;
   const el=$('h_msg'); if(el) el.value=m;
@@ -719,6 +806,8 @@ function systemForm(s={}){
     <div class="f"><label>פרטי כניסה ראשונית ללקוח</label><input id="f_credentials" value="${esc(s.credentials||'')}" placeholder="משתמש / סיסמה / קוד"></div>
     <div class="f2"><div class="f"><label>🔑 אופן כניסה / הזדהות</label><input id="f_authMethod" value="${esc(s.authMethod||'')}" placeholder="PIN מנהל / אימייל+סיסמה / Google OAuth…"></div>
       <div class="f"><label>ציון אבטחת כניסה (5 = הכי מאובטח)</label><select id="f_authScore">${opts({'':'— לא נקבע —','5':'5 · הכי מאובטח','4':'4 · טוב','3':'3 · סביר','2':'2 · חלש','1':'1 · חשוף'},s.authScore!=null?String(s.authScore):'')}</select></div></div>
+    <div class="f2"><div class="f"><label>📖 מדריך למערכת (לינק ללקוח)</label><input id="f_guideUrl" value="${esc(s.guideUrl||'')}" placeholder="https://…/guide"></div>
+      <div class="f"><label>בועת רעיונות</label><label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer"><input type="checkbox" id="f_ideaBubble" ${s.ideaBubble?'checked':''} style="width:18px;height:18px"> יש בועת רעיונות (יוסבר בהודעת המסירה)</label></div></div>
     <div class="f3"><div class="f"><label>תחילת עבודה</label><input type="date" id="f_startDate" value="${esc(s.startDate||'')}"></div>
       <div class="f"><label>עלייה לאוויר</label><input type="date" id="f_launchDate" value="${esc(s.launchDate||'')}"></div>
       <div class="f"><label>התקדמות %</label><input type="number" id="f_progress" min="0" max="100" value="${s.progress||0}"></div></div>
@@ -738,7 +827,7 @@ function systemForm(s={}){
 }
 async function saveSystem(id){
   const body={name:val('f_name'),clientId:val('f_clientId'),kind:val('f_kind'),status:val('f_status'),stack:val('f_stack'),
-    url:val('f_url'),leadUrl:val('f_leadUrl'),leadUrlB:val('f_leadUrlB'),adminUrl:val('f_adminUrl'),credentials:val('f_credentials'),authMethod:val('f_authMethod'),authScore:val('f_authScore')||null,repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
+    url:val('f_url'),leadUrl:val('f_leadUrl'),leadUrlB:val('f_leadUrlB'),adminUrl:val('f_adminUrl'),credentials:val('f_credentials'),authMethod:val('f_authMethod'),authScore:val('f_authScore')||null,guideUrl:val('f_guideUrl'),ideaBubble:$('f_ideaBubble')&&$('f_ideaBubble').checked?1:0,repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
   if(!body.name||!body.clientId){toast('חסר שם או לקוח','bad');return;}
   try{ id?await apiPatch('/systems/'+id,body):await apiPost('/systems',body); closeModal(); toast('נשמר'); go('systems'); }
   catch(e){toast('שגיאה: '+e.message,'bad');}
@@ -955,6 +1044,7 @@ RENDER.cashflow=async()=>{
   $('view').innerHTML=`
     <div class="spread"><div><h2>תזרים</h2><div class="sub">תחזית מבוססת התקשרויות פעילות + תנועות ידניות</div></div>
       <div class="row"><div class="seg">${[6,12,24].map(n=>`<button class="${n===CF_MONTHS?'on':''}" onclick="CF_MONTHS=${n};go('cashflow')">${n} ח'</button>`).join('')}</div>
+        <button class="btn ghost" onclick="infraForm()">🧩 תשתית</button>
         <button class="btn primary" onclick="cfForm()">+ תנועה</button></div></div>
     <div class="kpis">
       <div class="kpi accent"><b>${money(s.mrr)}</b><small>MRR נוכחי</small></div>
@@ -1058,6 +1148,65 @@ async function saveCf(id){
   catch(e){toast('שגיאה','bad');}
 }
 async function delCf(id){ if(!confirm('למחוק תנועה?'))return; await apiDel('/finance/cashflow/'+id); closeModal(); toast('נמחק'); go('cashflow'); }
+
+// ---------- קטלוג הוצאות תשתית / ממשקים (דומיין, אירוח, דוא״ל, DB, ניטור…) ----------
+// אומדני מחיר ניתנים לעריכה לפני ההוספה. כל פריט נוסף כהוצאה חודשית — ואז ניתן לעריכה ולשיוך לפרויקטים ככל מנוי אחר.
+const INFRA_CATALOG=[
+  {label:'דומיין (חידוש שנתי)',            amount:12, category:'דומיין',        note:'≈ ₪120–₪150 לשנה · שווה-ערך חודשי'},
+  {label:'אירוח / Cloudflare Workers',    amount:20, category:'אירוח וענן',    note:'תוכנית Paid · $5 לחודש'},
+  {label:'Cloudflare Pro (אופציונלי)',    amount:75, category:'אירוח וענן',    note:'$20 לחודש · חומת אש ואנליטיקס'},
+  {label:'בסיס נתונים מנוהל (D1)',         amount:20, category:'בסיס נתונים',   note:'מעבר למכסה החינמית'},
+  {label:'דוא״ל עסקי (Google Workspace)', amount:25, category:'דוא״ל',         note:'לכל תיבה בחודש'},
+  {label:'GitHub (Team)',                 amount:16, category:'קוד ו-DevOps',  note:'$4 למשתמש בחודש'},
+  {label:'ניטור זמינות (Uptime)',          amount:30, category:'ניטור',         note:'BetterStack / UptimeRobot'},
+  {label:'גיבויים מנוהלים',               amount:20, category:'גיבוי',          note:'גיבוי אוטומטי של נתונים'},
+  {label:'שירות SMS / וואטסאפ',           amount:50, category:'תקשורת',        note:'לפי נפח הודעות'},
+  {label:'AI API (Anthropic / OpenAI)',   amount:80, category:'AI',            note:'לפי צריכה בפועל'},
+  {label:'כלי עיצוב (Figma / Canva)',      amount:45, category:'עיצוב',         note:'מנוי חודשי'},
+  {label:'סליקת אשראי (מנוי בסיס)',        amount:30, category:'סליקה',         note:'ללא עמלות עסקה'},
+  {label:'תעודת SSL בתשלום',              amount:0,  category:'אבטחה',         note:'בד״כ חינם ב-Cloudflare — ערכו אם בתשלום'},
+  {label:'CDN בתשלום',                    amount:0,  category:'אירוח וענן',    note:'בד״כ כלול — ערכו אם בתשלום'},
+];
+async function infraForm(){
+  let existing=new Set();
+  try{ const led=await apiGet('/finance/cashflow'); existing=new Set(led.map(r=>r.label)); }catch(e){}
+  const rows=INFRA_CATALOG.map((it,i)=>{
+    const dup=existing.has(it.label);
+    return `<label class="list-item" style="cursor:pointer;align-items:center;gap:10px">
+      <input type="checkbox" class="infra-cb" data-i="${i}" ${dup?'':'checked'} onchange="infraPreview()" style="width:20px;height:20px">
+      <div class="li-main" style="flex:1">
+        <b>${esc(it.label)}${dup?' <span class="chip">כבר קיים</span>':''}</b>
+        <small>${esc(it.category)}${it.note?' · '+esc(it.note):''}</small></div>
+      <div class="row" style="gap:4px;align-items:center">
+        <input type="number" id="infra_amt_${i}" value="${it.amount}" min="0" style="width:82px;text-align:end" onchange="infraPreview()">
+        <small class="sub">₪/ח׳</small></div>
+    </label>`;
+  }).join('');
+  openModal(`<h3>🧩 קטלוג הוצאות תשתית / ממשקים</h3>
+    <div class="sub" style="margin-bottom:10px">סמנו את השירותים שאתם משלמים עליהם וערכו את הסכום. כל פריט נוסף כהוצאה חודשית — ניתן לעריכה ולשיוך לפרויקטים אחר כך (כפתור 🔗 שיוך).</div>
+    <div style="max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:6px">${rows}</div>
+    <div id="infraPrev" class="sub" style="margin-top:10px"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="addInfra()">הוספת נבחרים</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+  infraPreview();
+}
+function infraCbs(){ return [...document.querySelectorAll('.infra-cb:checked')]; }
+function infraPreview(){
+  const p=$('infraPrev'); if(!p)return;
+  const sel=infraCbs(); let sum=0; sel.forEach(cb=>{ sum+=valN('infra_amt_'+cb.dataset.i)||0; });
+  p.textContent=sel.length?`${sel.length} שירותים · סה״כ ${money(sum)}/חודש`:'לא נבחרו שירותים';
+}
+async function addInfra(){
+  const sel=infraCbs(); if(!sel.length){ toast('לא נבחרו שירותים','bad'); return; }
+  let n=0;
+  for(const cb of sel){
+    const it=INFRA_CATALOG[+cb.dataset.i];
+    const amount=valN('infra_amt_'+cb.dataset.i)||0;
+    try{ await apiPost('/finance/cashflow',{kind:'expense',amount,label:it.label,recurring:'monthly',category:it.category,startDate:todayISO()}); n++; }
+    catch(e){}
+  }
+  closeModal(); toast(`נוספו ${n} הוצאות תשתית`); go('cashflow');
+}
 function openingForm(v){
   openModal(`<h3>יתרת פתיחה</h3><div class="f"><label>יתרת מזומן נוכחית ₪</label><input type="number" id="f_open" value="${v||0}"></div>
     <div class="modal-actions"><button class="btn primary" onclick="saveOpening()">שמירה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
@@ -1542,6 +1691,446 @@ async function saveTask(id){
   try{ id?await apiPatch('/tasks/'+id,body):await apiPost('/tasks',body); closeModal(); toast('נשמר'); go('tasks'); }catch(e){toast('שגיאה','bad');}
 }
 async function delTask(id){ if(!confirm('למחוק?'))return; await apiDel('/tasks/'+id); closeModal(); toast('נמחק'); go('tasks'); }
+
+// ============ מאגר סקילז (ECC) ============
+const SK_CATS=[["backend","Backend, API ושרת","🔧"],["db","בסיסי נתונים","🗄️"],["testing","בדיקות ואיכות קוד","🧪"],["devops","העלאה לאוויר ותשתית","🚀"],["security","אבטחה","🛡️"],["frontend","מסכים, עיצוב ואנימציה","🎨"],["langs","שפות תכנות ותקני-קוד","💬"],["ai","בינה מלאכותית וסוכנים","🤖"],["orch","עבודה של כמה סוכנים יחד","🕸️"],["planning","תכנון, מוצר והתמצאות","🗺️"],["business","עסקי, פיננסי וגיוס","💼"],["content","תוכן, שיווק ורשתות","📣"],["video","וידאו ומדיה","🎬"],["research","מחקר, נתונים וידע","🔬"],["ecc","תשתית ECC והגדרות","⚙️"],["network","רשת ותקשורת","🌐"],["domains","תחומים ייעודיים","🧩"]];
+const SK_CMDG=[["cmd-build","תיקון שגיאות בנייה","🔨"],["cmd-review","ביקורת קוד","🔎"],["cmd-test","בדיקות","✅"],["cmd-plan","תכנון ופיתוח פיצ׳ר","📐"],["cmd-multi","עבודה רב-מודלית ולולאות","🧠"],["cmd-orch","ניהול תהליך מלא (orch)","🎛️"],["cmd-epic","תיאום משימות ב-GitHub","📋"],["cmd-learn","למידה ושיפור-עצמי","📚"],["cmd-hook","אוטומציות (hookify)","🪝"],["cmd-session","סשן, זיכרון ונקודות-שמירה","💾"],["cmd-ecc","תחזוקת ECC וכלים כלליים","🧰"]];
+const SKILLS_DATA=[
+["accessibility","frontend","בונה ובודק שהאתר נגיש לכולם — ניווט במקלדת, ניגודיות צבעים וקוראי-מסך",1],
+["agent-architecture-audit","ai","מאתר למה סוכן בינה-מלאכותית מתנהג לא כשורה ומצביע על מה שנשבר"],
+["agent-eval","ai","משווה כלֵי בינה-מלאכותית לכתיבת קוד לפי אחוז הצלחה, עלות וזמן"],
+["agent-harness-construction","ai","מעצב אילו כלים ופעולות לתת לסוכן כדי שיצליח יותר"],
+["agent-introspection-debugging","ai","כשסוכן נכשל — מפיק אבחון מסודר של הסיבה במקום לנסות שוב באקראי"],
+["agent-payment-x402","ai","מאפשר לסוכן לשלם בעצמו על שירותים, עם תקציב וארנק מוגבל"],
+["agent-self-evaluation","ai","הסוכן נותן ציון לעבודה של עצמו לפי חמישה מדדים, עם דוגמאות"],
+["agent-sort","ecc","מכין תוכנית התקנה של ECC שמתאימה בדיוק לצרכים של פרויקט מסוים"],
+["agentic-engineering","ai","שיטת עבודה של מהנדס שמפעיל סוכנים: פירוק משימות ובחירת מודל לכל שלב"],
+["agentic-os","ai","בונה מערכת של כמה סוכנים שעובדים יחד לאורך זמן"],
+["ai-first-engineering","ai","שיטת עבודה לצוות שרוב הקוד שלו נכתב בידי בינה-מלאכותית"],
+["ai-regression-testing","testing","בדיקות שמוודאות שקוד שכתבה בינה-מלאכותית לא שבר משהו שעבד"],
+["android-clean-architecture","langs","מבנה קוד מסודר לאפליקציות אנדרואיד ו-Kotlin"],
+["angular-developer","frontend","עוזר לפתח באמצעות Angular: רכיבים, טפסים, ניווט ועוד"],
+["api-connector-builder","backend","מוסיף חיבור לשירות חיצוני חדש, בדיוק לפי הסגנון שכבר קיים בפרויקט",1],
+["api-design","backend","איך לתכנן נכון ממשק-שרת: שמות, קודי-תגובה, חלוקה-לעמודים וגרסאות",1],
+["architecture-decision-records","planning","מתעד את ההחלטות התכנוניות החשובות, כדי שבעתיד יהיה ברור למה נבנה כך",1],
+["article-writing","content","כותב מאמרים, מדריכים ופוסטים בסגנון-כתיבה מותאם"],
+["automation-audit-ops","ecc","בודק אילו אוטומציות וחיבורים פעילים אצלך, ואילו שבורים או מיותרים"],
+["autonomous-agent-harness","ai","הופך את Claude Code לסוכן עצמאי עם זיכרון ומשימות מתוזמנות"],
+["autonomous-loops","ai","דפוסים ללולאות-עבודה עצמאיות (נשמר לתאימות בלבד)"],
+["backend-patterns","backend","דרך נכונה לבנות את צד-השרת: גישה לנתונים, זירוז, אימות וטיפול בשגיאות",1],
+["benchmark-methodology","testing","שיטה נכונה למדוד ביצועים בצורה אמינה"],
+["benchmark-optimization-loop","testing","מנסה הרבה גרסאות של קוד, מודד ובוחר את המהירה ביותר"],
+["benchmark","testing","מודד את ביצועי-הבסיס ומזהה האטות לפני ואחרי שינוי"],
+["blender-motion-state-inspection","domains","בודק דמויות ותנועות בתוכנת התלת-ממד Blender"],
+["blueprint","planning","כלי לשרטוט ראשוני של פתרון לפני שבונים"],
+["brand-discovery","content","עוזר לגלות ולגבש את זהות המותג"],
+["brand-voice","content","בונה פרופיל של סגנון-הכתיבה שלך מטקסטים אמיתיים, לשימוש חוזר"],
+["browser-qa","testing","בודק אוטומטית שהמסכים נראים ומתפקדים נכון אחרי כל שינוי",1],
+["bun-runtime","backend","שימוש ב-Bun כמנוע-הרצה, מנהל-חבילות וכלי-בדיקות מהיר"],
+["canary-watch","devops","בודק שכתובת האתר עובדת תקין מיד אחרי כל העלאה לאוויר",1],
+["carrier-relationship-management","business","ניהול קשרים עם חברות שילוח והובלה"],
+["cisco-ios-patterns","network","דפוסי-עבודה נכונים על ציוד-רשת של Cisco"],
+["ck","ecc","שומר את ההקשר של הפרויקט בין סשנים, כדי שלא תסביר מחדש כל פעם"],
+["claude-devfleet","orch","מריץ כמה סוכנים במקביל, כל אחד בעותק נפרד, ומרכז דוחות"],
+["click-path-audit","testing","עוקב אחרי כל כפתור במסך כדי לתפוס באגים שמשאירים מצב לא-תקין",1],
+["clickhouse-io","db","עבודה עם מסד-הנתונים ClickHouse לניתוח כמויות-מידע גדולות"],
+["code-tour","planning","יוצר סיור מודרך בקוד, שלב-אחר-שלב, להסבר או לקליטת עובד חדש",1],
+["codebase-onboarding","planning","מנתח פרויקט לא-מוכר ומכין מדריך-התמצאות ומפת-מבנה",1],
+["codehealth-mcp","testing","נותן ציון-בריאות לקוד בזמן-אמת ובודק אם שינוי הרע אותו"],
+["coding-standards","langs","כללי כתיבת-קוד בסיסיים לכל פרויקט: שמות, קריאוּת ובהירות",1],
+["competitive-platform-analysis","research","ניתוח של פלטפורמות מתחרות"],
+["competitive-report-structure","research","מבנה מסודר לדוח-השוואה מול מתחרים"],
+["compose-multiplatform-patterns","langs","בניית ממשק-משתמש ל-Kotlin באמצעות Compose"],
+["config-gc","ecc","מנקה את הגדרות Claude Code שלך מפריטים ישנים ומיותרים"],
+["configure-ecc","ecc","מלווה אותך בהתקנה, עדכון והגדרה של ECC"],
+["connections-optimizer","content","מסדר את רשת-הקשרים שלך ב-X וב-LinkedIn וכותב פניות"],
+["content-engine","content","מערכת ליצירת תוכן מותאם לכל רשת: X, לינקדאין, טיקטוק, ניוזלטר"],
+["content-hash-cache-pattern","backend","שומר תוצאות של עיבוד-קבצים כדי לא לחשב שוב את אותו הדבר"],
+["context-budget","ecc","בודק מה ׳אוכל׳ לך את זיכרון-ההקשר של הסוכן ואיפה מבזבזים"],
+["continuous-agent-loop","ai","לולאות-עבודה עצמאיות עם בקרות-איכות והתאוששות מכשל"],
+["continuous-learning-v2","ecc","לומד מכל סשן ומקדם את הלקחים לכדי סקילז וכלים חדשים"],
+["continuous-learning","ecc","[מיושן] גרסה ישנה של הלמידה המתמשכת — עדיף להשתמש ב-v2"],
+["contract-first","backend","מסכם מראש את ׳חוזה׳ הממשק, כדי ששני צדדים לא ׳יזוזו׳ בלי לתאם",1],
+["cost-aware-llm-pipeline","ai","מוריד עלויות בינה-מלאכותית: ניתוב לפי קושי, מעקב-תקציב ומטמון"],
+["cost-tracking","ecc","עוקב אחרי כמה טוקנים וכסף Claude Code צורך"],
+["council-multi-model","orch","מוסיף חוות-דעת חיצונית אחת על טיוטת-החלטה"],
+["council","orch","מזמן ׳מועצה׳ של ארבע דעות להחלטות מורכבות ולשאלות כן/לא"],
+["cpp-coding-standards","langs","כללי כתיבה נכונים לשפת C++ מודרנית"],
+["cpp-testing","testing","כתיבת בדיקות לקוד C++"],
+["crosspost","content","מפיץ תוכן מותאם לכל רשת — לעולם לא אותו טקסט בכולן"],
+["csharp-testing","testing","כתיבת בדיקות לקוד C#/.NET"],
+["customer-billing-ops","business","מטפל בחיובי-לקוחות: מנויים, זיכויים ונטישה (עם Stripe)",1],
+["customs-trade-compliance","domains","עמידה בכללי מכס וסחר בין-לאומי"],
+["dart-flutter-patterns","langs","דרך נכונה לבנות אפליקציות ב-Flutter: מסכים, ניווט ונתונים"],
+["dashboard-builder","devops","בונה לוח-מחוונים שעונה על ׳האם המערכת בריאה?׳ במקום גרפים מיותרים"],
+["data-scraper-agent","research","בונה סוכן שאוסף מידע אוטומטית מכל מקור-ציבורי, לפי לוח-זמנים"],
+["data-throughput-accelerator","backend","מאיץ העברות-מידע גדולות תוך שמירה על נכונות הנתונים"],
+["database-migrations","db","משנה את מבנה מסד-הנתונים בבטחה — כולל ביטול-שינוי ובלי להפיל את האתר. תומך ב-Drizzle",1],
+["deep-research","research","מחקר מעמיק מכמה מקורות ברשת, עם מקורות וציטוטים"],
+["defi-amm-security","security","רשימת-בדיקה לאבטחת חוזים-חכמים של מסחר-מבוזר (Solidity)"],
+["delivery-gate","ecc","חוסם את הסוכן מלהכריז ׳סיימתי׳ עד שבדיקות-האיכות באמת עברו"],
+["deployment-patterns","devops","איך להעלות אפליקציה לאוויר בבטחה: בדיקות-תקינות וחזרה-לאחור",1],
+["design-system","frontend","יוצר ובודק מערכת-עיצוב אחידה ועקבית באתר",1],
+["dev-team","orch","מדמה צוות שלם — מנהל-מוצר, ארכיטקט, מפתח ובודק — בסשן אחד"],
+["django-celery","backend","משימות-רקע ומתוזמנות באפליקציות Django"],
+["django-patterns","backend","דרך נכונה לבנות אפליקציות Django"],
+["django-security","security","אבטחת אפליקציות Django: אימות, הרשאות והגנה מהתקפות"],
+["django-tdd","testing","כתיבת בדיקות ל-Django בשיטת ׳בדיקה-קודם׳"],
+["django-verification","testing","רצף-בדיקות ל-Django לפני העלאה לאוויר"],
+["dmux-workflows","orch","מריץ כמה סוכנים במקביל בחלונות-טרמינל (dmux)"],
+["docker-patterns","devops","אריזת אפליקציה בקופסת-הרצה (Docker) בצורה נכונה ומאובטחת"],
+["documentation-lookup","research","שולף תיעוד עדכני של ספריות במקום להסתמך על ידע ישן"],
+["dotnet-patterns","langs","דרך נכונה לכתוב קוד C#/.NET"],
+["dynamic-workflow-mode","ai","בונה סביבת-עבודה זמנית למשימה, עם בדיקות-סף"],
+["e2e-testing","testing","בדיקות שמדמות משתמש-אמיתי שלוחץ במסכים, מקצה-לקצה (Playwright)",1],
+["ecc-guide","ecc","מדריך חי לכל הרכיבים של ECC — סוכנים, סקילז ופקודות"],
+["ecc-recipes","ecc","מתאים בין משימה שתיארת לבין קבוצת-הפקודות הנכונה ב-ECC"],
+["ecc-tools-cost-audit","ecc","בודק עלויות וחיובים של מאגר-הכלים של ECC"],
+["email-ops","ecc","מסדר, מנסח ושולח דוא״ל — עם הוכחה שהמייל באמת נשלח"],
+["energy-procurement","domains","רכש אנרגיה"],
+["enterprise-agent-ops","ai","הפעלת סוכנים לאורך זמן עם ניטור וגבולות-אבטחה"],
+["error-handling","backend","דרך נכונה לטפל בשגיאות: ניסיונות-חוזרים והודעות ברורות למשתמש",1],
+["eval-harness","ai","מסגרת-בדיקות מסודרת לתהליכי Claude Code, לפני שסומכים עליהם"],
+["evm-token-decimals","domains","מונע באגים בספירת-עשרוניות של מטבעות-קריפטו"],
+["exa-search","research","חיפוש חכם ברשת: אתרים, קוד, חברות ואנשים"],
+["fal-ai-media","video","יצירת תמונות, סרטונים וקול בעזרת בינה-מלאכותית (fal.ai)"],
+["fastapi-patterns","backend","דרך נכונה לבנות שרת ב-FastAPI (Python)"],
+["finance-billing-ops","business","מבט אמיתי על הכנסות, תמחור וזיכויים — מגובה בקוד, לא בהערכות",1],
+["flox-environments","devops","מכין סביבת-פיתוח זהה בכל מחשב (מבוסס Nix/Flox)"],
+["flutter-dart-code-review","testing","רשימת-בדיקה לביקורת-קוד Flutter/Dart"],
+["foundation-models-on-device","domains","הרצת מודל-שפה על המכשיר עצמו (אייפון, iOS 26)"],
+["frontend-a11y","frontend","נגישות בצד-הלקוח של האתר",1],
+["frontend-design-direction","frontend","קובע כיוון-עיצובי איכותי לממשק-המשתמש",1],
+["frontend-patterns","frontend","דרך נכונה לבנות מסכים ב-React/Next.js"],
+["frontend-slides","video","בונה מצגות-אינטרנט עשירות-אנימציה, גם מקובץ PowerPoint"],
+["fsharp-testing","testing","כתיבת בדיקות לשפת F#"],
+["gan-style-harness","ai","׳יוצר מול מבקר׳ — שני סוכנים שמשפרים תוצר עד שהוא עומד ברף-איכות"],
+["gateguard","ecc","עוצר את הסוכן ודורש חקירה עובדתית לפני שהוא משנה קבצים"],
+["generating-python-installer","domains","אריזת תוכנת Python לקובץ-התקנה קטן ומהיר ל-Windows"],
+["git-workflow","devops","עבודה נכונה עם Git: ענפים, הודעות-שמירה ופתרון התנגשויות",1],
+["github-ops","devops","ניהול GitHub: משימות, בקשות-מיזוג, בנייה אוטומטית וגרסאות",1],
+["golang-patterns","langs","דרך נכונה לכתוב קוד בשפת Go"],
+["golang-testing","testing","כתיבת בדיקות לשפת Go"],
+["google-workspace-ops","business","עבודה על Drive, Docs, Sheets ו-Slides כמשטח אחד"],
+["growth-log","ecc","כתיבת יומן-לקחים שמפיק דפוסים לשימוש חוזר"],
+["healthcare-cdss-patterns","domains","מערכות שעוזרות לרופא להחליט: אינטראקציות בין תרופות ומינונים"],
+["healthcare-emr-patterns","domains","פיתוח תיק-רפואי דיגיטלי (EMR) עם בטיחות קלינית"],
+["healthcare-eval-harness","domains","בדיקות בטיחות-מטופל שחוסמות עלייה-לאוויר של מערכת רפואית"],
+["healthcare-phi-compliance","security","הגנה על מידע רפואי ואישי של מטופלים לפי חוק"],
+["hermes-imports","ecc","ממיר תהליכי-עבודה מקומיים לסקילז נקיים של ECC"],
+["hexagonal-architecture","backend","מבנה-קוד שמפריד בין הלוגיקה העסקית לבין העולם החיצון",1],
+["hipaa-compliance","security","עמידה בתקן HIPAA לפרטיות רפואית בארה״ב"],
+["homelab-network-readiness","network","רשימת-בדיקה לפני שינוי רשת ביתית מתקדמת"],
+["homelab-network-setup","network","תכנון רשת ביתית: נתב, מתג, כתובות וחיווט"],
+["homelab-pihole-dns","network","התקנה והגדרה של Pi-hole לחסימת פרסומות ברשת הבית"],
+["homelab-vlan-segmentation","network","חלוקת הרשת הביתית לרשתות-משנה מבודדות"],
+["homelab-wireguard-vpn","network","הקמת חיבור מאובטח (VPN) לרשת הבית מרחוק"],
+["hookify-rules","ecc","יצירת חוקי-אוטומציה (hookify)"],
+["inherit-legacy-style","ecc","מיישר את הסוכן לסגנון של פרויקט-ותיק, כדי שלא ׳ישבש׳ אותו"],
+["intent-driven-development","planning","הופך בקשה מעורפלת לתנאי-הצלחה ברורים לפני שבונים",1],
+["inventory-demand-planning","domains","תכנון מלאי וחיזוי-ביקוש"],
+["investor-materials","business","מכין מצגות, מודלים-פיננסיים וחומרים למשקיעים"],
+["investor-outreach","business","כותב מיילים ופניות למשקיעים לצורך גיוס"],
+["ios-icon-gen","frontend","יוצר אייקונים לאפליקציות אייפון"],
+["iterative-retrieval","ai","משפר בהדרגה את המידע שסוכן-מִשנֶה מקבל, כדי לפתור משימה"],
+["ito-baskets","domains","נתוני ׳סלים׳ ושוקי-חיזוי של Itô (קריאה בלבד)"],
+["ito-compute","domains","מציאת כרטיסי-מסך (GPU) והזמנתם דרך Itô"],
+["ito-inference","domains","הרצת מודלים על תשתית-המחשוב של Itô"],
+["ito-training","domains","אימון מודלים על תשתית-המחשוב של Itô"],
+["java-coding-standards","langs","כללי כתיבה נכונים לשפת Java"],
+["jira-integration","business","עבודה עם כרטיסי Jira: שליפה, עדכון ותגובות"],
+["jpa-patterns","db","עבודה נכונה מול מסד-נתונים ב-Java (JPA/Hibernate)"],
+["knowledge-ops","research","ניהול מאגר-ידע: הכנסה, סנכרון וחיפוש"],
+["kotlin-coroutines-flows","langs","ריצה במקביל ב-Kotlin בצורה נכונה"],
+["kotlin-exposed-patterns","db","עבודה מול מסד-נתונים ב-Kotlin (Exposed)"],
+["kotlin-ktor-patterns","backend","בניית שרת ב-Kotlin (Ktor)"],
+["kotlin-patterns","langs","דרך נכונה לכתוב קוד ב-Kotlin"],
+["kotlin-testing","testing","כתיבת בדיקות ל-Kotlin"],
+["kubernetes-patterns","devops","הרצת אפליקציות בענן על Kubernetes בצורה נכונה"],
+["laravel-patterns","backend","דרך נכונה לבנות אפליקציות Laravel (PHP)"],
+["laravel-plugin-discovery","backend","מציאת חבילות מתאימות ל-Laravel"],
+["laravel-security","security","אבטחת אפליקציות Laravel"],
+["laravel-tdd","testing","כתיבת בדיקות ל-Laravel"],
+["laravel-verification","testing","רצף-בדיקות ל-Laravel לפני עלייה לאוויר"],
+["latency-critical-systems","backend","מערכות שחייבות להיות מהירות מאוד (זמן-אמת, מסחר, נתוני-שוק)"],
+["lead-intelligence","business","איתור וסינון לקוחות-פוטנציאליים ופנייה אליהם (חלופה ל-Apollo)"],
+["liquid-glass-design","frontend","עיצוב ׳זכוכית נוזלית׳ של אפל ל-iOS 26"],
+["living-docs-governance","ecc","מונע מהתיעוד של פרויקט-ותיק להתיישן ולהתפורר"],
+["llm-trading-agent-security","security","אבטחת סוכנים שמנהלים מסחר וכסף באופן עצמאי"],
+["logistics-exception-management","domains","טיפול בחריגות בשרשרת-האספקה"],
+["loop-design-check","ai","עוזר לתכנן לולאת-סוכן ובודק שהיא לא ׳מסתובבת לריק׳ או מרמה"],
+["mailtrap-email-integration","backend","שליחת מיילים אוטומטיים מהאפליקציה, כולל סביבת-בדיקות"],
+["make-interfaces-feel-better","frontend","פרטי-עיצוב קטנים שגורמים לממשק להרגיש מלוטש ואיכותי",1],
+["manim-video","video","יוצר סרטוני-הסבר מונפשים למושגים טכניים"],
+["market-research","research","מחקר-שוק, ניתוח-מתחרים ובדיקת-נאותות, עם מקורות"],
+["marketing-campaign","content","מתכנן קמפיין-שיווקי שלם: מסרים, דף-נחיתה, מיילים ומודעות"],
+["mcp-server-patterns","backend","בניית שרת שמחבר כלים לסוכנים (MCP)"],
+["messages-ops","ecc","קריאת הודעות/SMS, שחזור קוד חד-פעמי והוכחת-מקור"],
+["ml-adoption-playbook","ai","הוספת יכולת למידת-מכונה לקוד קיים שאין בו כזו"],
+["mle-workflow","ai","תהליך הנדסי מלא לבניית מערכת למידת-מכונה, עד העלאה לאוויר"],
+["motion-advanced","frontend","אנימציות מתקדמות במסכים: גרירה, מחוות ותנועת-ציור"],
+["motion-foundations","frontend","יסודות התנועה והאנימציה במסכים, כולל כיבוד ׳הפחתת-תנועה׳"],
+["motion-patterns","frontend","אנימציות מוכנות לרכיבי-מסך: חלוניות, הודעות ומעברים"],
+["motion-ui","frontend","מערכת-אנימציות מלאה למסכי React/Next.js"],
+["mysql-patterns","db","עבודה נכונה עם מסד-הנתונים MySQL/MariaDB"],
+["nanoclaw-repl","ecc","הפעלה והרחבה של NanoClaw — כלי-שורה של ECC"],
+["nasiko-control-plane","ecc","לוח-בקרה אופציונלי לניהול סוכנים (Nasiko)"],
+["nestjs-patterns","backend","דרך נכונה לבנות שרת ב-NestJS"],
+["netmiko-ssh-automation","network","אוטומציה של ציוד-רשת דרך Python, בבטחה"],
+["network-bgp-diagnostics","network","אבחון תקלות-ניתוב מסוג BGP ברשתות"],
+["network-config-validation","network","בדיקת הגדרות נתב/מתג לפני החלה, למניעת תקלות"],
+["network-interface-health","network","אבחון תקלות בחיבורי-רשת: שגיאות, נפילות ומהירויות"],
+["nextjs-turbopack","frontend","בנייה מהירה של אתרי Next.js עם Turbopack"],
+["nodejs-keccak256","domains","מונע באג-הצפנה נפוץ בעבודה עם Ethereum ב-JavaScript"],
+["nutrient-document-processing","domains","עיבוד-מסמכים: המרה, זיהוי-טקסט, השחרה, חתימה ומילוי"],
+["nuxt4-patterns","frontend","דרך נכונה לבנות אתרים ב-Nuxt 4"],
+["openclaw-persona-forge","domains","יצירת דמות לסוכן OpenClaw (בסינית)"],
+["opensource-pipeline","devops","מכין פרויקט-פרטי לשחרור-פומבי — כולל ניקוי סודות"],
+["orch-add-feature","orch","מנהל בניית יכולת חדשה מקצה-לקצה: מחקר, תכנון, בדיקות ושמירה",1],
+["orch-build-mvp","orch","הופך מסמך-אפיון למוצר-ראשוני עובד, פרוסה-אחר-פרוסה"],
+["orch-change-feature","orch","מנהל שינוי של יכולת קיימת להתנהגות חדשה"],
+["orch-fix-defect","orch","מנהל תיקון-באג: קודם בדיקה שנכשלת, ואז תיקון עד שהיא עוברת",1],
+["orch-pipeline","orch","המנוע המשותף שמפעיל את כל שלבי ה-orch (בד״כ לא מריצים ישירות)"],
+["orch-refine-code","orch","מנהל שיפור-מבנה של קוד בלי לשנות את ההתנהגות שלו"],
+["parallel-execution-optimizer","orch","מזרז משימה דרך עבודה מקבילה של כמה סוכנים בבת-אחת"],
+["perl-patterns","langs","דרך נכונה לכתוב קוד ב-Perl מודרני"],
+["perl-security","security","אבטחת קוד Perl"],
+["perl-testing","testing","כתיבת בדיקות ל-Perl"],
+["plan-canvas","planning","פותח תוכנית על ׳לוח׳ בדפדפן, שם אפשר להעיר ולאשר בלחיצה",1],
+["plan-orchestrate","orch","מפרק תוכנית לשרשרת-סוכנים ומכין פקודות מוכנות-להדבקה"],
+["plankton-code-quality","testing","מיישר ומנקה את הקוד אוטומטית בכל שמירת-קובץ"],
+["postgres-patterns","db","עבודה נכונה עם מסד-הנתונים PostgreSQL"],
+["prediction-market-oracle-research","research","שימוש בשוקי-חיזוי כמקור-נתונים למוצרים ולדשבורדים"],
+["prediction-market-risk-review","security","בדיקת-סיכונים בתהליכים שנוגעים לשוקי-חיזוי ומסחר"],
+["prisma-patterns","db","עבודה מול מסד-נתונים ב-TypeScript (Prisma) והמלכודות שלו"],
+["product-capability","planning","הופך אפיון-מוצר לתוכנית-יישום שחושפת אילוצים והחלטות פתוחות",1],
+["product-lens","planning","בודק את ה׳למה׳ של פיצ׳ר לפני שמתחילים לבנות אותו",1],
+["production-audit","devops","בודק אם האפליקציה מוכנה לאוויר — מקומית, בלי לשלוח קוד החוצה",1],
+["production-scheduling","domains","תזמון ייצור"],
+["project-flow-ops","business","מתאם בין GitHub ל-Linear ומסדר את זרימת-העבודה"],
+["prompt-optimizer","ecc","משפר ומשכתב טיוטות של הנחיות (prompts)"],
+["python-patterns","langs","דרך נכונה לכתוב קוד ב-Python"],
+["python-testing","testing","כתיבת בדיקות ל-Python (pytest)"],
+["pytorch-patterns","ai","בניית אימון של רשתות-נוירונים ב-PyTorch"],
+["quality-nonconformance","domains","טיפול באי-התאמות בתחום האיכות"],
+["quarkus-patterns","backend","דרך נכונה לבנות שרת ב-Quarkus (Java)"],
+["quarkus-security","security","אבטחת שרת Quarkus"],
+["quarkus-tdd","testing","כתיבת בדיקות ל-Quarkus"],
+["quarkus-verification","testing","רצף-בדיקות ל-Quarkus לפני עלייה לאוויר"],
+["ralphinho-rfc-pipeline","orch","מערכת רב-סוכנית מסודרת עם שערי-איכות ותור-מיזוג"],
+["react-native-patterns","frontend","בניית אפליקציות-מובייל ב-React Native/Expo"],
+["react-patterns","frontend","דרך נכונה לבנות מסכים ב-React"],
+["react-performance","frontend","האצת מסכי React/Next — יותר מ-70 כללי-שיפור"],
+["react-testing","testing","כתיבת בדיקות לרכיבי React"],
+["recsys-pipeline-architect","ai","בניית מנוע-המלצות (כמו ׳עבורך׳) שבוחר את הפריטים המתאימים"],
+["recursive-decision-ledger","ai","תהליך-החלטה חוזר, עם תיעוד-ראיות גלוי לכל שלב"],
+["redis-patterns","db","עבודה נכונה עם Redis: מטמון, נעילות והגבלת-קצב"],
+["regex-vs-llm-structured-text","ai","מתי להשתמש בכלל-טקסט פשוט ומתי בבינה-מלאכותית לפענוח טקסט"],
+["remotion-video-creation","video","יצירת סרטוני-וידאו בעזרת קוד React (Remotion)"],
+["repo-scan","ecc","מתקין את סקיל repo-scan מגרסה קבועה ובדוקה"],
+["research-ops","research","תהליך-מחקר מבוסס-ראיות על המצב העדכני"],
+["returns-reverse-logistics","domains","ניהול החזרות ולוגיסטיקה-הפוכה"],
+["rules-distill","ecc","מזהה עקרונות שחוזרים בכמה סקילז ומרכז אותם לכללים"],
+["rust-patterns","langs","דרך נכונה לכתוב קוד ב-Rust"],
+["rust-testing","testing","כתיבת בדיקות ל-Rust"],
+["safety-guard","ecc","מונע פעולות-הרס במערכות-ייצור ובריצה עצמאית",1],
+["santa-method","orch","שני מבקרים עצמאיים חייבים לאשר לפני שהתוצר יוצא החוצה"],
+["scientific-db-pubmed-database","research","חיפוש ספרות-רפואית במאגר PubMed"],
+["scientific-db-uspto-database","research","שליפת נתוני-פטנטים וסימני-מסחר רשמיים (USPTO)"],
+["scientific-pkg-gget","research","שאילתות מהירות למאגרי-גנום במחקר ביולוגי"],
+["scientific-thinking-literature-review","research","סקירת-ספרות מדעית שיטתית: חיפוש, סינון וסיכום"],
+["scientific-thinking-scholar-evaluation","research","הערכת עבודה אקדמית לפי אמות-מידה קבועות"],
+["search-first","ecc","מחפש כלים וספריות קיימים לפני שכותבים קוד מאפס",1],
+["security-bounty-hunter","security","מחפש פרצות-אבטחה אמיתיות הניתנות-לניצול בפרויקט"],
+["security-review","security","רשימת-בדיקה לאבטחה: אימות, קלט-משתמש, סודות ונקודות-קצה",1],
+["security-scan","security","סורק את הגדרות Claude Code שלך לפרצות ולהזרקות",1],
+["seo","content","שיפור הופעת האתר בגוגל: צד-טכני, תוכן ומהירות-טעינה",1],
+["skill-comply","ecc","בודק אם הסוכן באמת מציית לסקילז ולכללים שנתת לו"],
+["skill-scout","ecc","מחפש סקיל קיים (מקומי או ברשת) לפני שיוצרים חדש"],
+["skill-stocktake","ecc","בודק את איכות הסקילז והפקודות שלך"],
+["social-graph-ranker","content","מדרג את רשת-הקשרים למציאת היכרות ׳חמה׳ אל מישהו"],
+["social-publisher","content","מתזמן ומפרסם פוסטים ל-13 רשתות חברתיות"],
+["springboot-patterns","backend","דרך נכונה לבנות שרת ב-Spring Boot (Java)"],
+["springboot-security","security","אבטחת שרת Spring Boot"],
+["springboot-tdd","testing","כתיבת בדיקות ל-Spring Boot"],
+["springboot-verification","testing","רצף-בדיקות ל-Spring Boot לפני עלייה לאוויר"],
+["strategic-compact","ecc","מציע לכווץ את ההקשר בנקודות הגיוניות בין שלבי-משימה"],
+["swift-actor-persistence","langs","שמירת-נתונים בטוחה ב-Swift, בלי התנגשויות"],
+["swift-concurrency-6-2","langs","ריצה במקביל ב-Swift 6.2 בצורה נכונה"],
+["swift-protocol-di-testing","testing","כתיבת קוד Swift שקל לבדוק אותו"],
+["swiftui-patterns","frontend","בניית מסכים ב-SwiftUI (אפל)"],
+["taste","video","נותן כיוון-אמנותי לקליפים ולעריכות-וידאו"],
+["tdd-workflow","testing","פיתוח בשיטת ׳בדיקה-קודם׳, עם כיסוי-בדיקות של 80%+",1],
+["team-agent-orchestration","orch","מנהל ׳כיתת׳ סוכנים עם משימות, בעלוּת ושערי-מיזוג"],
+["team-builder","orch","בורר סוכנים להרכבת צוות ושיגורו במקביל"],
+["terminal-opener","ecc","פותח כלי-שורה בחלון-טרמינל גלוי"],
+["terminal-ops","ecc","מריץ פקודות בפרויקט עם הוכחה מדויקת של מה שבוצע ואומת",1],
+["tinystruct-patterns","backend","פיתוח עם הסביבה tinystruct (Java)"],
+["token-budget-advisor","ecc","ייעוץ לגבי תקציב-הטוקנים"],
+["ui-demo","video","מקליט סרטון-הדגמה מלוטש של האתר"],
+["ui-to-vue","frontend","הופך צילומי-מסך של עיצוב לרכיבי Vue"],
+["uncloud","devops","ניהול שרתים ופריסת-שירותים באשכול Uncloud"],
+["unified-memory","ecc","מאפשר לכמה סוכנים לחלוק זיכרון והקשר משותף"],
+["unified-notifications-ops","ecc","מרכז ומסדר את כל ההתראות ממקורות שונים למקום אחד"],
+["verification-loop","testing","מערכת-בדיקה מקיפה של העבודה, לפני שמכריזים ׳הושלם׳",1],
+["video-editing","video","עריכת-וידאו בעזרת בינה-מלאכותית"],
+["videodb","video","לראות, להבין ולפעול על וידאו ואודיו: אינדוקס, חיפוש ועריכה"],
+["visa-doc-translate","domains","תרגום מסמכי-ויזה לאנגלית לקובץ דו-לשוני"],
+["vite-patterns","frontend","הגדרה ובנייה נכונה של פרויקטים עם Vite",1],
+["vue-patterns","frontend","דרך נכונה לבנות אתרים ב-Vue 3"],
+["windows-desktop-e2e","testing","בדיקות לאפליקציות-שולחניות של Windows"],
+["workspace-surface-audit","ecc","בודק את הסביבה שלך וממליץ אילו סקילז וכלים באמת שווים לך",1],
+["x-api","content","חיבור ל-X/Twitter: פרסום, קריאת ציר-זמן וחיפוש"],
+];
+const CMDS_DATA=[
+["build-fix","cmd-build","מזהה את מערכת-הבנייה ומתקן שגיאות-בנייה בשינויים קטנים ובטוחים",""],
+["cpp-build","cmd-build","מתקן שגיאות-בנייה של C++ (CMake, linker) בצורה מדויקת","cpp-coding-standards,verification-loop"],
+["flutter-build","cmd-build","מתקן שגיאות-בנייה של Flutter/Dart","flutter-dart-code-review,verification-loop"],
+["go-build","cmd-build","מתקן שגיאות-בנייה ובדיקות-תקינות של Go","golang-patterns,verification-loop"],
+["gradle-build","cmd-build","מתקן שגיאות-בנייה של Gradle (אנדרואיד/KMP)",""],
+["kotlin-build","cmd-build","מתקן שגיאות-בנייה של Kotlin/Gradle","kotlin-patterns,verification-loop"],
+["react-build","cmd-build","מתקן שגיאות-בנייה של React (Vite, webpack, Next.js)","frontend-patterns,react-patterns,verification-loop"],
+["rust-build","cmd-build","מתקן שגיאות-בנייה של Rust (כולל בעיות ׳בעלוּת׳)","rust-patterns,verification-loop"],
+["code-review","cmd-review","ביקורת-קוד — על שינויים מקומיים או על בקשת-מיזוג ב-GitHub",""],
+["cpp-review","cmd-review","ביקורת-קוד C++: בטיחות-זיכרון, מקביליות ואבטחה","cpp-coding-standards,cpp-testing"],
+["fastapi-review","cmd-review","ביקורת של אפליקציית FastAPI",""],
+["flutter-review","cmd-review","ביקורת-קוד Flutter/Dart","flutter-dart-code-review"],
+["go-review","cmd-review","ביקורת-קוד Go","golang-patterns,golang-testing"],
+["kotlin-review","cmd-review","ביקורת-קוד Kotlin","kotlin-patterns,kotlin-testing"],
+["python-review","cmd-review","ביקורת-קוד Python: תקן PEP 8, טיפוסים ואבטחה","python-patterns,python-testing,tdd-workflow"],
+["react-review","cmd-review","ביקורת-קוד React/JSX","accessibility,react-patterns,react-testing"],
+["rust-review","cmd-review","ביקורת-קוד Rust","rust-patterns,rust-testing"],
+["vue-review","cmd-review","ביקורת-קוד Vue","vue-patterns"],
+["review-pr","cmd-review","ביקורת מקיפה של בקשת-מיזוג בעזרת סוכנים מתמחים",""],
+["orch-review","cmd-review","מריץ ביקורת מאורגנת על שינויים ומדווח מה חוסם ומה רק המלצה",""],
+["cpp-test","cmd-test","בדיקה-קודם ל-C++ (GoogleTest), עם בדיקת-כיסוי","cpp-testing,tdd-workflow,verification-loop"],
+["flutter-test","cmd-test","הרצה ותיקון של בדיקות Flutter/Dart","flutter-dart-code-review,tdd-workflow"],
+["go-test","cmd-test","בדיקה-קודם ל-Go, עם כיסוי 80%+","golang-testing,tdd-workflow,verification-loop"],
+["kotlin-test","cmd-test","בדיקה-קודם ל-Kotlin (Kotest), עם כיסוי","kotlin-testing,tdd-workflow,verification-loop"],
+["react-test","cmd-test","בדיקה-קודם ל-React (ממוקד-נגישות)","accessibility,e2e-testing,react-testing,tdd-workflow,verification-loop"],
+["rust-test","cmd-test","בדיקה-קודם ל-Rust, עם כיסוי","rust-patterns,rust-testing,verification-loop"],
+["test-coverage","cmd-test","מנתח כיסוי-בדיקות, מזהה חוסרים ומייצר בדיקות חסרות",""],
+["feature-dev","cmd-plan","פיתוח פיצ׳ר מודרך, עם הבנת-הקוד והתמקדות בארכיטקטורה",""],
+["plan","cmd-plan","מנסח דרישות, מעריך סיכונים ובונה תוכנית שלב-אחר-שלב (מחכה לאישורך)","plan-canvas,tdd-workflow"],
+["plan-prd","cmd-plan","מייצר מסמך-אפיון רזה, ממוקד-בעיה, ומעביר ל-/plan","tdd-workflow"],
+["plan-canvas","cmd-plan","פותח תוכנית או עמוד על ׳לוח׳ בדפדפן, לביקורת ואישור בלחיצה","plan-canvas"],
+["prp-plan","cmd-plan","בונה תוכנית-יישום מקיפה, עם ניתוח-קוד וחילוץ-דפוסים",""],
+["prp-implement","cmd-plan","מבצע תוכנית-יישום עם לולאות-אימות קפדניות",""],
+["prp-prd","cmd-plan","מחולל אפיון-מוצר אינטראקטיבי, בעיה-קודם, עם שאלות הדדיות",""],
+["prp-commit","cmd-plan","שמירה מהירה עם תיאור בשפה חופשית של מה לשמור",""],
+["prp-pr","cmd-plan","יוצר בקשת-מיזוג ב-GitHub מהענף הנוכחי",""],
+["pr","cmd-plan","יוצר בקשת-מיזוג ב-GitHub — מזהה תבנית, מנתח שינויים ודוחף",""],
+["multi-backend","cmd-multi","עבודה של כמה מודלים יחד, ממוקדת-שרת (ממשקים, אלגוריתמים, לוגיקה)",""],
+["multi-frontend","cmd-multi","עבודה של כמה מודלים יחד, ממוקדת-מסכים (רכיבים, פריסה, אנימציה)",""],
+["multi-plan","cmd-multi","בונה תוכנית-יישום רב-מודלית בלי לגעת בקוד",""],
+["multi-execute","cmd-multi","מבצע תוכנית רב-מודלית, כש-Claude הוא היחיד שכותב לקבצים",""],
+["multi-workflow","cmd-multi","תהליך-פיתוח רב-מודלי מלא: מחקר, תכנון, ביצוע וביקורת",""],
+["gan-build","cmd-multi","לולאת ׳יוצר/מבקר׳ למשימות-מימוש, עם ניקוד",""],
+["gan-design","cmd-multi","לולאת ׳יוצר/מבקר׳ לעבודת-עיצוב חזותית, עם ניקוד",""],
+["santa-loop","cmd-multi","לולאה ששני מבקרים עצמאיים חייבים לאשר בה לפני שילוח",""],
+["model-route","cmd-multi","ממליץ על דרגת-המודל המתאימה למשימה לפי קושי, סיכון ותקציב",""],
+["loop-start","cmd-multi","מתחיל לולאה עצמאית מנוהלת, עם ברירות-מחדל בטוחות ותנאי-עצירה",""],
+["loop-status","cmd-multi","מציג מצב-לולאה פעילה: התקדמות, סימני-כשל והמלצת-התערבות",""],
+["orch-add-feature","cmd-orch","מנהל בניית יכולת חדשה מקצה-לקצה","orch-add-feature"],
+["orch-build-mvp","cmd-orch","מנהל הפיכת אפיון למוצר-ראשוני עובד","orch-build-mvp"],
+["orch-change-feature","cmd-orch","מנהל שינוי של יכולת קיימת להתנהגות חדשה","orch-change-feature"],
+["orch-fix-defect","cmd-orch","מנהל תיקון-באג (בדיקה-שנכשלת ואז תיקון)","orch-fix-defect"],
+["orch-refine-code","cmd-orch","מנהל שיפור-מבנה בלי לשנות התנהגות","orch-refine-code"],
+["epic-claim","cmd-epic","׳תופס׳ משימת-אב, מסמן בעלוּת ומסנכרן מקומית",""],
+["epic-decompose","cmd-epic","מפרק משימת-אב למשימות-ילד, בלי ליצור ענפים",""],
+["epic-publish","cmd-epic","מפרסם עדכון של משימת-אב מאומתת בחזרה למשימה",""],
+["epic-review","cmd-epic","מסמן בקשת-ביקורת, אישור או בקשת-שינויים על משימת-אב",""],
+["epic-sync","cmd-epic","מסנכרן גופי-משימה, תוויות ומצב-תיאום מ-GitHub",""],
+["epic-unblock","cmd-epic","סורק משימות-אב חסומות ופותח מחדש כשהתלויות נסגרו",""],
+["epic-validate","cmd-epic","בודק מוכנות של משימת-אב, תלויות ומדיניות-תיאום",""],
+["quality-gate","cmd-epic","מריץ שער-איכות של פורמט על קובץ בודד ומדווח תיקונים",""],
+["learn","cmd-learn","מחלץ דפוסים לשימוש-חוזר מהסשן ושומר אותם כמועמדים לסקילז",""],
+["learn-eval","cmd-learn","כמו learn, אבל שופט את האיכות לפני שמירה ובוחר את מקום-השמירה",""],
+["evolve","cmd-learn","מנתח את הלקחים שנלמדו ומציע מבנים משופרים","continuous-learning-v2"],
+["instinct-export","cmd-learn","מייצא את הלקחים שנלמדו לקובץ",""],
+["instinct-import","cmd-learn","מייבא לקחים מקובץ או מכתובת","continuous-learning-v2"],
+["instinct-status","cmd-learn","מציג את הלקחים שנלמדו, עם רמת-ביטחון לכל אחד","continuous-learning-v2"],
+["projects","cmd-learn","מציג פרויקטים ידועים וסטטיסטיקת-הלמידה שלהם","continuous-learning-v2"],
+["promote","cmd-learn","מקדם לקחים מרמת-פרויקט לרמה כללית","continuous-learning-v2"],
+["prune","cmd-learn","מוחק לקחים ממתינים מעל 30 יום שלא קודמו","continuous-learning-v2"],
+["skill-create","cmd-learn","מנתח היסטוריית-Git ומחלץ דפוסים לקובצי SKILL.md",""],
+["skill-health","cmd-learn","מציג לוח-מחוונים של בריאות מאגר-הסקילז שלך",""],
+["hookify","cmd-hook","יוצר אוטומציות שמונעות התנהגויות לא-רצויות",""],
+["hookify-configure","cmd-hook","מפעיל או מכבה חוקי-אוטומציה באופן אינטראקטיבי",""],
+["hookify-help","cmd-hook","עזרה על מערכת האוטומציות (hookify)",""],
+["hookify-list","cmd-hook","מציג את כל חוקי-האוטומציה המוגדרים",""],
+["aside","cmd-session","עונה על שאלת-צד מהירה בלי לאבד את ההקשר, וממשיך אוטומטית",""],
+["checkpoint","cmd-session","יוצר, בודק או מציג נקודות-שמירה אחרי בדיקות-אימות",""],
+["save-session","cmd-session","שומר את מצב-הסשן לקובץ מתוארך, להמשך בעתיד",""],
+["resume-session","cmd-session","טוען את הסשן האחרון וממשיך מאיפה שהופסק",""],
+["sessions","cmd-session","ניהול היסטוריית-סשנים, כינויים ומטא-דאטה",""],
+["ecc-guide","cmd-ecc","ניווט בכל רכיבי ECC הנוכחיים, מתוך המאגר החי",""],
+["auto-update","cmd-ecc","מושך את עדכוני ECC האחרונים ומתקין מחדש",""],
+["harness-audit","cmd-ecc","מריץ ביקורת-מאגר ומחזיר כרטיס-ניקוד מדורג",""],
+["project-init","cmd-ecc","מזהה את הטכנולוגיות ומכין תוכנית-קליטה של ECC (הרצה-יבשה)",""],
+["cost-report","cmd-ecc","מפיק דוח-עלויות מקומי של Claude Code",""],
+["security-scan","cmd-ecc","מריץ סריקת-אבטחה על סוכנים, אוטומציות, הרשאות וסודות","security-scan"],
+["update-codemaps","cmd-ecc","סורק את מבנה-הפרויקט ומייצר מפות-ארכיטקטורה חסכוניות",""],
+["update-docs","cmd-ecc","מסנכרן תיעוד ממקורות-האמת (סקריפטים, סכמות, נתיבים)",""],
+["refactor-clean","cmd-ecc","מזהה ומסיר קוד-מת בבטחה, עם אימות אחרי כל שינוי",""],
+["setup-pm","cmd-ecc","מגדיר את מנהל-החבילות המועדף (npm / pnpm / yarn / bun)",""],
+["pm2","cmd-ecc","מנתח פרויקט ומייצר פקודות-שירות של PM2",""],
+["marketing-campaign","cmd-ecc","מתכנן ומריץ קמפיין-שיווקי שלם מתוך תקציר-מוצר",""],
+["jira","cmd-ecc","שליפה או עדכון של כרטיס Jira וניתוח דרישות","jira-integration,tdd-workflow"],
+];
+let SK_VIEW='all', SK_STAR=false;
+function skCopy(name,type){
+  const t=(type==='cmd'?'/':'')+name; let ok=false;
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;} }catch(e){}
+  if(!ok){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); }
+  toast('הועתק: '+t);
+}
+function skItemHtml(it,type){
+  const name=it[0], desc=it[2];
+  const star=type==='skill'&&it[3]===1;
+  const rel=type==='cmd'?it[3]:'';
+  const label=(type==='cmd'?'/':'')+name;
+  const s=esc((name+' '+desc+' '+(rel||'')).toLowerCase());
+  let relHtml='';
+  if(rel){ relHtml='<div class="sk-rel"><span class="t" style="border-color:transparent;background:none;padding-inline:0">שייך ל:</span>'+rel.split(',').map(x=>'<span class="t">'+esc(x)+'</span>').join('')+'</div>'; }
+  return '<div class="sk-item '+type+(star?' star':'')+'" data-type="'+type+'" data-star="'+(star?1:0)+'" data-s="'+s+'" onclick="skCopy(\''+esc(name)+'\',\''+type+'\')">'
+    +(star?'<span class="sk-star-tag">⭐</span>':'')
+    +'<div class="sk-name">'+esc(label)+'</div><div class="sk-desc">'+esc(desc)+'</div>'+relHtml+'</div>';
+}
+RENDER.skills=async()=>{
+  const nSk=SKILLS_DATA.length, nCmd=CMDS_DATA.length, nStar=SKILLS_DATA.filter(s=>s[3]===1).length;
+  const sg={}; SKILLS_DATA.forEach(s=>{(sg[s[1]]=sg[s[1]]||[]).push(s);});
+  const cg={}; CMDS_DATA.forEach(c=>{(cg[c[1]]=cg[c[1]]||[]).push(c);});
+  let h='<div class="spread"><div><h2>🧩 מאגר סקילז ופקודות</h2><div class="sub">קטלוג ידע מ-ECC לשימוש חוזר בפרויקטים — לחיצה על פריט מעתיקה את שמו</div></div></div>';
+  h+='<div class="kpis"><div class="kpi accent"><b>'+nSk+'</b><small>סקילז</small></div><div class="kpi amber"><b>'+nCmd+'</b><small>פקודות</small></div><div class="kpi green"><b>'+nStar+'</b><small>מומלצים ⭐</small></div></div>';
+  h+='<div class="row" style="margin-bottom:14px"><input id="skq" class="search" placeholder="חיפוש לפי שם או תיאור…" oninput="skApply()">'
+    +'<div class="seg" style="flex:0 0 auto">'+[['all','הכל'],['skill','סקילז'],['cmd','פקודות']].map(v=>'<button class="'+(SK_VIEW===v[0]?'on':'')+'" onclick="skView(\''+v[0]+'\',this)">'+v[1]+'</button>').join('')+'</div>'
+    +'<button class="btn small'+(SK_STAR?' teal':'')+'" onclick="skStarToggle(this)">⭐ רלוונטי לי</button></div>';
+  h+='<div class="card"><h3>💾 איפה זה שמור</h3><div class="muted" style="font-size:.85rem;line-height:1.75">סקילז מותקנים יושבים בנתיב <span class="tag" style="direction:ltr">.claude/skills/&lt;שם&gt;/SKILL.md</span> בתוך הריפו. פקודה יושבת ב-<span class="tag" style="direction:ltr">.claude/commands/&lt;שם&gt;.md</span> ומורצת עם <span class="tag" style="direction:ltr">/שם</span>. להתקנה בפרויקט עתידי — מעתיקים את התיקייה מהמאגר <span class="tag" style="direction:ltr">affaan-m/ecc</span> לאותו נתיב.</div></div>';
+  SK_CATS.forEach(c=>{ const items=sg[c[0]]; if(!items)return; items.sort((a,b)=>(b[3]===1?1:0)-(a[3]===1?1:0));
+    h+='<div class="card sk-sec" data-kind="skill"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'skill')).join('')+'</div></div>'; });
+  h+='<div class="card sk-sec" data-kind="cmdhead"><h3>⌘ פקודות מוכנות (Slash Commands)</h3><div class="muted" style="font-size:.84rem">94 קיצורים שמריצים עם /שם. אצל כל פקודה מצוין לאילו סקילז היא קשורה.</div></div>';
+  SK_CMDG.forEach(c=>{ const items=cg[c[0]]; if(!items)return;
+    h+='<div class="card sk-sec" data-kind="cmd"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'cmd')).join('')+'</div></div>'; });
+  h+='<div class="empty" id="sk-empty" style="display:none">לא נמצאו פריטים תואמים</div>';
+  $('view').innerHTML=h; skApply();
+};
+function skView(v,el){ SK_VIEW=v; el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); skApply(); }
+function skStarToggle(el){ SK_STAR=!SK_STAR; el.classList.toggle('teal',SK_STAR); skApply(); }
+function skApply(){
+  const term=($('skq')?.value||'').trim().toLowerCase(); let any=false;
+  document.querySelectorAll('#view .sk-sec').forEach(sec=>{
+    if(sec.dataset.kind==='cmdhead'){ sec.style.display=(SK_VIEW==='skill'||SK_STAR)?'none':''; return; }
+    let shown=0;
+    sec.querySelectorAll('.sk-item').forEach(c=>{
+      const ok=(!term||c.dataset.s.includes(term))&&(!SK_STAR||c.dataset.star==='1')&&(SK_VIEW==='all'||c.dataset.type===SK_VIEW);
+      c.style.display=ok?'':'none'; if(ok)shown++;
+    });
+    sec.style.display=shown?'':'none';
+    const cnt=sec.querySelector('[data-count]'); if(cnt)cnt.textContent=shown; if(shown)any=true;
+  });
+  const em=$('sk-empty'); if(em)em.style.display=any?'none':'';
+}
 
 // ============ הפעלה ============
 boot();

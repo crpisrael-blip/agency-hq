@@ -5,7 +5,7 @@ import { Env, db, uid, now, pick, num } from './util';
 
 export const systemsApp = new Hono<Env>();
 
-const FIELDS = ['clientId', 'name', 'kind', 'stack', 'status', 'url', 'leadUrl', 'leadUrlB', 'adminUrl', 'credentials', 'authMethod', 'authScore', 'repoUrl', 'startDate', 'launchDate', 'progress', 'description', 'notes'];
+const FIELDS = ['clientId', 'name', 'kind', 'stack', 'status', 'url', 'leadUrl', 'leadUrlB', 'adminUrl', 'credentials', 'authMethod', 'authScore', 'guideUrl', 'ideaBubble', 'repoUrl', 'startDate', 'launchDate', 'progress', 'description', 'notes'];
 
 // כל המערכות (עם שם הלקוח) — אופציונלי סינון לפי לקוח ?clientId=
 systemsApp.get('/', async (c) => {
@@ -79,6 +79,7 @@ systemsApp.post('/', async (c) => {
     name: String(body.name),
     progress: num(body.progress),
     authScore: body.authScore != null && body.authScore !== '' ? num(body.authScore) : null,
+    ideaBubble: body.ideaBubble ? 1 : 0,
     createdAt: now(),
   } as any);
   return c.json({ ok: true, id });
@@ -89,6 +90,7 @@ systemsApp.patch('/:id', async (c) => {
   const data = pick(body, FIELDS);
   if (data.progress !== undefined) (data as any).progress = num(data.progress);
   if ((data as any).authScore !== undefined) (data as any).authScore = (data as any).authScore === '' || (data as any).authScore == null ? null : num((data as any).authScore);
+  if ((data as any).ideaBubble !== undefined) (data as any).ideaBubble = (data as any).ideaBubble ? 1 : 0;
   if (Object.keys(data).length) {
     await db(c).update(systems).set(data as any).where(eq(systems.id, c.req.param('id')));
   }
