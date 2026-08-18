@@ -217,6 +217,25 @@
   .att-item.blue .att-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.42);color:#8fbcff}
   .att-item.amber .att-ico{background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.42);color:#f7cd78}
   .att-item.teal .att-ico{background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.42);color:#6ee7d3}
+  /* ===== תיק לקוחות ומערכות (אקורדיון) ===== */
+  .pf-group{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow-sm)}
+  .pf-head{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer;transition:background-color .14s ease-out}
+  .pf-head:hover{background:rgba(108,92,231,.06)}
+  .pf-caret{flex:none;color:var(--muted);font-size:.7rem;width:12px;text-align:center;transition:transform .18s}
+  .pf-caret::before{content:'\25B8'}
+  .pf-group.open .pf-caret{transform:rotate(90deg)}
+  .pf-main{min-width:0;flex:1}
+  .pf-main b{display:block;font-size:.98rem}
+  .pf-main small{color:var(--muted);font-size:.8rem}
+  .pf-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .pf-systems{display:none;border-top:1px solid var(--line);padding:2px 15px 6px;background:var(--bg-2)}
+  .pf-group.open .pf-systems{display:block}
+  .pf-sys{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:background-color .12s ease-out}
+  .pf-sys:last-child{border-bottom:0}
+  .pf-sys:hover{background:rgba(108,92,231,.05)}
+  .pf-sys-main{min-width:0;flex:1}
+  .pf-sys-main b{display:block;font-size:.9rem}
+  .pf-sys-main small{color:var(--muted);font-size:.76rem}
 </style>
 </head>
 <body>
@@ -342,8 +361,7 @@ function showApp(){
 // ============ ניווט ============
 const PAGES = [
   ['dashboard','לוח בקרה'],
-  ['clients','לקוחות'],
-  ['systems','מערכות'],
+  ['portfolio','לקוחות ומערכות'],
   ['modules','מודולים'],
   ['engagements','התקשרויות'],
   ['calculator','מחשבון חיוב'],
@@ -361,7 +379,8 @@ function buildNav(){
 }
 function go(page){
   CURRENT=page;
-  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===page));
+  const navKey=(page==='clients'||page==='systems')?'portfolio':page;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===navKey));
   $('view').innerHTML='<div class="empty">טוען…</div>';
   (RENDER[page]||(()=> $('view').innerHTML='<div class="empty">בקרוב</div>'))();
   window.scrollTo(0,0);
@@ -699,6 +718,97 @@ RENDER.systems=async()=>{
     </div>
     <div class="hint" style="padding:0 4px">💡 הנקודה ליד כל מערכת מציגה חי/נפל אחרי בדיקה. פתיחת מערכת מציגה גם סטטוס GitHub (אם מחובר).</div>`;
 };
+// ---------- תיק לקוחות ומערכות (מסך מאוחד ומקונן) ----------
+RENDER.portfolio=async()=>{
+  await loadRefs();
+  const clients=CACHE.clients, systems=CACHE.systems;
+  let leadMap={}; try{ const ls=await apiGet('/leads/summary'); (ls.bySystem||[]).forEach(x=>leadMap[x.systemId]={count:x.count}); }catch(e){}
+  let taskMap={}; try{ const ts=await apiGet('/tasks'); ts.forEach(t=>{ if(t.entityType==='system'&&t.entityId&&t.status!=='done') taskMap[t.entityId]=(taskMap[t.entityId]||0)+1; }); }catch(e){}
+  const byClient={}, internal=[];
+  systems.forEach(s=>{ if(s.clientId){ (byClient[s.clientId]=byClient[s.clientId]||[]).push(s); } else internal.push(s); });
+  const liveCount=systems.filter(s=>s.status==='live').length;
+  const sorted=[...clients].sort((a,b)=>(b.mrr||0)-(a.mrr||0)||String(a.name).localeCompare(String(b.name),'he'));
+
+  const sysRow=(s)=>{
+    const st=SYS_STATUS[s.status]||[s.status,'p-gray'];
+    const sysLink=s.adminUrl||s.url, leadLink=s.leadUrl||s.url, leadLinkB=s.leadUrlB;
+    return `<div class="pf-sys" data-s="${esc(s.name+' '+(s.stack||''))}" onclick='systemForm(${j(s)})'>
+      <div class="pf-sys-main"><b><span data-syid="${s.id}" title="${s.url?'לא נבדק':'אין כתובת חיה'}">${s.url?'⚪':''}</span> ${esc(s.name)}</b>
+        <small>${s.stack?esc(s.stack):'—'}${s.authMethod?' · 🔑 '+esc(s.authMethod):''}</small>
+        <div class="bar" style="max-width:180px"><span style="width:${s.progress}%"></span></div></div>
+      <div class="row" style="gap:6px">
+        ${sysLink?`<a class="pill p-blue" href="${esc(sysLink)}" target="_blank" onclick="event.stopPropagation()" title="כניסה למערכת">🛠️</a>`:''}
+        ${leadLink?`<a class="pill p-teal" href="${esc(leadLink)}" target="_blank" onclick="event.stopPropagation()" title="דף נחיתה א'">🎯</a>`:''}
+        ${leadLinkB?`<a class="pill p-teal" href="${esc(leadLinkB)}" target="_blank" onclick="event.stopPropagation()" title="דף נחיתה ב'">🎯</a>`:''}
+        ${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" onclick="event.stopPropagation()" title="Repo" style="font-size:1.05rem">📦</a>`:''}
+        ${leadMap[s.id]?`<span class="pill p-teal" title="לידים שנכנסו">📥 ${leadMap[s.id].count}</span>`:''}
+        ${taskMap[s.id]?`<span class="pill p-amber" title="משימות פתוחות">📋 ${taskMap[s.id]}</span>`:''}
+        ${s.authScore?`<span class="pill ${s.authScore>=4?'p-green':s.authScore>=3?'p-blue':'p-amber'}" title="אבטחת כניסה">🔒 ${s.authScore}/5</span>`:''}
+        <span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b>
+      </div></div>`;
+  };
+
+  const groupHtml=(c)=>{
+    const sys=byClient[c.id]||[], st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
+    return `<div class="pf-group" data-s="${esc(c.name+' '+(c.industry||''))}">
+      <div class="pf-head" onclick="pfToggle(this)">
+        <span class="pf-caret"></span>
+        <div class="pf-main"><b>${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</b>
+          <small>${esc(c.industry||'')}${c.industry?' · ':''}${CLIENT_STAGE[c.stage]||c.stage}</small></div>
+        <div class="pf-meta">
+          <span class="pill p-blue" title="מספר מערכות">🖥️ ${sys.length}</span>
+          <span class="pill ${st[1]}">${st[0]}</span>
+          <b class="li-val" style="color:var(--accent-2)">${c.mrr?money(c.mrr):''}</b>
+          <button class="btn small ghost" onclick="event.stopPropagation();openClient('${c.id}')" title="פרטים מלאים">פרטים</button>
+        </div>
+      </div>
+      <div class="pf-systems">
+        ${sys.length?sys.map(sysRow).join(''):`<div class="empty" style="padding:14px 4px">אין עדיין מערכות ללקוח זה. <a onclick="systemForm()" style="color:var(--accent-2);cursor:pointer">הוסף מערכת</a></div>`}
+      </div></div>`;
+  };
+
+  const internalHtml=internal.length?`<div class="pf-group" data-s="פנימי מערכות ניהול">
+      <div class="pf-head" onclick="pfToggle(this)">
+        <span class="pf-caret"></span>
+        <div class="pf-main"><b>⚙️ מערכות פנימיות</b><small>ללא לקוח — כלים של הסוכנות</small></div>
+        <div class="pf-meta"><span class="pill p-gray">🖥️ ${internal.length}</span></div>
+      </div>
+      <div class="pf-systems">${internal.map(sysRow).join('')}</div></div>`:'';
+
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>לקוחות ומערכות</h2>
+      <div class="sub">${clients.length} לקוחות · ${systems.length} מערכות · ${liveCount} חיות</div></div>
+      <div class="row">
+        <input class="search" id="pfS" placeholder="חיפוש לקוח או מערכת…" oninput="pfFilter()">
+        <button class="btn ghost" onclick="pfExpandAll(this)">הרחב הכל</button>
+        <button class="btn ghost" id="pingBtn" onclick="pingSystems()">🔄 חי/נפל</button>
+        <button class="btn ghost" onclick="systemForm()">+ מערכת</button>
+        <button class="btn primary" onclick="clientForm()">+ לקוח</button>
+      </div></div>
+    ${sorted.length?sorted.map(groupHtml).join(''):'<div class="empty">אין עדיין לקוחות. הוסף את הראשון!</div>'}
+    ${internalHtml}
+    <div class="hint" style="padding:2px 4px">💡 לחיצה על לקוח פותחת את המערכות שלו · לחיצה על מערכת פותחת עריכה · ״חי/נפל״ בודק זמינות.</div>`;
+};
+RENDER.clients=RENDER.portfolio;
+RENDER.systems=RENDER.portfolio;
+function pfToggle(head){ head.parentElement.classList.toggle('open'); }
+function pfExpandAll(btn){
+  const groups=document.querySelectorAll('.pf-group');
+  const anyClosed=[...groups].some(g=>!g.classList.contains('open'));
+  groups.forEach(g=>g.classList.toggle('open',anyClosed));
+  if(btn) btn.textContent=anyClosed?'כווץ הכל':'הרחב הכל';
+}
+function pfFilter(){
+  const q=($('pfS').value||'').trim().toLowerCase();
+  document.querySelectorAll('.pf-group').forEach(g=>{
+    const clientMatch=!q||(g.dataset.s||'').toLowerCase().includes(q);
+    let shown=0;
+    g.querySelectorAll('.pf-sys').forEach(r=>{ const m=clientMatch||!q||(r.dataset.s||'').toLowerCase().includes(q); r.style.display=m?'':'none'; if(m)shown++; });
+    const show=clientMatch||shown>0;
+    g.style.display=show?'':'none';
+    if(q&&show) g.classList.add('open');
+  });
+}
 async function pingSystems(){
   const btn=$('pingBtn'); if(btn){btn.textContent='בודק…';btn.disabled=true;}
   try{

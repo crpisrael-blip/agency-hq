@@ -13,9 +13,10 @@ export class ClientsPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.heading = page.getByRole('heading', { name: 'לקוחות', exact: true });
+    // המסך המאוחד "לקוחות ומערכות" (אקורדיון)
+    this.heading = page.getByRole('heading', { name: 'לקוחות ומערכות', exact: true });
     this.addButton = page.getByRole('button', { name: '+ לקוח' });
-    this.search = page.locator('#clSearch');
+    this.search = page.locator('#pfS');
     this.nameInput = page.locator('#f_name');
     this.phoneInput = page.locator('#f_phone');
     this.saveButton = page.getByRole('button', { name: 'שמירה' });
@@ -39,7 +40,8 @@ export class ClientsPage {
     ]);
   }
 
+  // במסך המאוחד כל לקוח הוא קבוצת-אקורדיון
   row(name: string): Locator {
-    return this.page.locator('.list-item', { hasText: name });
+    return this.page.locator('.pf-group', { hasText: name });
   }
 }
