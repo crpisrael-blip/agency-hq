@@ -1,0 +1,36 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # דפדפן Chromium + תלויות מערכת ל-Playwright
+      - run: npx playwright install --with-deps chromium
+
+      # מריצים את החבילה. ה-webServer שב-playwright.config.ts מפעיל מיגרציות
+      # מקומיות ואת שרת הפיתוח (wrangler pages dev) לפני הבדיקות.
+      - name: Run E2E tests
+        run: npm run test:e2e -- --project=setup --project=chromium
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

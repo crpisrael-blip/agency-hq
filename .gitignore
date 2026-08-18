@@ -5,3 +5,9 @@ dist/
 .DS_Store
 *.log
 shot-*.png
+# Playwright
+/playwright-report/
+/test-results/
+/tests/e2e/.auth/
+/blob-report/
+/playwright/.cache/
