@@ -25,6 +25,15 @@ test.describe('מאגר סקילז ופקודות', () => {
     await expect(visible.first()).toContainText('database-migrations');
   });
 
+  test('סינון לפי קטגוריה מציג רק את הקטגוריה שנבחרה', async ({ page }) => {
+    await openCatalog(page);
+    await page.selectOption('#skCat', 'db');
+    const secs = page.locator('#view .sk-sec:visible');
+    await expect(secs).toHaveCount(1);
+    await expect(secs.first()).toContainText('בסיסי נתונים');
+    await expect(page.locator('.sk-item:visible').first()).toContainText('database-migrations');
+  });
+
   test('מסנן "פקודות" מציג רק פקודות', async ({ page }) => {
     await openCatalog(page);
     await page.getByRole('button', { name: 'פקודות', exact: true }).click();

@@ -2221,7 +2221,7 @@ const CMDS_DATA=[
 ["marketing-campaign","cmd-ecc","מתכנן ומריץ קמפיין-שיווקי שלם מתוך תקציר-מוצר",""],
 ["jira","cmd-ecc","שליפה או עדכון של כרטיס Jira וניתוח דרישות","jira-integration,tdd-workflow"],
 ];
-let SK_VIEW='all', SK_STAR=false;
+let SK_VIEW='all', SK_STAR=false, SK_CAT='';
 const SK_SEL=new Set(); // בחירה מרובה: 'skill:<name>' / 'cmd:<name>'
 function skCopy(name,type){
   const t=(type==='cmd'?'/':'')+name; let ok=false;
@@ -2263,23 +2263,26 @@ RENDER.skills=async()=>{
   h+='<div class="kpis"><div class="kpi accent"><b>'+nSk+'</b><small>סקילז</small></div><div class="kpi amber"><b>'+nCmd+'</b><small>פקודות</small></div><div class="kpi green"><b>'+nStar+'</b><small>מומלצים ⭐</small></div><div class="kpi"><b>'+nInst+'</b><small>מותקנים אצלך ✅</small></div></div>';
   h+='<div class="row" style="margin-bottom:14px"><input id="skq" class="search" placeholder="חיפוש לפי שם או תיאור…" oninput="skApply()">'
     +'<div class="seg" style="flex:0 0 auto">'+[['all','הכל'],['skill','סקילז'],['cmd','פקודות']].map(v=>'<button class="'+(SK_VIEW===v[0]?'on':'')+'" onclick="skView(\''+v[0]+'\',this)">'+v[1]+'</button>').join('')+'</div>'
+    +'<select id="skCat" class="search" style="max-width:190px;flex:0 0 auto" onchange="skSetCat(this.value)"><option value="">כל הקטגוריות</option>'+SK_CATS.map(c=>'<option value="'+c[0]+'"'+(SK_CAT===c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')+'<option value="" disabled>──── פקודות ────</option>'+SK_CMDG.map(c=>'<option value="'+c[0]+'"'+(SK_CAT===c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')+'</select>'
     +'<button class="btn small'+(SK_STAR?' teal':'')+'" onclick="skStarToggle(this)">⭐ רלוונטי לי</button></div>';
   h+='<div class="card"><h3>💾 איפה זה שמור</h3><div class="muted" style="font-size:.85rem;line-height:1.75">סקילז מותקנים יושבים בנתיב <span class="tag" style="direction:ltr">.claude/skills/&lt;שם&gt;/SKILL.md</span> בתוך הריפו. פקודה יושבת ב-<span class="tag" style="direction:ltr">.claude/commands/&lt;שם&gt;.md</span> ומורצת עם <span class="tag" style="direction:ltr">/שם</span>. להתקנה בפרויקט עתידי — מעתיקים את התיקייה מהמאגר <span class="tag" style="direction:ltr">affaan-m/ecc</span> לאותו נתיב.</div></div>';
   SK_CATS.forEach(c=>{ const items=sg[c[0]]; if(!items)return; items.sort((a,b)=>(b[3]===1?1:0)-(a[3]===1?1:0));
-    h+='<div class="card sk-sec" data-kind="skill"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'skill')).join('')+'</div></div>'; });
+    h+='<div class="card sk-sec" data-cat="'+c[0]+'" data-kind="skill"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'skill')).join('')+'</div></div>'; });
   h+='<div class="card sk-sec" data-kind="cmdhead"><h3>⌘ פקודות מוכנות (Slash Commands)</h3><div class="muted" style="font-size:.84rem">94 קיצורים שמריצים עם /שם. אצל כל פקודה מצוין לאילו סקילז היא קשורה.</div></div>';
   SK_CMDG.forEach(c=>{ const items=cg[c[0]]; if(!items)return;
-    h+='<div class="card sk-sec" data-kind="cmd"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'cmd')).join('')+'</div></div>'; });
+    h+='<div class="card sk-sec" data-cat="'+c[0]+'" data-kind="cmd"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'cmd')).join('')+'</div></div>'; });
   h+='<div class="empty" id="sk-empty" style="display:none">לא נמצאו פריטים תואמים</div>';
   h+='<div style="height:64px"></div><div id="skTray" class="sk-tray"></div>';
   $('view').innerHTML=h; skApply(); skTray();
 };
 function skView(v,el){ SK_VIEW=v; el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); skApply(); }
+function skSetCat(v){ SK_CAT=v; skApply(); }
 function skStarToggle(el){ SK_STAR=!SK_STAR; el.classList.toggle('teal',SK_STAR); skApply(); }
 function skApply(){
   const term=($('skq')?.value||'').trim().toLowerCase(); let any=false;
   document.querySelectorAll('#view .sk-sec').forEach(sec=>{
-    if(sec.dataset.kind==='cmdhead'){ sec.style.display=(SK_VIEW==='skill'||SK_STAR)?'none':''; return; }
+    if(sec.dataset.kind==='cmdhead'){ sec.style.display=(SK_VIEW==='skill'||SK_STAR||SK_CAT)?'none':''; return; }
+    if(SK_CAT && sec.dataset.cat!==SK_CAT){ sec.style.display='none'; return; }
     let shown=0;
     sec.querySelectorAll('.sk-item').forEach(c=>{
       const ok=(!term||c.dataset.s.includes(term))&&(!SK_STAR||c.dataset.star==='1')&&(SK_VIEW==='all'||c.dataset.type===SK_VIEW);
