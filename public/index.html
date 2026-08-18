@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Agency HQ — מרכז הבקרה של בית התוכנה</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&family=Rubik:wght@500;700;800;900&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0f1424;--bg-2:#171d33;--card:#1b2340;--card-2:#212a4d;--line:#2c3760;
-    --txt:#eaf0ff;--muted:#93a0c8;--accent:#6c5ce7;--accent-2:#00d1b2;--amber:#f6b73c;
-    --green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;
-    --shadow-sm:0 2px 10px rgba(0,0,0,.22);
+    --bg:#eef0f4;--bg-2:#f5f7fb;--card:#ffffff;--card-2:#f5f7fb;--line:#e4e7ee;
+    --txt:#0f1322;--muted:#6b7183;--accent:#2b5cff;--accent-2:#0fb981;--amber:#f5a623;
+    --green:#0fb981;--red:#ef4444;--blue:#2b5cff;--purple:#a855f7;--coral:#ff6a5d;--primary-ink:#1741d6;
+    --shadow-sm:0 2px 10px rgba(15,19,34,.06);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Heebo',system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;padding-bottom:40px}
   a{color:inherit;text-decoration:none}
   button{font-family:inherit;cursor:pointer}
   /* ---- topbar / nav ---- */
-  .topbar{position:sticky;top:0;z-index:30;background:rgba(15,20,36,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
   .topbar-in{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;max-width:1180px;margin:0 auto}
   .brand{font-weight:900;font-size:1.08rem;display:flex;align-items:center;gap:9px}
   .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1rem;color:#fff}
@@ -39,7 +39,7 @@
   .btn{background:var(--card);border:1.5px solid var(--line);color:var(--txt);font-weight:700;padding:8px 16px;border-radius:999px;font-size:.88rem}
   .btn:hover{border-color:var(--accent)}
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  .btn.primary:hover{background:#5a4bd6}
+  .btn.primary:hover{background:var(--primary-ink)}
   .btn.teal{background:var(--accent-2);border-color:var(--accent-2);color:#04201c}
   .btn.small{padding:5px 12px;font-size:.8rem}
   .btn.ghost{background:transparent}
@@ -74,13 +74,13 @@
   .pill{padding:2px 11px;border-radius:999px;font-size:.74rem;font-weight:700;border:1px solid;white-space:nowrap;display:inline-block}
   .chips{display:flex;flex-wrap:wrap;gap:5px}
   .chip{padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:600;background:rgba(245,158,11,.13);color:#f5c073;border:1px solid rgba(245,158,11,.32);white-space:nowrap}
-  .p-blue{background:rgba(59,130,246,.14);color:#8fbcff;border-color:rgba(59,130,246,.4)}
-  .p-green{background:rgba(34,197,94,.14);color:#7ee2a8;border-color:rgba(34,197,94,.4)}
-  .p-amber{background:rgba(246,183,60,.14);color:#f7cd78;border-color:rgba(246,183,60,.4)}
-  .p-red{background:rgba(239,68,68,.14);color:#f6a1a1;border-color:rgba(239,68,68,.4)}
-  .p-purple{background:rgba(168,85,247,.14);color:#d3aef7;border-color:rgba(168,85,247,.4)}
+  .p-blue{background:rgba(59,130,246,.14);color:#1741d6;border-color:rgba(59,130,246,.4)}
+  .p-green{background:rgba(34,197,94,.14);color:#0a7f5a;border-color:rgba(34,197,94,.4)}
+  .p-amber{background:rgba(246,183,60,.14);color:#9a6a00;border-color:rgba(246,183,60,.4)}
+  .p-red{background:rgba(239,68,68,.14);color:#b42323;border-color:rgba(239,68,68,.4)}
+  .p-purple{background:rgba(168,85,247,.14);color:#7a2fb0;border-color:rgba(168,85,247,.4)}
   .p-gray{background:rgba(147,160,200,.12);color:var(--muted);border-color:var(--line)}
-  .p-teal{background:rgba(0,209,178,.14);color:#6ee7d3;border-color:rgba(0,209,178,.4)}
+  .p-teal{background:rgba(0,209,178,.14);color:#0a7f6b;border-color:rgba(0,209,178,.4)}
   .empty{color:var(--muted);text-align:center;padding:34px 10px;font-size:.9rem}
   .muted{color:var(--muted)}
   .tag{display:inline-block;background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:.74rem;color:var(--muted);margin-inline-end:4px}
@@ -93,7 +93,7 @@
   th{color:var(--muted);font-weight:700;font-size:.78rem}
   td.num,th.num{text-align:left;font-variant-numeric:tabular-nums}
   .tbl-wrap{overflow-x:auto}
-  tr.hot td{background:rgba(108,92,231,.08)}
+  tr.hot td{background:rgba(43,92,255,.08)}
   /* ---- modal ---- */
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:50;display:flex;align-items:flex-end;justify-content:center}
   @media(min-width:640px){.overlay{align-items:center}}
@@ -108,7 +108,7 @@
   @media(max-width:560px){.f2,.f3{grid-template-columns:1fr}}
   .modal-actions{display:flex;gap:9px;justify-content:flex-start;margin-top:18px;flex-wrap:wrap}
   /* ---- login ---- */
-  #login{position:fixed;inset:0;z-index:100;background:radial-gradient(900px 500px at 80% -10%,rgba(108,92,231,.25),transparent 60%),var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+  #login{position:fixed;inset:0;z-index:100;background:radial-gradient(900px 500px at 80% -10%,rgba(43,92,255,.25),transparent 60%),var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
   .login-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px 26px;max-width:380px;width:100%;text-align:center}
   .login-card .mark{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1.7rem;margin:0 auto 14px}
   .login-card h1{font-size:1.4rem;font-weight:900;margin-bottom:4px}
@@ -168,9 +168,9 @@
   .nav button,.seg button{transition:color .14s ease-out,background-color .14s ease-out,border-color .14s ease-out}
   .nav button:active,.seg button:active{transform:scale(.97)}
   input,select,textarea{transition:border-color .14s ease-out,box-shadow .14s ease-out}
-  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(108,92,231,.22)}
+  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(43,92,255,.22)}
   .list-item,.run-row,.pb-check{transition:background-color .14s ease-out}
-  .list-item:hover,.run-row:hover,.pb-check:hover{background:rgba(108,92,231,.06)}
+  .list-item:hover,.run-row:hover,.pb-check:hover{background:rgba(43,92,255,.06)}
   /* מצבי-פוקוס נראים למקלדת */
   button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   /* קו-מתאר עדין לתמונות כדי שלא יטשטשו לרקע */
@@ -184,7 +184,7 @@
   .sk-item:active{transform:scale(.99)}
   .sk-item.star{border-color:rgba(246,183,60,.5)}
   .sk-item.inst{border-color:rgba(34,197,94,.5);background:linear-gradient(0deg,rgba(34,197,94,.06),transparent 60%)}
-  .sk-inst{margin-top:7px;display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:#7ee2a8;background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.35);border-radius:7px;padding:2px 8px}
+  .sk-inst{margin-top:7px;display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:#0a7f5a;background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.35);border-radius:7px;padding:2px 8px}
   .sk-name{font-weight:800;font-size:.84rem;direction:ltr;text-align:right;color:var(--accent-2);word-break:break-word}
   .sk-item.cmd .sk-name{color:var(--amber)}
   .sk-desc{color:var(--muted);font-size:.79rem;margin-top:3px;line-height:1.45}
@@ -196,7 +196,7 @@
   /* בחירה מרובה */
   .sk-item{padding-inline-start:32px}
   .sk-cb{position:absolute;inset-inline-start:10px;top:12px;width:18px;height:18px;border:2px solid var(--line);border-radius:5px;display:grid;place-items:center;color:#fff;font-size:.72rem;line-height:1;transition:background-color .12s ease-out,border-color .12s ease-out}
-  .sk-item.sel{border-color:var(--accent);background:linear-gradient(0deg,rgba(108,92,231,.12),transparent 62%)}
+  .sk-item.sel{border-color:var(--accent);background:linear-gradient(0deg,rgba(43,92,255,.12),transparent 62%)}
   .sk-item.sel .sk-cb{background:var(--accent);border-color:var(--accent)}
   .sk-item.sel .sk-cb::before{content:'✓'}
   /* מגירת בחירה */
@@ -229,14 +229,14 @@
   .att-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
   .att-txt .n{font-size:1.3rem;font-weight:900;font-variant-numeric:tabular-nums}
   .att-txt .l{color:var(--muted);font-size:.76rem}
-  .att-item.red .att-ico{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.42);color:#f6a1a1}
-  .att-item.blue .att-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.42);color:#8fbcff}
-  .att-item.amber .att-ico{background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.42);color:#f7cd78}
-  .att-item.teal .att-ico{background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.42);color:#6ee7d3}
+  .att-item.red .att-ico{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.42);color:#b42323}
+  .att-item.blue .att-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.42);color:#1741d6}
+  .att-item.amber .att-ico{background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.42);color:#9a6a00}
+  .att-item.teal .att-ico{background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.42);color:#0a7f6b}
   /* ===== תיק לקוחות ומערכות (אקורדיון) ===== */
   .pf-group{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow-sm)}
   .pf-head{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer;transition:background-color .14s ease-out}
-  .pf-head:hover{background:rgba(108,92,231,.06)}
+  .pf-head:hover{background:rgba(43,92,255,.06)}
   .pf-caret{flex:none;color:var(--muted);font-size:.7rem;width:12px;text-align:center;transition:transform .18s}
   .pf-caret::before{content:'\25B8'}
   .pf-group.open .pf-caret{transform:rotate(90deg)}
@@ -248,10 +248,25 @@
   .pf-group.open .pf-systems{display:block}
   .pf-sys{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:background-color .12s ease-out}
   .pf-sys:last-child{border-bottom:0}
-  .pf-sys:hover{background:rgba(108,92,231,.05)}
+  .pf-sys:hover{background:rgba(43,92,255,.05)}
   .pf-sys-main{min-width:0;flex:1}
   .pf-sys-main b{display:block;font-size:.9rem}
   .pf-sys-main small{color:var(--muted);font-size:.76rem}
+  /* ===== Momentum — ערכת עיצוב בהירה ===== */
+  h1,h2,h3,.brand,.kpi b,.big,.rev-hero .val,.rev-stat .n,.li-val,.pf-main b{font-family:'Rubik','Heebo',sans-serif;letter-spacing:-.01em}
+  .topbar{border-bottom:1px solid var(--line)}
+  .nav button.on{background:var(--txt);color:#fff;border-color:var(--txt)}
+  .toast{box-shadow:0 10px 30px rgba(15,19,34,.14)}
+  .sk-tray{box-shadow:0 -8px 30px rgba(15,19,34,.12)}
+  /* לוח בקרה — פאנל הכנסה כחול */
+  .rev{background:transparent;border:0;box-shadow:none;padding:0;gap:16px}
+  .rev-hero{background:var(--accent);border-inline-end:0;border-radius:18px;padding:22px 24px;color:#fff}
+  .rev-hero .lbl{color:rgba(255,255,255,.9)}
+  .rev-hero .val{color:#fff}
+  .rev-hero .note{color:rgba(255,255,255,.85)}
+  .rev-stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+  .rev-stat .n{color:var(--accent-2)}
+  @media(max-width:640px){.rev-hero{border-bottom:0;padding-bottom:20px}}
 </style>
 </head>
 <body>
