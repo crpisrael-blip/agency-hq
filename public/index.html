@@ -193,6 +193,22 @@
   .sk-star-tag{position:absolute;top:8px;left:10px;font-size:.72rem}
   .sk-cat-count{color:var(--muted);font-weight:700;font-size:.76rem;margin-inline-start:4px}
   .sk-sec{padding-bottom:14px}
+  /* בחירה מרובה */
+  .sk-item{padding-inline-start:32px}
+  .sk-cb{position:absolute;inset-inline-start:10px;top:12px;width:18px;height:18px;border:2px solid var(--line);border-radius:5px;display:grid;place-items:center;color:#fff;font-size:.72rem;line-height:1;transition:background-color .12s ease-out,border-color .12s ease-out}
+  .sk-item.sel{border-color:var(--accent);background:linear-gradient(0deg,rgba(108,92,231,.12),transparent 62%)}
+  .sk-item.sel .sk-cb{background:var(--accent);border-color:var(--accent)}
+  .sk-item.sel .sk-cb::before{content:'✓'}
+  /* מגירת בחירה */
+  .sk-tray{position:fixed;inset-inline:0;bottom:0;z-index:60;transform:translateY(115%);transition:transform .22s ease;background:var(--card-2);border-top:1px solid var(--line);box-shadow:0 -10px 30px rgba(0,0,0,.4);backdrop-filter:blur(8px)}
+  .sk-tray.open{transform:translateY(0)}
+  .sk-tray-in{max-width:1180px;margin:0 auto;padding:11px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .sk-tray-chips{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;max-height:118px;overflow-y:auto}
+  .sk-tray-grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .sk-tray-lbl{font-size:.75rem;color:var(--muted);font-weight:700;margin-inline-end:4px}
+  .sk-chip{font-family:inherit;font-size:.76rem;background:var(--bg-2);border:1px solid var(--line);border-radius:7px;padding:3px 8px;cursor:pointer;color:var(--txt);white-space:nowrap}
+  .sk-chip:hover{border-color:var(--red);color:var(--red)}
+  .sk-tray-act{display:flex;gap:8px;align-items:center;flex:none}
   /* ===== לוח בקרה — היררכיה ויזואלית ===== */
   .rev{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:8px 0 12px;box-shadow:var(--shadow-sm)}
   @media(max-width:640px){.rev{grid-template-columns:1fr}}
@@ -2191,6 +2207,7 @@ const CMDS_DATA=[
 ["jira","cmd-ecc","שליפה או עדכון של כרטיס Jira וניתוח דרישות","jira-integration,tdd-workflow"],
 ];
 let SK_VIEW='all', SK_STAR=false;
+const SK_SEL=new Set(); // בחירה מרובה: 'skill:<name>' / 'cmd:<name>'
 function skCopy(name,type){
   const t=(type==='cmd'?'/':'')+name; let ok=false;
   try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;} }catch(e){}
@@ -2215,7 +2232,9 @@ function skItemHtml(it,type){
   let relHtml='';
   if(rel){ relHtml='<div class="sk-rel"><span class="t" style="border-color:transparent;background:none;padding-inline:0">שייך ל:</span>'+rel.split(',').map(x=>'<span class="t">'+esc(x)+'</span>').join('')+'</div>'; }
   const instHtml=inst?'<div class="sk-inst">✅ מותקן: '+inst.map(esc).join(' · ')+'</div>':'';
-  return '<div class="sk-item '+type+(star?' star':'')+(inst?' inst':'')+'" data-type="'+type+'" data-star="'+(star?1:0)+'" data-inst="'+(inst?1:0)+'" data-s="'+s+'" onclick="skCopy(\''+esc(name)+'\',\''+type+'\')">'
+  const id=type+':'+name;
+  return '<div class="sk-item '+type+(star?' star':'')+(inst?' inst':'')+(SK_SEL.has(id)?' sel':'')+'" data-id="'+id+'" data-type="'+type+'" data-star="'+(star?1:0)+'" data-inst="'+(inst?1:0)+'" data-s="'+s+'" onclick="skToggleSel(\''+esc(name)+'\',\''+type+'\',this)">'
+    +'<span class="sk-cb"></span>'
     +(star?'<span class="sk-star-tag">⭐</span>':'')
     +'<div class="sk-name">'+esc(label)+'</div><div class="sk-desc">'+esc(desc)+'</div>'+relHtml+instHtml+'</div>';
 }
@@ -2224,7 +2243,7 @@ RENDER.skills=async()=>{
   const nInst=SKILLS_DATA.filter(s=>SK_INSTALLED[s[0]]).length;
   const sg={}; SKILLS_DATA.forEach(s=>{(sg[s[1]]=sg[s[1]]||[]).push(s);});
   const cg={}; CMDS_DATA.forEach(c=>{(cg[c[1]]=cg[c[1]]||[]).push(c);});
-  let h='<div class="spread"><div><h2>🧩 מאגר סקילז ופקודות</h2><div class="sub">קטלוג ידע מ-ECC לשימוש חוזר בפרויקטים — לחיצה על פריט מעתיקה את שמו</div></div></div>';
+  let h='<div class="spread"><div><h2>🧩 מאגר סקילז ופקודות</h2><div class="sub">קטלוג ידע מ-ECC — לחיצה על פריט בוחרת אותו, והבחירות נאספות למטה להעתקה</div></div></div>';
   h+='<div class="kpis"><div class="kpi accent"><b>'+nSk+'</b><small>סקילז</small></div><div class="kpi amber"><b>'+nCmd+'</b><small>פקודות</small></div><div class="kpi green"><b>'+nStar+'</b><small>מומלצים ⭐</small></div><div class="kpi"><b>'+nInst+'</b><small>מותקנים אצלך ✅</small></div></div>';
   h+='<div class="row" style="margin-bottom:14px"><input id="skq" class="search" placeholder="חיפוש לפי שם או תיאור…" oninput="skApply()">'
     +'<div class="seg" style="flex:0 0 auto">'+[['all','הכל'],['skill','סקילז'],['cmd','פקודות']].map(v=>'<button class="'+(SK_VIEW===v[0]?'on':'')+'" onclick="skView(\''+v[0]+'\',this)">'+v[1]+'</button>').join('')+'</div>'
@@ -2236,7 +2255,8 @@ RENDER.skills=async()=>{
   SK_CMDG.forEach(c=>{ const items=cg[c[0]]; if(!items)return;
     h+='<div class="card sk-sec" data-kind="cmd"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'cmd')).join('')+'</div></div>'; });
   h+='<div class="empty" id="sk-empty" style="display:none">לא נמצאו פריטים תואמים</div>';
-  $('view').innerHTML=h; skApply();
+  h+='<div style="height:64px"></div><div id="skTray" class="sk-tray"></div>';
+  $('view').innerHTML=h; skApply(); skTray();
 };
 function skView(v,el){ SK_VIEW=v; el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); skApply(); }
 function skStarToggle(el){ SK_STAR=!SK_STAR; el.classList.toggle('teal',SK_STAR); skApply(); }
@@ -2253,6 +2273,48 @@ function skApply(){
     const cnt=sec.querySelector('[data-count]'); if(cnt)cnt.textContent=shown; if(shown)any=true;
   });
   const em=$('sk-empty'); if(em)em.style.display=any?'none':'';
+}
+
+// ---------- בחירה מרובה + מגירת בחירה ----------
+function skToggleSel(name,type,el){
+  const id=type+':'+name;
+  if(SK_SEL.has(id)){ SK_SEL.delete(id); el.classList.remove('sel'); }
+  else{ SK_SEL.add(id); el.classList.add('sel'); }
+  skTray();
+}
+function skDeSel(id){
+  SK_SEL.delete(id);
+  const c=document.querySelector('.sk-item[data-id="'+id+'"]'); if(c)c.classList.remove('sel');
+  skTray();
+}
+function skClearSel(){
+  SK_SEL.clear();
+  document.querySelectorAll('.sk-item.sel').forEach(c=>c.classList.remove('sel'));
+  skTray();
+}
+function skTray(){
+  const box=$('skTray'); if(!box)return;
+  if(!SK_SEL.size){ box.className='sk-tray'; box.innerHTML=''; return; }
+  const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
+  const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
+  const grp=(lbl,arr,pre,prefix)=>arr.length?'<div class="sk-tray-grp"><span class="sk-tray-lbl">'+lbl+' ('+arr.length+')</span>'+
+    arr.map(n=>'<span class="sk-chip"'+(pre?' style="direction:ltr"':'')+' onclick="skDeSel(\''+prefix+n+'\')">'+(pre||'')+esc(n)+' ✕</span>').join('')+'</div>':'';
+  box.className='sk-tray open';
+  box.innerHTML='<div class="sk-tray-in"><div class="sk-tray-chips">'+grp('סקילז',skills,'','skill:')+grp('פקודות',cmds,'/','cmd:')+'</div>'
+    +'<div class="sk-tray-act"><b>'+SK_SEL.size+' נבחרו</b>'
+    +'<button class="btn small primary" onclick="skCopySel()">📋 העתק</button>'
+    +'<button class="btn small ghost" onclick="skClearSel()">נקה</button></div></div>';
+}
+function skCopySel(){
+  const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
+  const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
+  let out=[];
+  if(skills.length){ out.push('== סקילז להתקנה =='); out.push(...skills); }
+  if(cmds.length){ if(out.length)out.push(''); out.push('== פקודות להרצה =='); out.push(...cmds.map(c=>'/'+c)); }
+  const text=out.join('\n'); let ok=false;
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text);ok=true;} }catch(e){}
+  if(!ok){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); }
+  toast('הועתקו '+SK_SEL.size+' פריטים');
 }
 
 // ============ הפעלה ============

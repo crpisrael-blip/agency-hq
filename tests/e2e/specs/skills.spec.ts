@@ -32,11 +32,23 @@ test.describe('מאגר סקילז ופקודות', () => {
     await expect(page.locator('.sk-item.cmd:visible').first()).toBeVisible();
   });
 
-  test('לחיצה על פריט מעתיקה את שמו (טוסט)', async ({ page }) => {
+  test('בחירה מרובה: לחיצה בוחרת, המגירה אוספת והעתקה עובדת', async ({ page }) => {
     await openCatalog(page);
     await page.fill('#skq', 'e2e-testing');
-    await page.locator('.sk-item:visible').first().click();
-    await expect(page.locator('#toast .toast', { hasText: 'הועתק' })).toBeVisible();
+    const item = page.locator('.sk-item:visible').first();
+    await item.click();
+    await expect(item).toHaveClass(/sel/);
+
+    const tray = page.locator('#skTray');
+    await expect(tray).toHaveClass(/open/);
+    await expect(tray).toContainText('e2e-testing');
+
+    await tray.getByRole('button', { name: /העתק/ }).click();
+    await expect(page.locator('#toast .toast', { hasText: 'הועתקו' })).toBeVisible();
+
+    // הסרה מהמגירה מבטלת את הבחירה
+    await tray.locator('.sk-chip', { hasText: 'e2e-testing' }).click();
+    await expect(item).not.toHaveClass(/sel/);
   });
 
   test('סקיל מותקן מציג את הפרויקט שבו יושם', async ({ page }) => {
