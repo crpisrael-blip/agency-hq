@@ -60,11 +60,11 @@ test.describe('מאגר סקילז ופקודות', () => {
     await expect(item).not.toHaveClass(/sel/);
   });
 
-  test('סקיל מותקן מציג את הפרויקט שבו יושם', async ({ page }) => {
+  test('סקיל שסומן מציג את המערכת שהשתמשה בו', async ({ page }) => {
     await openCatalog(page);
     await page.fill('#skq', 'make-interfaces-feel-better');
     const item = page.locator('.sk-item.inst:visible').first();
     await expect(item).toBeVisible();
-    await expect(item.locator('.sk-inst')).toContainText('agency-hq');
+    await expect(item.locator('.sk-use')).toContainText('agency-hq');
   });
 });

@@ -16,6 +16,7 @@ import { documentsApp } from '../../src/api/documents';
 import { leadsApp, registerLeadPublic } from '../../src/api/leads';
 import { modulesApp } from '../../src/api/modules';
 import { dashboardApp } from '../../src/api/dashboard';
+import { skillsApp } from '../../src/api/skills';
 
 const app = new Hono<Env>().basePath('/api');
 
@@ -50,6 +51,7 @@ app.route('/documents', documentsApp);
 app.route('/leads', leadsApp);
 app.route('/modules', modulesApp);
 app.route('/dashboard', dashboardApp);
+app.route('/skills', skillsApp);
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 

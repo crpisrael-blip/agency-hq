@@ -272,6 +272,16 @@ export const playbookRuns = sqliteTable('playbook_runs', {
   completedAt: integer('completed_at'),
 });
 
+// מעקב שימוש בסקילז של ECC לפי מערכת/פרויקט
+export const skillUsage = sqliteTable('skill_usage', {
+  id: text('id').primaryKey(),
+  skillName: text('skill_name').notNull(),   // שם הסקיל/פקודה
+  systemId: text('system_id'),               // קישור אופציונלי למערכת
+  systemName: text('system_name').notNull(), // תווית לתצוגה (snapshot)
+  note: text('note'),
+  createdAt: integer('created_at').notNull(),
+});
+
 export type Client = typeof clients.$inferSelect;
 export type System = typeof systems.$inferSelect;
 export type Engagement = typeof engagements.$inferSelect;
@@ -283,3 +293,4 @@ export type Task = typeof tasks.$inferSelect;
 export type Playbook = typeof playbooks.$inferSelect;
 export type PlaybookRun = typeof playbookRuns.$inferSelect;
 export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;
+export type SkillUsage = typeof skillUsage.$inferSelect;
