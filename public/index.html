@@ -191,6 +191,30 @@
   .sk-star-tag{position:absolute;top:8px;left:10px;font-size:.72rem}
   .sk-cat-count{color:var(--muted);font-weight:700;font-size:.76rem;margin-inline-start:4px}
   .sk-sec{padding-bottom:14px}
+  /* ===== לוח בקרה — היררכיה ויזואלית ===== */
+  .rev{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:8px 0 12px;box-shadow:var(--shadow-sm)}
+  @media(max-width:640px){.rev{grid-template-columns:1fr}}
+  .rev-hero{border-inline-end:1px solid var(--line);padding-inline-end:18px}
+  @media(max-width:640px){.rev-hero{border-inline-end:0;border-bottom:1px solid var(--line);padding-inline-end:0;padding-bottom:14px}}
+  .rev-hero .lbl{color:var(--muted);font-size:.82rem;font-weight:700}
+  .rev-hero .val{font-size:2.6rem;font-weight:900;line-height:1.04;color:var(--accent-2);font-variant-numeric:tabular-nums;margin:2px 0 3px}
+  .rev-hero .note{color:var(--muted);font-size:.82rem}
+  .rev-side{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:center}
+  @media(max-width:400px){.rev-side{grid-template-columns:1fr}}
+  .rev-stat .n{font-size:1.45rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;display:block;color:var(--amber)}
+  .rev-stat .l{color:var(--muted);font-size:.77rem}
+  .att{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px}
+  .att-item{display:flex;align-items:center;gap:10px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:10px 13px;cursor:pointer;transition:border-color .14s ease-out,transform .06s;flex:1 1 155px}
+  .att-item:hover{border-color:var(--accent)}
+  .att-item:active{transform:scale(.99)}
+  .att-ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:1.05rem;flex:none}
+  .att-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .att-txt .n{font-size:1.3rem;font-weight:900;font-variant-numeric:tabular-nums}
+  .att-txt .l{color:var(--muted);font-size:.76rem}
+  .att-item.red .att-ico{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.42);color:#f6a1a1}
+  .att-item.blue .att-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.42);color:#8fbcff}
+  .att-item.amber .att-ico{background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.42);color:#f7cd78}
+  .att-item.teal .att-ico{background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.42);color:#6ee7d3}
 </style>
 </head>
 <body>
@@ -389,24 +413,43 @@ RENDER.dashboard=async()=>{
   const k=d.kpis;
   const modelRows=Object.entries(d.byModel||{}).sort((a,b)=>b[1]-a[1]);
   const modelTotal=modelRows.reduce((a,[,v])=>a+v,0)||1;
+  const att=[
+    ['blue','🛠️',k.systemsBuilding,'מערכות בפיתוח','systems'],
+    ['amber','📋',k.openTasks,'משימות פתוחות','tasks'],
+    ['red','⚠️',d.health.red,'לקוחות בסיכון','clients'],
+    ['teal','📥',k.leadsMonth||0,'לידים החודש','systems'],
+  ];
   $('view').innerHTML=`
     <h2>לוח בקרה</h2>
     <div class="sub">התמונה הכוללת של בית התוכנה — ${todayISO()}</div>
+
+    <div class="rev">
+      <div class="rev-hero">
+        <div class="lbl">הכנסה חוזרת חודשית · MRR</div>
+        <div class="val">${money(k.mrr)}</div>
+        <div class="note">≈ ${money(k.arr)} בשנה · בריאות לקוחות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
+      </div>
+      <div class="rev-side">
+        <div class="rev-stat"><span class="n">${money(k.pipeline)}</span><span class="l">בצנרת · הצעות פתוחות</span></div>
+        <div class="rev-stat"><span class="n">${money(k.ideasWeighted)}</span><span class="l">פוטנציאל מרווח (משוקלל)</span></div>
+      </div>
+    </div>
+
+    <div class="att">
+      ${att.map(a=>`<div class="att-item ${a[0]}" onclick="go('${a[4]}')"><div class="att-ico">${a[1]}</div><div class="att-txt"><span class="n">${a[2]}</span><span class="l">${a[3]}</span></div></div>`).join('')}
+    </div>
+
     <div class="kpis">
-      <div class="kpi accent"><b>${money(k.mrr)}</b><small>הכנסה חוזרת חודשית (MRR)</small></div>
-      <div class="kpi"><b>${money(k.arr)}</b><small>הכנסה שנתית (ARR)</small></div>
-      <div class="kpi amber"><b>${money(k.pipeline)}</b><small>בצנרת (הצעות פתוחות)</small></div>
       <div class="kpi"><b>${k.clientsActive}</b><small>לקוחות פעילים${k.clientsProspect?` · ${k.clientsProspect} לידים`:''}</small></div>
       <div class="kpi green"><b>${k.systemsLive}</b><small>מערכות חיות מתוך ${k.systemsTotal}</small></div>
-      <div class="kpi"><b>${k.systemsBuilding}</b><small>מערכות בפיתוח</small></div>
-      <div class="kpi"><b>${k.openTasks}</b><small>משימות פתוחות</small></div>
-      <div class="kpi amber"><b>${money(k.ideasWeighted)}</b><small>פוטנציאל מרכזי רווח (משוקלל)</small></div>
-      <div class="kpi green"><b>📥 ${k.leadsMonth||0}</b><small>לידים החודש · ${k.leadsTotal||0} סה"כ</small></div>
+      <div class="kpi"><b>${k.leadsTotal||0}</b><small>סה"כ לידים שנאספו</small></div>
     </div>
+
     ${d.leadsBySystem&&d.leadsBySystem.length?`<div class="card">
       <h3>📥 לידים לפי מערכת</h3>
       ${d.leadsBySystem.map(l=>`<div class="list-item" onclick="go('systems')"><div class="li-main"><b>${esc(l.name)}</b><small>${esc(l.clientName)}</small></div><b class="li-val" style="color:var(--accent-2)">${l.count}</b></div>`).join('')}
     </div>`:''}
+
     <div class="grid2">
       <div class="card">
         <h3>MRR לפי לקוח</h3>
@@ -423,7 +466,6 @@ RENDER.dashboard=async()=>{
             <div class="row" style="justify-content:space-between"><b>${ENG_MODEL[m]||m}</b><span style="color:var(--accent-2);font-weight:800">${money(v)}</span></div>
             <div class="bar"><span style="width:${Math.round(v/modelTotal*100)}%"></span></div>
           </div>`).join(''):'<div class="empty">אין נתונים</div>'}
-        <div class="hint">בריאות לקוחות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
       </div>
     </div>
     <div class="grid2">
@@ -445,7 +487,7 @@ RENDER.dashboard=async()=>{
           </div>`).join(''):'<div class="empty">אין משימות פתוחות 🎉</div>'}
       </div>
     </div>`;
-};
+}
 
 // ---------- לקוחות ----------
 RENDER.clients=async()=>{
