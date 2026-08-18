@@ -1,0 +1,58 @@
+{
+  "$schema": "https://design-tokens.org/schema.json",
+  "meta": {
+    "project": "Agency HQ",
+    "source": "public/index.html <style> (:root ועיצוב הרכיבים)",
+    "theme": "dark-only (מכוון)",
+    "generatedBy": "ECC design-system skill · Mode 1 (Generate)",
+    "note": "current = הערכים בקוד היום · proposed = סקאלה מרוכזת מומלצת לצמצום ערכים אד-הוק"
+  },
+  "color": {
+    "background": { "bg": "#0f1424", "bg-2": "#171d33", "card": "#1b2340", "card-2": "#212a4d" },
+    "line": "#2c3760",
+    "text": { "txt": "#eaf0ff", "muted": "#93a0c8" },
+    "accent": { "accent": "#6c5ce7", "accent-2": "#00d1b2" },
+    "semantic": { "green": "#22c55e", "amber": "#f6b73c", "red": "#ef4444", "blue": "#3b82f6", "purple": "#a855f7" },
+    "pills": {
+      "blue":   { "bg": "rgba(59,130,246,.14)",  "fg": "#8fbcff", "border": "rgba(59,130,246,.4)" },
+      "green":  { "bg": "rgba(34,197,94,.14)",   "fg": "#7ee2a8", "border": "rgba(34,197,94,.4)" },
+      "amber":  { "bg": "rgba(246,183,60,.14)",  "fg": "#f7cd78", "border": "rgba(246,183,60,.4)" },
+      "red":    { "bg": "rgba(239,68,68,.14)",   "fg": "#f6a1a1", "border": "rgba(239,68,68,.4)" },
+      "purple": { "bg": "rgba(168,85,247,.14)",  "fg": "#d3aef7", "border": "rgba(168,85,247,.4)" },
+      "teal":   { "bg": "rgba(0,209,178,.14)",   "fg": "#6ee7d3", "border": "rgba(0,209,178,.4)" },
+      "gray":   { "bg": "rgba(147,160,200,.12)", "fg": "#93a0c8", "border": "#2c3760" }
+    },
+    "ai_slop_watch": "האקסנט סגול (#6c5ce7) — נמנע מקלישאת purple→blue ע\"י שילוב עם טורקיז (#00d1b2). לשמור על הריסון."
+  },
+  "typography": {
+    "fontFamily": "'Heebo', system-ui, sans-serif",
+    "weights": { "regular": 400, "medium": 500, "bold": 700, "heavy": 800, "black": 900 },
+    "current_sizes_rem_adhoc": [2.6, 1.9, 1.5, 1.4, 1.32, 1.15, 1.1, 1.05, 1.02, 0.96, 0.92, 0.9, 0.88, 0.87, 0.84, 0.83, 0.82, 0.8, 0.78, 0.76, 0.74, 0.72, 0.7],
+    "proposed_scale_rem": {
+      "3xl": 2.6, "2xl": 1.9, "xl": 1.5, "lg": 1.3, "md": 1.05, "base": 0.92, "sm": 0.84, "xs": 0.76, "2xs": 0.7
+    },
+    "lineHeight": { "tight": 1.1, "snug": 1.2, "normal": 1.5, "relaxed": 1.75 },
+    "numeric": "font-variant-numeric: tabular-nums למספרים דינמיים (KPI, ערכים, מספרים גדולים)"
+  },
+  "radius": {
+    "current_adhoc_px": [5, 7, 8, 9, 10, 11, 12, 15, 18, 999],
+    "proposed_scale_px": { "xs": 6, "sm": 8, "md": 11, "lg": 14, "xl": 18, "pill": 999 }
+  },
+  "shadow": {
+    "sm": "0 2px 10px rgba(0,0,0,.22)",
+    "float": "0 10px 30px rgba(0,0,0,.4)",
+    "up": "0 -10px 30px rgba(0,0,0,.4)"
+  },
+  "spacing": {
+    "current_adhoc_px": [4, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 20],
+    "proposed_scale_px": { "1": 4, "2": 8, "3": 12, "4": 16, "5": 20, "6": 24 },
+    "rationale": "בסיס 4px. לצמצם 9/11/13/17 לערכים 8/12/16."
+  },
+  "breakpoints_px": { "xs": 400, "sm": 560, "md": 640, "lg": 860, "container": 1180 },
+  "motion": {
+    "duration": { "fast": "120ms", "base": "140ms", "slow": "220ms" },
+    "easing": "ease-out",
+    "press": "scale(0.96)",
+    "reducedMotion": "מכובד (@media prefers-reduced-motion:reduce)"
+  }
+}
