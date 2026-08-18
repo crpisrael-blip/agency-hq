@@ -2329,6 +2329,14 @@ function skCopySel(){
   const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
   const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
   let out=[];
+  if(skills.length||cmds.length){
+    out.push('התקן לי את הסקילז/פקודות הבאים מהמאגר הציבורי affaan-m/ecc לפרויקט הנוכחי:');
+    out.push('1) שכפל: GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/affaan-m/ecc /tmp/ecc');
+    out.push('2) לכל סקיל: קרא /tmp/ecc/skills/<שם>/SKILL.md (ודא שאין hooks מפוקפקים), והעתק את התיקייה כולה ל-.claude/skills/<שם>/');
+    out.push('3) לכל פקודה: העתק /tmp/ecc/commands/<שם>.md ל-.claude/commands/<שם>.md');
+    out.push('4) קמט ודחוף לענף שאני עובד עליו. מהסשן הבא זה יהיה זמין.');
+    out.push('');
+  }
   if(skills.length){ out.push('== סקילז להתקנה =='); out.push(...skills); }
   if(cmds.length){ if(out.length)out.push(''); out.push('== פקודות להרצה =='); out.push(...cmds.map(c=>'/'+c)); }
   const text=out.join('\n'); let ok=false;
