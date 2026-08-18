@@ -38,4 +38,12 @@ test.describe('מאגר סקילז ופקודות', () => {
     await page.locator('.sk-item:visible').first().click();
     await expect(page.locator('#toast .toast', { hasText: 'הועתק' })).toBeVisible();
   });
+
+  test('סקיל מותקן מציג את הפרויקט שבו יושם', async ({ page }) => {
+    await openCatalog(page);
+    await page.fill('#skq', 'make-interfaces-feel-better');
+    const item = page.locator('.sk-item.inst:visible').first();
+    await expect(item).toBeVisible();
+    await expect(item.locator('.sk-inst')).toContainText('agency-hq');
+  });
 });

@@ -183,6 +183,8 @@
   .sk-item:hover{border-color:var(--accent)}
   .sk-item:active{transform:scale(.99)}
   .sk-item.star{border-color:rgba(246,183,60,.5)}
+  .sk-item.inst{border-color:rgba(34,197,94,.5);background:linear-gradient(0deg,rgba(34,197,94,.06),transparent 60%)}
+  .sk-inst{margin-top:7px;display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:#7ee2a8;background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.35);border-radius:7px;padding:2px 8px}
   .sk-name{font-weight:800;font-size:.84rem;direction:ltr;text-align:right;color:var(--accent-2);word-break:break-word}
   .sk-item.cmd .sk-name{color:var(--amber)}
   .sk-desc{color:var(--muted);font-size:.79rem;margin-top:3px;line-height:1.45}
@@ -2085,24 +2087,35 @@ function skCopy(name,type){
   if(!ok){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); }
   toast('הועתק: '+t);
 }
+// מפת התקנות: אילו סקילז כבר יושמו/הותקנו ובאילו פרויקטים (לשימור ידע)
+const SK_INSTALLED={
+  'make-interfaces-feel-better':['agency-hq'],
+  'frontend-design-direction':['agency-hq'],
+  'e2e-testing':['agency-hq'],
+  'orch-fix-defect':['agency-hq'],
+  'orch-pipeline':['agency-hq'],
+};
 function skItemHtml(it,type){
   const name=it[0], desc=it[2];
   const star=type==='skill'&&it[3]===1;
   const rel=type==='cmd'?it[3]:'';
+  const inst=(type==='skill'&&SK_INSTALLED[name])?SK_INSTALLED[name]:null;
   const label=(type==='cmd'?'/':'')+name;
-  const s=esc((name+' '+desc+' '+(rel||'')).toLowerCase());
+  const s=esc((name+' '+desc+' '+(rel||'')+' '+(inst?inst.join(' '):'')).toLowerCase());
   let relHtml='';
   if(rel){ relHtml='<div class="sk-rel"><span class="t" style="border-color:transparent;background:none;padding-inline:0">שייך ל:</span>'+rel.split(',').map(x=>'<span class="t">'+esc(x)+'</span>').join('')+'</div>'; }
-  return '<div class="sk-item '+type+(star?' star':'')+'" data-type="'+type+'" data-star="'+(star?1:0)+'" data-s="'+s+'" onclick="skCopy(\''+esc(name)+'\',\''+type+'\')">'
+  const instHtml=inst?'<div class="sk-inst">✅ מותקן: '+inst.map(esc).join(' · ')+'</div>':'';
+  return '<div class="sk-item '+type+(star?' star':'')+(inst?' inst':'')+'" data-type="'+type+'" data-star="'+(star?1:0)+'" data-inst="'+(inst?1:0)+'" data-s="'+s+'" onclick="skCopy(\''+esc(name)+'\',\''+type+'\')">'
     +(star?'<span class="sk-star-tag">⭐</span>':'')
-    +'<div class="sk-name">'+esc(label)+'</div><div class="sk-desc">'+esc(desc)+'</div>'+relHtml+'</div>';
+    +'<div class="sk-name">'+esc(label)+'</div><div class="sk-desc">'+esc(desc)+'</div>'+relHtml+instHtml+'</div>';
 }
 RENDER.skills=async()=>{
   const nSk=SKILLS_DATA.length, nCmd=CMDS_DATA.length, nStar=SKILLS_DATA.filter(s=>s[3]===1).length;
+  const nInst=SKILLS_DATA.filter(s=>SK_INSTALLED[s[0]]).length;
   const sg={}; SKILLS_DATA.forEach(s=>{(sg[s[1]]=sg[s[1]]||[]).push(s);});
   const cg={}; CMDS_DATA.forEach(c=>{(cg[c[1]]=cg[c[1]]||[]).push(c);});
   let h='<div class="spread"><div><h2>🧩 מאגר סקילז ופקודות</h2><div class="sub">קטלוג ידע מ-ECC לשימוש חוזר בפרויקטים — לחיצה על פריט מעתיקה את שמו</div></div></div>';
-  h+='<div class="kpis"><div class="kpi accent"><b>'+nSk+'</b><small>סקילז</small></div><div class="kpi amber"><b>'+nCmd+'</b><small>פקודות</small></div><div class="kpi green"><b>'+nStar+'</b><small>מומלצים ⭐</small></div></div>';
+  h+='<div class="kpis"><div class="kpi accent"><b>'+nSk+'</b><small>סקילז</small></div><div class="kpi amber"><b>'+nCmd+'</b><small>פקודות</small></div><div class="kpi green"><b>'+nStar+'</b><small>מומלצים ⭐</small></div><div class="kpi"><b>'+nInst+'</b><small>מותקנים אצלך ✅</small></div></div>';
   h+='<div class="row" style="margin-bottom:14px"><input id="skq" class="search" placeholder="חיפוש לפי שם או תיאור…" oninput="skApply()">'
     +'<div class="seg" style="flex:0 0 auto">'+[['all','הכל'],['skill','סקילז'],['cmd','פקודות']].map(v=>'<button class="'+(SK_VIEW===v[0]?'on':'')+'" onclick="skView(\''+v[0]+'\',this)">'+v[1]+'</button>').join('')+'</div>'
     +'<button class="btn small'+(SK_STAR?' teal':'')+'" onclick="skStarToggle(this)">⭐ רלוונטי לי</button></div>';
