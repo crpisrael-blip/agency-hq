@@ -34,6 +34,17 @@ test.describe('מאגר סקילז ופקודות', () => {
     await expect(page.locator('.sk-item:visible').first()).toContainText('database-migrations');
   });
 
+  test('מסנן "בשימוש" מציג רק סקילז שמסומנים במערכת', async ({ page }) => {
+    await openCatalog(page);
+    await page.getByRole('button', { name: '✅ בשימוש', exact: true }).click();
+    const visible = page.locator('.sk-item:visible');
+    await expect(visible.first()).toBeVisible();
+    const total = await visible.count();
+    const inst = await page.locator('.sk-item.inst:visible').count();
+    expect(total).toBe(inst);
+    expect(total).toBeGreaterThanOrEqual(1);
+  });
+
   test('מסנן "פקודות" מציג רק פקודות', async ({ page }) => {
     await openCatalog(page);
     await page.getByRole('button', { name: 'פקודות', exact: true }).click();
