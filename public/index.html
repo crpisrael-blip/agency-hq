@@ -125,6 +125,8 @@
   .stat-row b{font-variant-numeric:tabular-nums}
   .big{font-size:1.9rem;font-weight:900;line-height:1.1}
   .hint{font-size:.78rem;color:var(--muted);margin-top:3px}
+  .pstep{padding:8px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--bg-2)}
+  .pstep input::placeholder{font-size:.82rem}
   .seg{display:flex;gap:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:4px;flex-wrap:wrap}
   .seg button{flex:1;min-width:70px;border:0;background:none;color:var(--muted);font-weight:700;padding:7px 8px;border-radius:8px;font-size:.83rem}
   .seg button.on{background:var(--accent);color:#fff}
@@ -1433,13 +1435,18 @@ function processForm(p={}){
   renderSteps();
 }
 function renderSteps(){
-  $('stepsList').innerHTML=PSTEPS.map((s,idx)=>`<div class="row" style="margin-bottom:6px;gap:6px">
-    <input type="checkbox" style="width:auto" ${s.done?'checked':''} onchange="PSTEPS[${idx}].done=this.checked">
-    <input value="${esc(s.title||'')}" placeholder="שם השלב" oninput="PSTEPS[${idx}].title=this.value" class="grow">
-    <input value="${esc(s.owner||'')}" placeholder="אחראי" style="max-width:110px" oninput="PSTEPS[${idx}].owner=this.value">
-    <button class="btn danger small" type="button" onclick="PSTEPS.splice(${idx},1);renderSteps()">✕</button></div>`).join('')||'<div class="hint">אין שלבים עדיין</div>';
+  $('stepsList').innerHTML=PSTEPS.map((s,idx)=>`<div class="pstep">
+    <div class="row" style="gap:6px">
+      <input type="checkbox" style="width:auto" ${s.done?'checked':''} onchange="PSTEPS[${idx}].done=this.checked">
+      <input value="${esc(s.title||'')}" placeholder="שם השלב" oninput="PSTEPS[${idx}].title=this.value" class="grow">
+      <input value="${esc(s.owner||'')}" placeholder="אחראי" style="max-width:120px" oninput="PSTEPS[${idx}].owner=this.value">
+      <button class="btn danger small" type="button" onclick="PSTEPS.splice(${idx},1);renderSteps()">✕</button></div>
+    <div class="row" style="gap:6px;margin-top:4px">
+      <input value="${esc(s.trigger||'')}" placeholder="⚡ אירוע מפעיל" style="max-width:210px" oninput="PSTEPS[${idx}].trigger=this.value">
+      <input value="${esc(s.notes||'')}" placeholder="📤 תוצר / מערכת / מדד" oninput="PSTEPS[${idx}].notes=this.value" class="grow"></div>
+  </div>`).join('')||'<div class="hint">אין שלבים עדיין</div>';
 }
-function addStep(){ PSTEPS.push({title:'',owner:'',done:false}); renderSteps(); }
+function addStep(){ PSTEPS.push({title:'',owner:'',trigger:'',notes:'',done:false}); renderSteps(); }
 async function saveProcess(id){
   const body={name:val('f_name'),kind:val('f_kind'),clientId:val('f_clientId')||null,status:val('f_status'),description:val('f_description'),steps:PSTEPS.filter(s=>s.title)};
   if(!body.name){toast('חסר שם','bad');return;}
