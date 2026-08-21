@@ -64,11 +64,29 @@ test.describe('מאגר סקילז ופקודות', () => {
     await expect(tray).toContainText('e2e-testing');
 
     await tray.getByRole('button', { name: /העתק/ }).click();
+    // נפתח מודל "העתק + סימון התקנה" — נעתיק בלבד
+    await page.getByRole('button', { name: 'העתק בלבד', exact: true }).click();
     await expect(page.locator('#toast .toast', { hasText: 'הועתקו' })).toBeVisible();
 
     // הסרה מהמגירה מבטלת את הבחירה
     await tray.locator('.sk-chip', { hasText: 'e2e-testing' }).click();
     await expect(item).not.toHaveClass(/sel/);
+  });
+
+  test('"העתק וסמן" רושם שימוש בפרויקט שנבחר', async ({ page }) => {
+    await openCatalog(page);
+    await page.fill('#skq', 'frontend-design-direction');
+    const item = page.locator('.sk-item:visible').first();
+    await item.click();
+    const tray = page.locator('#skTray');
+    await tray.getByRole('button', { name: /העתק/ }).click();
+    // בורר פרויקט → שם חופשי → העתק וסמן
+    await page.fill('#sk_copy_free', 'qa-sandbox');
+    await page.getByRole('button', { name: /העתק וסמן/ }).click();
+    await expect(page.locator('#toast .toast', { hasText: 'סומנו' })).toBeVisible();
+    // אחרי רענון המסך — הצ'יפ של הפרויקט מופיע על הסקיל
+    await page.fill('#skq', 'frontend-design-direction');
+    await expect(page.locator('.sk-item.inst:visible .sk-use', { hasText: 'qa-sandbox' }).first()).toBeVisible();
   });
 
   test('סקיל שסומן מציג את המערכת שהשתמשה בו', async ({ page }) => {

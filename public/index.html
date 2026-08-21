@@ -2362,7 +2362,7 @@ function skTray(){
     +'<button class="btn small primary" onclick="skCopySel()">📋 העתק</button>'
     +'<button class="btn small ghost" onclick="skClearSel()">נקה</button></div></div>';
 }
-function skCopySel(){
+function skBuildCopy(){
   const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
   const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
   let out=[];
@@ -2376,10 +2376,44 @@ function skCopySel(){
   }
   if(skills.length){ out.push('== סקילז להתקנה =='); out.push(...skills); }
   if(cmds.length){ if(out.length)out.push(''); out.push('== פקודות להרצה =='); out.push(...cmds.map(c=>'/'+c)); }
-  const text=out.join('\n'); let ok=false;
+  return { text: out.join('\n'), skills, cmds };
+}
+function skDoCopy(text){
+  let ok=false;
   try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text);ok=true;} }catch(e){}
   if(!ok){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); }
-  toast('הועתקו '+SK_SEL.size+' פריטים');
+}
+function skCopySel(){
+  if(!SK_SEL.size) return;
+  const {skills,cmds}=skBuildCopy();
+  const opts=SK_SYS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(s.clientName&&s.clientName!=='—'?' — '+esc(s.clientName):'')+'</option>').join('');
+  openModal('<h3>📋 העתק + סימון התקנה</h3>'
+    +'<div class="hint" style="margin-bottom:10px">'+skills.length+' סקילז · '+cmds.length+' פקודות ייכללו בהעתקה</div>'
+    +'<div class="f"><label>לאיזה פרויקט מדביקים? (לסימון "מותקן ב…")</label><select id="sk_copy_sys"><option value="">— בחר מערכת —</option>'+opts+'</select></div>'
+    +'<div class="f"><label>או שם חופשי (אם לא ברשימה)</label><input id="sk_copy_free" placeholder="למשל agency-hq / kravmaga-app"></div>'
+    +'<div class="modal-actions"><button class="btn primary" onclick="skCopyConfirm(true)">📋 העתק וסמן</button>'
+    +'<button class="btn ghost" onclick="skCopyConfirm(false)">העתק בלבד</button>'
+    +'<button class="btn ghost" onclick="closeModal()">ביטול</button></div>');
+}
+async function skCopyConfirm(mark){
+  const {text,skills,cmds}=skBuildCopy();
+  const n=SK_SEL.size;
+  skDoCopy(text);
+  if(!mark){ closeModal(); toast('הועתקו '+n+' פריטים'); return; }
+  const sysId=val('sk_copy_sys'), freeName=(val('sk_copy_free')||'').trim();
+  const sys=SK_SYS.find(s=>s.id===sysId);
+  const systemName=freeName||(sys?sys.name:'');
+  if(!systemName){ toast('בחר מערכת לסימון, או "העתק בלבד"','bad'); return; }
+  let marked=0, skipped=0;
+  for(const name of [...skills,...cmds]){
+    const uses=SK_USAGE[name]||[];
+    const dup=uses.some(u=> sysId ? u.systemId===sysId : (u.systemName===systemName && !u.systemId));
+    if(dup){ skipped++; continue; }
+    try{ await apiPost('/skills/usage',{skillName:name,systemId:sysId||null,systemName}); marked++; }catch(e){}
+  }
+  closeModal();
+  toast('הועתקו '+n+' · סומנו '+marked+' ב'+systemName+(skipped?' ('+skipped+' כבר היו)':''));
+  go('skills');
 }
 
 // ============ הפעלה ============
