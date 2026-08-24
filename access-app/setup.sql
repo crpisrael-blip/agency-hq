@@ -4,8 +4,8 @@
 -- ==============================================
 
 CREATE TABLE tblAccessLog (
-    LogID       AUTOINCREMENT PRIMARY KEY,
-    LogDate     DATETIME NOT NULL,
+    LogID       COUNTER PRIMARY KEY,
+    LogDate     DATETIME,
     WeekDay     TEXT(10),
     Note        TEXT(255)
 );
