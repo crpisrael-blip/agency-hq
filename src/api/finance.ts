@@ -89,8 +89,8 @@ financeApp.get('/by-project', async (c) => {
   const unassignedItems: any[] = [];
   for (const r of cfs) {
     if (r.kind !== 'expense') continue;
-    if (r.recurring !== 'monthly') continue; // עלות חודשית קבועה בלבד
-    const amt = num(r.amount);
+    if (r.recurring !== 'monthly' && r.recurring !== 'yearly') continue;
+    const amt = r.recurring === 'yearly' ? Math.round((num(r.amount) / 12) * 100) / 100 : num(r.amount);
     if (amt <= 0) continue;
     const mine = allocs.filter((a) => a.cashflowId === r.id);
     if (!mine.length) {
@@ -200,6 +200,11 @@ financeApp.get('/forecast', async (c) => {
       if (r.recurring === 'monthly') {
         const rEnd = r.endDate ? ymOf(r.endDate) : null;
         hit = ym >= rStart && (!rEnd || ym <= rEnd);
+      } else if (r.recurring === 'yearly') {
+        const rEnd = r.endDate ? ymOf(r.endDate) : null;
+        if (ym >= rStart && (!rEnd || ym <= rEnd)) {
+          hit = ym.slice(5) === rStart.slice(5);
+        }
       } else {
         hit = ym === rStart;
       }
