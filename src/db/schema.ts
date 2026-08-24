@@ -114,7 +114,7 @@ export const cashflow = sqliteTable('cashflow', {
   clientId: text('client_id').references(() => clients.id),
   engagementId: text('engagement_id').references(() => engagements.id),
   category: text('category'),
-  recurring: text('recurring').notNull().default('once'), // once | monthly
+  recurring: text('recurring').notNull().default('once'), // once | monthly | yearly
   billingDay: integer('billing_day'),                     // יום חיוב בחודש (למנויים חוזרים)
   startDate: text('start_date').notNull(),                // YYYY-MM-DD
   endDate: text('end_date'),                              // חודשי: עד מתי (ריק = פתוח)

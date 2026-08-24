@@ -1191,8 +1191,8 @@ RENDER.cashflow=async()=>{
   await loadRefs();
   const [f,ledger,opening,byProj]=await Promise.all([apiGet('/finance/forecast?months='+CF_MONTHS),apiGet('/finance/cashflow'),apiGet('/finance/opening'),apiGet('/finance/by-project')]);
   const s=f.summary; const maxAbs=Math.max(1,...f.buckets.map(b=>Math.max(b.income,b.expense)));
-  const recurExp=ledger.filter(r=>r.recurring==='monthly'&&r.kind==='expense').reduce((a,r)=>a+(r.amount||0),0);
-  const recurInc=ledger.filter(r=>r.recurring==='monthly'&&r.kind==='income').reduce((a,r)=>a+(r.amount||0),0);
+  const recurExp=ledger.filter(r=>(r.recurring==='monthly'||r.recurring==='yearly')&&r.kind==='expense').reduce((a,r)=>a+(r.recurring==='yearly'?(r.amount||0)/12:(r.amount||0)),0);
+  const recurInc=ledger.filter(r=>(r.recurring==='monthly'||r.recurring==='yearly')&&r.kind==='income').reduce((a,r)=>a+(r.recurring==='yearly'?(r.amount||0)/12:(r.amount||0)),0);
   $('view').innerHTML=`
     <div class="spread"><div><h2>תזרים</h2><div class="sub">תחזית מבוססת התקשרויות פעילות + תנועות ידניות</div></div>
       <div class="row"><div class="seg">${[6,12,24].map(n=>`<button class="${n===CF_MONTHS?'on':''}" onclick="CF_MONTHS=${n};go('cashflow')">${n} ח'</button>`).join('')}</div>
@@ -1236,7 +1236,7 @@ RENDER.cashflow=async()=>{
     <div class="card">
       <h3>תנועות ידניות (${ledger.length})</h3>
       ${ledger.length?ledger.map(r=>`<div class="list-item" onclick='cfForm(${j(r)})'>
-        <div class="li-main"><b>${r.kind==='income'?'⬆️':'⬇️'} ${esc(r.label)}</b><small>${r.startDate} · ${r.recurring==='monthly'?('🔁 חודשי'+(r.billingDay?` · חיוב ב-${r.billingDay} לחודש`:'')):'חד-פעמי'}${r.clientName?' · '+esc(r.clientName):''}${r.category?' · '+esc(r.category):''}</small>
+        <div class="li-main"><b>${r.kind==='income'?'⬆️':'⬇️'} ${esc(r.label)}</b><small>${r.startDate} · ${r.recurring==='monthly'?('🔁 חודשי'+(r.billingDay?` · חיוב ב-${r.billingDay} לחודש`:'')):r.recurring==='yearly'?'🔄 שנתי':'חד-פעמי'}${r.clientName?' · '+esc(r.clientName):''}${r.category?' · '+esc(r.category):''}</small>
         ${r.kind==='expense'&&r.allocations&&r.allocations.length?`<div class="chips" style="margin-top:5px">${r.allocations.map(a=>`<span class="chip">${esc(a.clientName)} · ${money1(a.share)}</span>`).join('')}</div>`:''}</div>
         <div class="row" style="gap:8px">
           ${r.kind==='expense'?`<button class="btn ghost small" onclick='event.stopPropagation();allocForm(${j(r)})'>🔗 שיוך</button>`:''}
@@ -1248,7 +1248,7 @@ function allocForm(r){
   const cur=new Set((r.allocations||[]).map(a=>a.clientId||'__internal__'));
   const rows=[{id:'__internal__',name:'מערכת הניהול (Agency HQ)'}].concat(CACHE.clients.map(c=>({id:c.id,name:c.name})));
   openModal(`<h3>שיוך הוצאה לפרויקטים</h3>
-    <div class="sub" style="margin-bottom:10px">${esc(r.label)} · ${money(r.amount)}${r.recurring==='monthly'?"/ח'":''} — סמנו את הפרויקטים שמשתמשים במנוי. העלות מתחלקת שווה בשווה ביניהם.</div>
+    <div class="sub" style="margin-bottom:10px">${esc(r.label)} · ${money(r.amount)}${r.recurring==='monthly'?"/ח'":r.recurring==='yearly'?"/שנה":''} — סמנו את הפרויקטים שמשתמשים במנוי. העלות מתחלקת שווה בשווה ביניהם.</div>
     <div id="allocList" style="max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px">
       ${rows.map(o=>`<label class="list-item" style="cursor:pointer">
         <div class="li-main"><b>${o.id==='__internal__'?'🏠 ':''}${esc(o.name)}</b></div>
@@ -1282,7 +1282,7 @@ function cfForm(r={}){
     <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({income:'הכנסה',expense:'הוצאה'},r.kind||'expense')}</select></div>
       <div class="f"><label>סכום ₪ *</label><input type="number" id="f_amount" value="${r.amount||''}"></div></div>
     <div class="f"><label>תיאור *</label><input id="f_label" value="${esc(r.label||'')}"></div>
-    <div class="f2"><div class="f"><label>חזרתיות</label><select id="f_recurring">${opts({once:'חד-פעמי',monthly:'חודשי (מנוי)'},r.recurring||'once')}</select></div>
+    <div class="f2"><div class="f"><label>חזרתיות</label><select id="f_recurring">${opts({once:'חד-פעמי',monthly:'חודשי (מנוי)',yearly:'שנתי (מתחדש)'},r.recurring||'once')}</select></div>
       <div class="f"><label>יום חיוב בחודש (למנוי)</label><input type="number" id="f_billingDay" min="1" max="31" value="${r.billingDay||''}" placeholder="1–31"></div></div>
     <div class="f"><label>קטגוריה</label><input id="f_category" value="${esc(r.category||'')}" placeholder="מנוי / כלים / שכ""ד / קבלן…"></div>
     <div class="f2"><div class="f"><label>תאריך התחלה</label><input type="date" id="f_startDate" value="${esc(r.startDate||todayISO())}"></div>
