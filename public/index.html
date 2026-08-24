@@ -1211,14 +1211,21 @@ RENDER.cashflow=async()=>{
         <button class="btn ghost small" onclick="openingForm(${opening.value})">יתרת פתיחה: ${money(opening.value)}</button></div>
       <div class="tbl-wrap"><table>
         <tr><th>חודש</th><th class="num">הכנסה</th><th class="num">הוצאה</th><th class="num">נטו</th><th class="num">מאזן מצטבר</th><th style="width:130px"></th></tr>
-        ${f.buckets.map(b=>`<tr>
-          <td>${b.label}</td>
+        ${f.buckets.map((b,i)=>`<tr style="cursor:pointer" onclick="document.getElementById('fd${i}').style.display=document.getElementById('fd${i}').style.display==='none'?'':'none'">
+          <td>${b.label} <small style="opacity:.4">▼</small></td>
           <td class="num" style="color:var(--green)">${money1(b.income)}</td>
           <td class="num" style="color:var(--amber)">${money1(b.expense)}</td>
           <td class="num">${money1(b.net)}</td>
           <td class="num" style="color:${b.balance>=0?'var(--txt)':'var(--red)'};font-weight:800">${money1(b.balance)}</td>
           <td><div class="bar" style="height:9px"><span style="width:${Math.round(b.income/maxAbs*100)}%"></span></div></td>
-        </tr>`).join('')}
+        </tr><tr id="fd${i}" style="display:none"><td colspan="6" style="padding:0">
+          <div style="background:var(--bg2,#f5f5f5);padding:8px 12px;border-radius:6px;margin:2px 0">
+          ${b.items.length?b.items.map(it=>`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:.85em;border-bottom:1px solid var(--border,#eee)">
+            <span>${it.kind==='income'?'⬆️':'⬇️'} ${esc(it.label)} <small class="sub">${it.source==='engagement'?'התקשרות':'ידני'} · ${it.recurring==='monthly'?'חודשי':it.recurring==='yearly'?'שנתי':'חד-פעמי'}</small></span>
+            <span style="color:${it.kind==='income'?'var(--green)':'var(--amber)'};font-weight:600">${money1(it.amount)}</span>
+          </div>`).join(''):'<div class="sub" style="text-align:center;padding:6px">אין תנועות בחודש זה</div>'}
+          </div>
+        </td></tr>`).join('')}
       </table></div>
     </div>
     ${byProj.projects.length?`<div class="card">

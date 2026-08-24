@@ -174,22 +174,37 @@ financeApp.get('/forecast', async (c) => {
   const engs = (await d.select().from(engagements).all()).filter((e) => e.status === 'active');
   const cfs = await d.select().from(cashflow).all();
 
+  const cls = await d.select().from(clients).all();
+  const clientName = (id: string | null) => (id ? cls.find((c) => c.id === id)?.name : null) || null;
+
   const start = ymOf(todayIL());
-  const buckets: { ym: string; label: string; income: number; expense: number; net: number; balance: number }[] = [];
+  type LineItem = { label: string; amount: number; kind: 'income' | 'expense'; source: 'engagement' | 'manual'; recurring: string };
+  const buckets: { ym: string; label: string; income: number; expense: number; net: number; balance: number; items: LineItem[] }[] = [];
 
   let balance = opening;
   for (let i = 0; i < months; i++) {
     const ym = addMonths(start, i);
     let income = 0;
     let expense = 0;
+    const items: LineItem[] = [];
 
     // מהתקשרויות פעילות
     for (const e of engs) {
       const eStart = e.startDate ? ymOf(e.startDate) : start;
       const eEnd = e.endDate ? ymOf(e.endDate) : null;
       const inRange = ym >= eStart && (!eEnd || ym <= eEnd);
-      if (inRange) income += engagementMonthly(e);
-      if (engagementSetup(e) > 0 && ym === eStart) income += engagementSetup(e);
+      if (inRange) {
+        const mv = engagementMonthly(e);
+        if (mv > 0) {
+          income += mv;
+          items.push({ label: clientName(e.clientId) || e.id, amount: mv, kind: 'income', source: 'engagement', recurring: 'monthly' });
+        }
+      }
+      if (engagementSetup(e) > 0 && ym === eStart) {
+        const sv = engagementSetup(e);
+        income += sv;
+        items.push({ label: (clientName(e.clientId) || e.id) + ' (מקדמה)', amount: sv, kind: 'income', source: 'engagement', recurring: 'once' });
+      }
     }
 
     // מתנועות ידניות
@@ -211,11 +226,12 @@ financeApp.get('/forecast', async (c) => {
       if (!hit) continue;
       if (r.kind === 'income') income += amt;
       else expense += amt;
+      items.push({ label: r.label, amount: amt, kind: r.kind as 'income' | 'expense', source: 'manual', recurring: r.recurring });
     }
 
     const net = income - expense;
     balance += net;
-    buckets.push({ ym, label: monthLabel(ym), income, expense, net, balance });
+    buckets.push({ ym, label: monthLabel(ym), income, expense, net, balance, items });
   }
 
   const totalIncome = buckets.reduce((a, b) => a + b.income, 0);
