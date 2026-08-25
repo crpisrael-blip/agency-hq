@@ -1541,7 +1541,7 @@ RENDER.playbooks=async()=>{
   const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
   const stages=STAGE_ORDER.filter(s=>byStage[s]);
   $('view').innerHTML=`
-    <div class="spread"><div><h2>מתודולוגיה — מרעיון לפרודקשן</h2>
+    <div class="spread"><div><h2>מתודולוגיה ORT-TECH</h2>
       <div class="sub">ספריית הפורמטים המקצועיים שלך למסע המוצר. ערוך כל פורמט, והחל אותו על לקוח כדי שיהפוך למהלך חי עם מעקב.</div></div>
       <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
         <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
