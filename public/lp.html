@@ -40,8 +40,7 @@
   header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(7,13,26,.78);border-bottom:1px solid var(--line)}
   header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
   .brand{display:flex;align-items:center;gap:11px;font-weight:900;font-size:1.2rem;letter-spacing:.5px}
-  .logo{width:40px;height:40px;position:relative;display:grid;place-items:center}
-  .logo svg{width:40px;height:40px}
+  .brand .logo-img{height:32px;width:auto}
   .brand small{font-family:var(--mono);font-weight:600;color:var(--muted);font-size:.68rem;letter-spacing:0}
   header .btn{padding:9px 18px;font-size:.88rem}
   @media(max-width:600px){.brand small{display:none}}
@@ -155,8 +154,7 @@
 <header>
   <div class="wrap">
     <div class="brand">
-      <span class="logo"><svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="13" stroke="#5cc8ff" stroke-width="2"/><circle cx="20" cy="20" r="4.5" fill="#5cc8ff"/><g stroke="#5cc8ff" stroke-width="2"><line x1="20" y1="3" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="37"/><line x1="3" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="37" y2="20"/></g></svg></span>
-      <span>ORT-TECH <small>פתרונות תפעול חכמים</small></span>
+      <img src="/ort-tech-logo.jpg" alt="ORT-TECH — פתרונות תפעול חכמים לעסק שלך" class="logo-img">
     </div>
     <a href="#lead" class="btn primary">לשיחת אבחון</a>
   </div>
