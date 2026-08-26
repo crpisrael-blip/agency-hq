@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ORT-TECH HQ — מרכז הבקרה</title>
+<title>ORT-TECH — ניהול לקוחות ותהליכים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&family=Rubik:wght@500;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -270,6 +270,26 @@
   .rev-stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-sm)}
   .rev-stat .n{color:var(--accent-2)}
   @media(max-width:640px){.rev-hero{border-bottom:0;padding-bottom:20px}}
+  /* ===== צינור עסקאות (Pipeline / Kanban) ===== */
+  .pipeline{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin}
+  .pipe-col{min-width:200px;flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:10px 11px}
+  .pipe-col h4{font-size:.82rem;font-weight:800;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+  .pipe-col h4 .cnt{background:var(--accent);color:#fff;font-size:.68rem;border-radius:999px;padding:1px 8px;font-weight:700}
+  .pipe-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 11px;margin-bottom:7px;cursor:pointer;transition:border-color .14s,transform .06s}
+  .pipe-card:hover{border-color:var(--accent)}
+  .pipe-card:active{transform:scale(.99)}
+  .pipe-card b{font-size:.88rem;display:block;margin-bottom:2px}
+  .pipe-card small{color:var(--muted);font-size:.76rem}
+  .pipe-card .bar{margin-top:5px}
+  /* ===== Dashboard CRM cards ===== */
+  .crm-acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px}
+  .crm-act{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;cursor:pointer;transition:border-color .14s,transform .06s}
+  .crm-act:hover{border-color:var(--accent)}
+  .crm-act:active{transform:scale(.99)}
+  .crm-act .emoji{font-size:1.3rem;margin-bottom:4px}
+  .crm-act b{font-size:.94rem;display:block}
+  .crm-act small{color:var(--muted);font-size:.78rem}
+  @media(max-width:600px){.pipeline{flex-direction:column}.pipe-col{min-width:0}}
   /* סימון שימוש בסקילז לפי מערכת */
   .sk-inst-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:8px}
   .sk-inst-lbl{font-size:.72rem;font-weight:700;color:var(--green)}
@@ -355,7 +375,7 @@ async function showLogin(){
   window.ideaBubbleDestroy && ideaBubbleDestroy();
   try{
     const s = await fetch('/api/auth/status').then(r=>r.json());
-    $('loginSub').textContent = s.setup ? 'פתרונות תפעול חכמים לעסק שלך' : 'הגדרת קוד גישה ראשוני (4 ספרות ומעלה)';
+    $('loginSub').textContent = s.setup ? 'ניהול לקוחות · מתודולוגיה · תהליכים' : 'הגדרת קוד גישה ראשוני (4 ספרות ומעלה)';
     $('loginBtn').textContent = s.setup ? 'כניסה' : 'הגדרת קוד וכניסה';
     $('login').dataset.setup = s.setup ? '1':'0';
   }catch(e){ $('loginErr').textContent='שגיאת חיבור לשרת'; }
@@ -401,17 +421,17 @@ function showApp(){
 // ============ ניווט ============
 const PAGES = [
   ['dashboard','לוח בקרה'],
-  ['portfolio','לקוחות ומערכות'],
-  ['modules','מודולים'],
+  ['portfolio','לקוחות'],
+  ['playbooks','מתודולוגיה'],
+  ['health','צינור עסקאות'],
+  ['processes','תהליכים'],
+  ['tasks','משימות'],
+  ['documents','מסמכים'],
   ['engagements','התקשרויות'],
-  ['calculator','מחשבון חיוב'],
   ['cashflow','תזרים'],
   ['ideas','מרכזי רווח'],
-  ['processes','תהליכים'],
-  ['documents','מסמכים'],
-  ['playbooks','מתודולוגיה'],
-  ['health','בריאות מסירה'],
-  ['tasks','משימות'],
+  ['modules','מודולים'],
+  ['calculator','מחשבון חיוב'],
   ['skills','🧩 סקילז'],
 ];
 function buildNav(){
@@ -441,7 +461,7 @@ const valN = (id)=> Number($(id)?.value||0);
 
 // ============ תוויות ============
 const CLIENT_STATUS={prospect:['ליד','p-amber'],active:['פעיל','p-green'],paused:['בהמתנה','p-gray'],churned:['נטש','p-red']};
-const CLIENT_STAGE={lead:'ליד',discovery:'אפיון',proposal:'הצעה',building:'בבנייה',live:'עלה לאוויר',retainer:'ריטיינר'};
+const CLIENT_STAGE={lead:'היכרות',discovery:'אבחון',proposal:'הצעת פתרון',building:'בנייה ויישום',live:'מסירה',retainer:'ליווי שוטף'};
 const SYS_STATUS={discovery:['אפיון','p-amber'],design:['עיצוב','p-purple'],building:['בבנייה','p-blue'],live:['חי','p-green'],maintenance:['תחזוקה','p-teal'],retired:['הוקפא','p-gray']};
 const ENG_MODEL={one_time:'חד-פעמי',retainer:'ריטיינר',hourly:'שעתי',revshare:'אחוז ממחזור',value:'מבוסס-ערך',hybrid:'היברידי'};
 const ENG_STATUS={proposed:['מוצע','p-amber'],active:['פעיל','p-green'],paused:['מושהה','p-gray'],ended:['הסתיים','p-red']};
@@ -470,48 +490,62 @@ const systemOptions=(sel,clientId)=>`<option value="">— ללא —</option>`+C
 
 // ---------- לוח בקרה ----------
 RENDER.dashboard=async()=>{
-  const d=await apiGet('/dashboard');
+  const [d,runs,clients]=await Promise.all([apiGet('/dashboard'),apiGet('/playbooks/runs'),apiGet('/clients')]);
   const k=d.kpis;
   const modelRows=Object.entries(d.byModel||{}).sort((a,b)=>b[1]-a[1]);
   const modelTotal=modelRows.reduce((a,[,v])=>a+v,0)||1;
-  const att=[
-    ['blue','🛠️',k.systemsBuilding,'מערכות בפיתוח','systems'],
-    ['amber','📋',k.openTasks,'משימות פתוחות','tasks'],
-    ['red','⚠️',d.health.red,'לקוחות בסיכון','clients'],
-    ['teal','📥',k.leadsMonth||0,'לידים החודש','systems'],
-  ];
+  const activeRuns=runs.filter(r=>r.status==='active').slice(0,5);
+  const PIPE_STAGES=[['lead','היכרות'],['discovery','אבחון'],['proposal','הצעת פתרון'],['building','בנייה ויישום'],['live','מסירה'],['retainer','ליווי שוטף']];
+  const byStage={}; PIPE_STAGES.forEach(([k])=>byStage[k]=[]);
+  clients.forEach(c=>{ if(byStage[c.stage]) byStage[c.stage].push(c); else if(c.status!=='churned') (byStage.lead=byStage.lead||[]).push(c); });
+  const STAGE_EMOJI_CRM={lead:'👋',discovery:'🔍',proposal:'📋',building:'🛠️',live:'🚀',retainer:'🤝'};
   $('view').innerHTML=`
     <h2>לוח בקרה</h2>
-    <div class="sub">התמונה הכוללת של ORT-TECH — ${todayISO()}</div>
+    <div class="sub">תמונת מצב עסקית — ${todayISO()}</div>
+
+    <div class="att">
+      <div class="att-item teal" onclick="go('portfolio')"><div class="att-ico">👥</div><div class="att-txt"><span class="n">${k.clientsActive}</span><span class="l">לקוחות פעילים</span></div></div>
+      <div class="att-item amber" onclick="go('playbooks')"><div class="att-ico">🧭</div><div class="att-txt"><span class="n">${activeRuns.length}</span><span class="l">מהלכים פעילים</span></div></div>
+      <div class="att-item blue" onclick="go('tasks')"><div class="att-ico">📋</div><div class="att-txt"><span class="n">${k.openTasks}</span><span class="l">משימות פתוחות</span></div></div>
+      <div class="att-item red" onclick="go('health')"><div class="att-ico">⚠️</div><div class="att-txt"><span class="n">${d.health.red}</span><span class="l">לקוחות בסיכון</span></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="spread" style="margin-bottom:10px"><h3 style="margin:0">📊 צינור לקוחות</h3><button class="btn ghost small" onclick="go('health')">מבט מלא →</button></div>
+      <div class="pipeline">
+        ${PIPE_STAGES.map(([stg,lbl])=>{const items=byStage[stg]||[];return `
+          <div class="pipe-col">
+            <h4>${STAGE_EMOJI_CRM[stg]||''} ${lbl}<span class="cnt">${items.length}</span></h4>
+            ${items.map(c=>`<div class="pipe-card" onclick="openClient('${c.id}')">
+              <b>${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</b>
+              <small>${esc(c.industry||'')}</small>
+            </div>`).join('')||`<div style="color:var(--muted);font-size:.78rem;text-align:center;padding:10px 0">—</div>`}
+          </div>`;}).join('')}
+      </div>
+    </div>
+
+    ${activeRuns.length?`<div class="card" style="margin-bottom:14px">
+      <div class="spread" style="margin-bottom:8px"><h3 style="margin:0">🧭 מהלכים פעילים</h3><button class="btn ghost small" onclick="go('playbooks')">הכל →</button></div>
+      ${activeRuns.map(r=>`<div class="list-item" onclick="openRun('${r.id}')">
+        <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+          <small>${r.clientName?esc(r.clientName):'כללי'} · ${STAGE_LABELS[r.stage]||''}</small>
+          <div class="bar" style="width:170px;margin-top:4px"><span style="width:${r.progress}%"></span></div></div>
+        <div class="li-val muted">${r.progress}%</div></div>`).join('')}
+    </div>`:''}
 
     <div class="rev">
       <div class="rev-hero">
         <div class="lbl">הכנסה חוזרת חודשית · MRR</div>
         <div class="val">${money(k.mrr)}</div>
-        <div class="note">≈ ${money(k.arr)} בשנה · בריאות לקוחות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
+        <div class="note">≈ ${money(k.arr)} בשנה · בריאות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
       </div>
       <div class="rev-side">
         <div class="rev-stat"><span class="n">${money(k.pipeline)}</span><span class="l">בצנרת · הצעות פתוחות</span></div>
-        <div class="rev-stat"><span class="n">${money(k.ideasWeighted)}</span><span class="l">פוטנציאל מרווח (משוקלל)</span></div>
+        <div class="rev-stat"><span class="n">${k.clientsProspect||0}</span><span class="l">לידים בהיכרות</span></div>
       </div>
     </div>
 
-    <div class="att">
-      ${att.map(a=>`<div class="att-item ${a[0]}" onclick="go('${a[4]}')"><div class="att-ico">${a[1]}</div><div class="att-txt"><span class="n">${a[2]}</span><span class="l">${a[3]}</span></div></div>`).join('')}
-    </div>
-
-    <div class="kpis">
-      <div class="kpi"><b>${k.clientsActive}</b><small>לקוחות פעילים${k.clientsProspect?` · ${k.clientsProspect} לידים`:''}</small></div>
-      <div class="kpi green"><b>${k.systemsLive}</b><small>מערכות חיות מתוך ${k.systemsTotal}</small></div>
-      <div class="kpi"><b>${k.leadsTotal||0}</b><small>סה"כ לידים שנאספו</small></div>
-    </div>
-
-    ${d.leadsBySystem&&d.leadsBySystem.length?`<div class="card">
-      <h3>📥 לידים לפי מערכת</h3>
-      ${d.leadsBySystem.map(l=>`<div class="list-item" onclick="go('systems')"><div class="li-main"><b>${esc(l.name)}</b><small>${esc(l.clientName)}</small></div><b class="li-val" style="color:var(--accent-2)">${l.count}</b></div>`).join('')}
-    </div>`:''}
-
-    <div class="grid2">
+    <div class="grid2" style="margin-top:14px">
       <div class="card">
         <h3>MRR לפי לקוח</h3>
         ${d.mrrByClient.length?d.mrrByClient.map(c=>`
@@ -581,7 +615,7 @@ function clientForm(c={}){
     <div class="f2"><div class="f"><label>טלפון</label><input id="f_phone" value="${esc(c.phone||'')}"></div>
       <div class="f"><label>אימייל</label><input id="f_email" value="${esc(c.email||'')}"></div></div>
     <div class="f3"><div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(CLIENT_STATUS),c.status||'prospect')}</select></div>
-      <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(CLIENT_STAGE,c.stage||'lead')}</select></div>
+      <div class="f"><label>שלב בתהליך</label><select id="f_stage">${opts(CLIENT_STAGE,c.stage||'lead')}</select></div>
       <div class="f"><label>בריאות</label><select id="f_health">${opts({green:'🟢 תקין',yellow:'🟡 לב לב',red:'🔴 סיכון'},c.health||'green')}</select></div></div>
     <div class="f"><label>הערות</label><textarea id="f_notes" rows="2">${esc(c.notes||'')}</textarea></div>
     <div class="modal-actions"><button class="btn primary" onclick="saveClient('${c.id||''}')">שמירה</button>
@@ -816,7 +850,7 @@ RENDER.portfolio=async()=>{
       <div class="pf-systems">${internal.map(sysRow).join('')}</div></div>`:'';
 
   $('view').innerHTML=`
-    <div class="spread"><div><h2>לקוחות ומערכות</h2>
+    <div class="spread"><div><h2>לקוחות</h2>
       <div class="sub">${clients.length} לקוחות · ${systems.length} מערכות · ${liveCount} חיות</div></div>
       <div class="row">
         <input class="search" id="pfS" placeholder="חיפוש לקוח או מערכת…" oninput="pfFilter()">
@@ -1542,7 +1576,7 @@ RENDER.playbooks=async()=>{
   const stages=STAGE_ORDER.filter(s=>byStage[s]);
   $('view').innerHTML=`
     <div class="spread"><div><h2>מתודולוגיה ORT-TECH</h2>
-      <div class="sub">ספריית הפורמטים המקצועיים שלך למסע המוצר. ערוך כל פורמט, והחל אותו על לקוח כדי שיהפוך למהלך חי עם מעקב.</div></div>
+      <div class="sub">תבניות המתודולוגיה לכל שלב בעבודה עם לקוח. בחר פורמט, החל על לקוח — ותקבל מהלך חי עם מעקב.</div></div>
       <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
         <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
     ${activeRuns.length?`<div class="card">
@@ -1591,7 +1625,7 @@ function playbookForm(p={}){
   const kind=p.kind||'checklist';
   openModal(`<h3>${p.id?'עריכת פורמט':'פורמט חדש'}</h3>
     <div class="f2"><div class="f"><label>כותרת *</label><input id="f_title" value="${esc(p.title||'')}"></div>
-      <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(STAGE_LABELS,p.stage||'discovery')}</select></div></div>
+      <div class="f"><label>שלב בתהליך</label><select id="f_stage">${opts(STAGE_LABELS,p.stage||'discovery')}</select></div></div>
     <div class="f2"><div class="f"><label>סוג</label><select id="f_kind" onchange="togglePbKind(this.value)">${opts({checklist:'צ׳ק־ליסט',template:'תבנית מסמך',canvas:'קנבס'},kind)}</select></div>
       <div class="f"><label>תגיות</label><input id="f_tags" value="${esc(p.tags||'')}" placeholder="מופרד בפסיקים"></div></div>
     <div class="f"><label>תקציר (שורה אחת)</label><input id="f_summary" value="${esc(p.summary||'')}"></div>
@@ -1797,8 +1831,8 @@ RENDER.health=async()=>{
   };
   const rows=active.map(c=>{ let passed=0; const cells=HEALTH_GATES.map(([st])=>{const x=cellFor(c.id,st); if(x.kind==='done')passed++; return {st,x};}); return {c,cells,passed}; });
   $('view').innerHTML=`
-    <h2>בריאות מסירה</h2>
-    <div class="sub">לכל לקוח — אילו שערי מסע המוצר עבר (✓), מה בעבודה (%) ומה עוד לא נפתח. לחיצה על תא פותחת מהלך קיים או יוצרת חדש.</div>
+    <h2>צינור עסקאות</h2>
+    <div class="sub">לכל לקוח — אילו שלבי המתודולוגיה הושלמו (✓), מה בעבודה (%) ומה עוד לא נפתח. לחיצה על תא פותחת מהלך קיים או יוצרת חדש.</div>
     ${active.length?`<div class="card tbl-wrap" style="margin-top:12px"><table>
       <thead><tr><th>לקוח</th>${HEALTH_GATES.map(([,l])=>`<th style="text-align:center">${l}</th>`).join('')}<th class="num">מוכנות</th></tr></thead>
       <tbody>${rows.map(row=>`<tr>
@@ -1810,7 +1844,7 @@ RENDER.health=async()=>{
         }).join('')}
         <td class="num"><b>${row.passed}/${HEALTH_GATES.length}</b></td>
       </tr>`).join('')}</tbody></table></div>`:'<div class="empty">אין לקוחות פעילים עדיין</div>'}
-    <div class="hint" style="margin-top:10px">✓ שער שהושלם · צהוב = מהלך פעיל (אחוז) · ＋ = פתיחת מהלך חדש · לחיצה על שם לקוח פותחת את הכרטיס</div>`;
+    <div class="hint" style="margin-top:10px">✓ שלב שהושלם · צהוב = מהלך פעיל (אחוז) · ＋ = פתיחת מהלך חדש · לחיצה על שם לקוח פותחת את הכרטיס</div>`;
 };
 async function launchGate(clientId,stage){
   const pb=GATE_PB[stage]; if(!pb)return;
