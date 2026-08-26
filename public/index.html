@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Agency HQ — מרכז הבקרה של בית התוכנה</title>
+<title>ORT-TECH HQ — מרכז הבקרה</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&family=Rubik:wght@500;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -21,6 +21,7 @@
   .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
   .topbar-in{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;max-width:1180px;margin:0 auto}
   .brand{font-weight:900;font-size:1.08rem;display:flex;align-items:center;gap:9px}
+  .brand .logo-img{height:28px;width:auto}
   .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1rem;color:#fff}
   .brand span{color:var(--accent-2)}
   .nav{display:flex;gap:4px;overflow-x:auto;padding:0 14px 9px;max-width:1180px;margin:0 auto;scrollbar-width:none}
@@ -110,7 +111,7 @@
   /* ---- login ---- */
   #login{position:fixed;inset:0;z-index:100;background:radial-gradient(900px 500px at 80% -10%,rgba(43,92,255,.25),transparent 60%),var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
   .login-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px 26px;max-width:380px;width:100%;text-align:center}
-  .login-card .mark{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1.7rem;margin:0 auto 14px}
+  .login-card .logo-img{width:200px;max-width:80%;margin:0 auto 14px;display:block}
   .login-card h1{font-size:1.4rem;font-weight:900;margin-bottom:4px}
   .login-card p{color:var(--muted);font-size:.88rem;margin-bottom:20px}
   .login-card input{text-align:center;letter-spacing:.3em;font-size:1.1rem;margin-bottom:12px}
@@ -283,9 +284,8 @@
 <!-- מסך כניסה -->
 <div id="login">
   <div class="login-card">
-    <div class="mark">◆</div>
-    <h1>Agency <span style="color:var(--accent-2)">HQ</span></h1>
-    <p id="loginSub">מרכז הבקרה של בית התוכנה</p>
+    <img src="/ort-tech-logo.jpg" alt="ORT-TECH" class="logo-img">
+    <p id="loginSub" style="margin-top:4px">מרכז הבקרה</p>
     <div class="err" id="loginErr"></div>
     <input type="password" id="pin" inputmode="numeric" placeholder="••••" autocomplete="current-password" />
     <button class="btn primary" style="width:100%" id="loginBtn" onclick="doLogin()">כניסה</button>
@@ -296,7 +296,7 @@
 <div id="app" style="display:none">
   <div class="topbar">
     <div class="topbar-in">
-      <div class="brand"><span class="mark">◆</span>Agency <span>HQ</span></div>
+      <div class="brand"><img src="/ort-tech-logo.jpg" alt="ORT-TECH" class="logo-img">HQ</div>
       <div class="row" style="gap:6px"><button class="btn small ghost" onclick="go('skills')" title="מאגר הסקילז והפקודות">🧩 סקילז</button><button class="btn small ghost" onclick="changePinForm()">🔒 קוד</button><button class="btn small ghost" onclick="logout()">יציאה</button></div>
     </div>
     <div class="nav" id="nav"></div>
@@ -355,7 +355,7 @@ async function showLogin(){
   window.ideaBubbleDestroy && ideaBubbleDestroy();
   try{
     const s = await fetch('/api/auth/status').then(r=>r.json());
-    $('loginSub').textContent = s.setup ? 'מרכז הבקרה של בית התוכנה' : 'הגדרת קוד גישה ראשוני (4 ספרות ומעלה)';
+    $('loginSub').textContent = s.setup ? 'פתרונות תפעול חכמים לעסק שלך' : 'הגדרת קוד גישה ראשוני (4 ספרות ומעלה)';
     $('loginBtn').textContent = s.setup ? 'כניסה' : 'הגדרת קוד וכניסה';
     $('login').dataset.setup = s.setup ? '1':'0';
   }catch(e){ $('loginErr').textContent='שגיאת חיבור לשרת'; }
@@ -482,7 +482,7 @@ RENDER.dashboard=async()=>{
   ];
   $('view').innerHTML=`
     <h2>לוח בקרה</h2>
-    <div class="sub">התמונה הכוללת של בית התוכנה — ${todayISO()}</div>
+    <div class="sub">התמונה הכוללת של ORT-TECH — ${todayISO()}</div>
 
     <div class="rev">
       <div class="rev-hero">
@@ -968,7 +968,7 @@ function systemForm(s={}){
     <div class="f"><label>מצב פיתוח (GitHub)</label><div id="ghBox" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
     <div class="f"><label>🎯 לידים לפי מקור (השוואת גרסאות)</label><div id="sysLeads" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
     <div class="f"><label>📥 Webhook לידים</label><div class="card" style="margin:0;padding:11px 13px">
-      <div class="hint">כדי שהמערכת תספור לידים ב-Agency HQ — הוסף בה קריאה כשנכנס ליד:</div>
+      <div class="hint">כדי שהמערכת תספור לידים ב-ORT-TECH HQ — הוסף בה קריאה כשנכנס ליד:</div>
       <code id="hookCode" style="display:block;direction:ltr;text-align:left;font-size:.72rem;background:var(--bg-2);padding:8px;border-radius:8px;margin-top:6px;word-break:break-all">POST ${location.origin}/api/hook/lead&#10;{"systemId":"${s.id}","source":"website"}</code>
       <button class="btn small ghost" type="button" onclick="copyHook('${s.id}')" style="margin-top:6px">העתק endpoint</button>
     </div></div>`:''}
@@ -1253,7 +1253,7 @@ RENDER.cashflow=async()=>{
 // ---------- שיוך הוצאה לפרויקטים (פיצול עלות שווה) ----------
 function allocForm(r){
   const cur=new Set((r.allocations||[]).map(a=>a.clientId||'__internal__'));
-  const rows=[{id:'__internal__',name:'מערכת הניהול (Agency HQ)'}].concat(CACHE.clients.map(c=>({id:c.id,name:c.name})));
+  const rows=[{id:'__internal__',name:'מערכת הניהול (ORT-TECH HQ)'}].concat(CACHE.clients.map(c=>({id:c.id,name:c.name})));
   openModal(`<h3>שיוך הוצאה לפרויקטים</h3>
     <div class="sub" style="margin-bottom:10px">${esc(r.label)} · ${money(r.amount)}${r.recurring==='monthly'?"/ח'":r.recurring==='yearly'?"/שנה":''} — סמנו את הפרויקטים שמשתמשים במנוי. העלות מתחלקת שווה בשווה ביניהם.</div>
     <div id="allocList" style="max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px">
@@ -1497,7 +1497,7 @@ RENDER.documents=async()=>{
   const list=await apiGet('/documents');
   const groups={};
   for(const dc of list){ const k=dc.clientId||'__agency'; (groups[k]=groups[k]||[]).push(dc); }
-  const gName=(id)=>id==='__agency'?'בית התוכנה · חוצה-פרויקטים':(CACHE.clients.find(c=>c.id===id)?.name||'—');
+  const gName=(id)=>id==='__agency'?'ORT-TECH · חוצה-פרויקטים':(CACHE.clients.find(c=>c.id===id)?.name||'—');
   const keys=Object.keys(groups).sort((a,b)=>(a==='__agency'?1:0)-(b==='__agency'?1:0));
   $('view').innerHTML=`
     <div class="spread"><div><h2>מסמכים ותוצרים</h2><div class="sub">${list.length} תוצרים · מרכז אחד לכל הקישורים, המסמכים והתשתיות</div></div>
@@ -1541,7 +1541,7 @@ RENDER.playbooks=async()=>{
   const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
   const stages=STAGE_ORDER.filter(s=>byStage[s]);
   $('view').innerHTML=`
-    <div class="spread"><div><h2>מתודולוגיה — מרעיון לפרודקשן</h2>
+    <div class="spread"><div><h2>מתודולוגיה ORT-TECH</h2>
       <div class="sub">ספריית הפורמטים המקצועיים שלך למסע המוצר. ערוך כל פורמט, והחל אותו על לקוח כדי שיהפוך למהלך חי עם מעקב.</div></div>
       <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
         <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
