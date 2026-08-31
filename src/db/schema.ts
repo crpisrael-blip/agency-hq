@@ -35,12 +35,14 @@ export const clients = sqliteTable('clients', {
   contactRole: text('contact_role'),          // תפקיד איש הקשר
   phone: text('phone'),
   email: text('email'),
-  status: text('status').notNull().default('prospect'), // prospect | active | paused | churned
-  stage: text('stage').notNull().default('lead'),        // מסע הלקוח: lead | discovery | proposal | building | live | retainer
+  status: text('status').notNull().default('prospect'), // prospect | customer | paused | former_customer (legacy: active/churned)
+  stage: text('stage').notNull().default('lead'),        // LEGACY בלבד — לא בשימוש במודל BOS (הזדמנויות מחזיקות את שלב המכירה)
   health: text('health').notNull().default('green'),     // green | yellow | red
+  website: text('website'),                              // אתר הארגון (BOS)
   tags: text('tags'),
   notes: text('notes'),
   createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
 });
 
 /** מערכת מידע שאני מפתח עבור לקוח */
@@ -61,6 +63,7 @@ export const systems = sqliteTable('systems', {
   guideUrl: text('guide_url'),                 // לינק למדריך למערכת (ללקוח)
   ideaBubble: integer('idea_bubble').notNull().default(0), // 1 = יש בועת רעיונות (מוסבר בהודעת המסירה)
   repoUrl: text('repo_url'),
+  projectId: text('project_id'),               // BOS: המערכת נבנית במסגרת פרויקט (אופציונלי)
   startDate: text('start_date'),               // YYYY-MM-DD
   launchDate: text('launch_date'),
   progress: integer('progress').notNull().default(0), // 0-100
@@ -86,6 +89,9 @@ export const engagements = sqliteTable('engagements', {
   monthlyHours: real('monthly_hours').notNull().default(0), // שעות חודשיות משוערות (למודל שעתי)
   revsharePercent: real('revshare_percent').notNull().default(0), // אחוז ממחזור הלקוח
   revshareBase: real('revshare_base').notNull().default(0),       // בסיס מחזור חודשי צפוי אצל הלקוח
+  opportunityId: text('opportunity_id'),   // BOS: ההזדמנות שממנה נולדה ההתקשרות
+  projectId: text('project_id'),           // BOS: הפרויקט המקושר
+  proposalId: text('proposal_id'),         // BOS: ההצעה שאושרה
   startDate: text('start_date'),
   endDate: text('end_date'),
   billingDay: integer('billing_day').notNull().default(1),  // יום חיוב בחודש
@@ -144,6 +150,7 @@ export const processes = sqliteTable('processes', {
   id: text('id').primaryKey(),
   clientId: text('client_id').references(() => clients.id),
   systemId: text('system_id').references(() => systems.id),
+  projectId: text('project_id'),               // BOS: התהליך נבנה במסגרת פרויקט (אופציונלי)
   name: text('name').notNull(),
   kind: text('kind').notNull().default('process'), // process | journey | sop
   status: text('status').notNull().default('draft'), // draft | active | archived
@@ -171,6 +178,7 @@ export const modules = sqliteTable('modules', {
   id: text('id').primaryKey(),
   systemId: text('system_id').references(() => systems.id),
   clientId: text('client_id').references(() => clients.id),
+  projectId: text('project_id'),               // BOS: קישור אופציונלי לפרויקט (systemId נשאר הקישור המרכזי)
   name: text('name').notNull(),
   description: text('description'),
   status: text('status').notNull().default('active'), // active | planned | deprecated
@@ -281,6 +289,174 @@ export const skillUsage = sqliteTable('skill_usage', {
   note: text('note'),
   createdAt: integer('created_at').notNull(),
 });
+
+/* =========================================================================
+ * BOS — Business Operating System · ישויות המחזור העסקי
+ * ליד → הזדמנות → לקוח → פרויקט → מסירה → תמיכה → צמיחה
+ * ========================================================================= */
+
+/** איש קשר בארגון (organizationId = clients.id בשכבת ההתאמה) */
+export const contacts = sqliteTable('contacts', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id').notNull(),
+  name: text('name').notNull(),
+  role: text('role'),
+  phone: text('phone'),
+  whatsapp: text('whatsapp'),
+  email: text('email'),
+  isDecisionMaker: integer('is_decision_maker').notNull().default(0),
+  isPrimary: integer('is_primary').notNull().default(0),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+});
+
+/** הזדמנות = עסקה/צורך. שלב המכירה חי כאן (לא בארגון). הצינור נמדד מכאן. */
+export const opportunities = sqliteTable('opportunities', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  stage: text('stage').notNull().default('discovery'), // discovery|diagnosis|solution|proposal|negotiation|decision|won|lost
+  serviceType: text('service_type'),
+  estimatedValue: real('estimated_value').notNull().default(0),
+  recurringValue: real('recurring_value').notNull().default(0),
+  probability: integer('probability').notNull().default(20), // 0-100
+  expectedCloseDate: text('expected_close_date'),
+  urgency: text('urgency'),
+  fit: text('fit'),
+  owner: text('owner'),
+  decisionMakerContactId: text('decision_maker_contact_id'),
+  nextAction: text('next_action'),
+  nextActionDate: text('next_action_date'),
+  lostReason: text('lost_reason'),
+  lostNotes: text('lost_notes'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+  wonAt: integer('won_at'),
+  lostAt: integer('lost_at'),
+});
+
+/** כאב/בעיה שזוהו אצל הלקוח */
+export const opportunityPains = sqliteTable('opportunity_pains', {
+  id: text('id').primaryKey(),
+  opportunityId: text('opportunity_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  impact: text('impact'),
+  impactType: text('impact_type'),
+  severity: text('severity'),
+  estimatedCost: real('estimated_cost').notNull().default(0),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** פתרון מוצע (יכול להתחבר לכאב) */
+export const opportunitySolutions = sqliteTable('opportunity_solutions', {
+  id: text('id').primaryKey(),
+  opportunityId: text('opportunity_id').notNull(),
+  painId: text('pain_id'),
+  title: text('title').notNull(),
+  description: text('description'),
+  solutionType: text('solution_type'),
+  expectedOutcome: text('expected_outcome'),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** הצעה — מופרדת מהתקשרות, מגורסת. אסור לדרוס גרסה קודמת. */
+export const proposals = sqliteTable('proposals', {
+  id: text('id').primaryKey(),
+  opportunityId: text('opportunity_id').notNull(),
+  version: integer('version').notNull().default(1),
+  status: text('status').notNull().default('draft'), // draft|sent|viewed|discussion|accepted|rejected|expired
+  oneTimeValue: real('one_time_value').notNull().default(0),
+  monthlyValue: real('monthly_value').notNull().default(0),
+  validUntil: text('valid_until'),
+  scopeIncluded: text('scope_included'),
+  scopeExcluded: text('scope_excluded'),
+  assumptions: text('assumptions'),
+  dependencies: text('dependencies'),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull(),
+  sentAt: integer('sent_at'),
+  acceptedAt: integer('accepted_at'),
+  rejectedAt: integer('rejected_at'),
+});
+
+/** פרויקט = ביצוע אמיתי */
+export const projects = sqliteTable('projects', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id').notNull(),
+  opportunityId: text('opportunity_id'),
+  title: text('title').notNull(),
+  type: text('type'),
+  status: text('status').notNull().default('kickoff'), // kickoff|discovery|specification|build|internal_test|customer_test|implementation|live|stabilization|completed|paused
+  health: text('health').notNull().default('green'),   // green|yellow|red
+  progress: integer('progress').notNull().default(0),  // 0-100
+  startDate: text('start_date'),
+  targetDate: text('target_date'),
+  completedDate: text('completed_date'),
+  nextAction: text('next_action'),
+  nextActionDate: text('next_action_date'),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+});
+
+/** אבן דרך בפרויקט */
+export const milestones = sqliteTable('milestones', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull(),
+  title: text('title').notNull(),
+  owner: text('owner'),
+  dueDate: text('due_date'),
+  status: text('status').notNull().default('pending'), // pending|in_progress|done|blocked
+  deliverable: text('deliverable'),
+  notes: text('notes'),
+  sort: integer('sort').notNull().default(0),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** בקשת שינוי Scope */
+export const changeRequests = sqliteTable('change_requests', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  reason: text('reason'),
+  scopeImpact: text('scope_impact'),
+  costImpact: real('cost_impact').notNull().default(0),
+  timelineImpact: text('timeline_impact'),
+  status: text('status').notNull().default('pending'), // pending|approved|rejected|implemented
+  approvedAt: integer('approved_at'),
+  implementedAt: integer('implemented_at'),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** פעילות — Timeline כללית + Audit Trail לכל הישויות */
+export const activities = sqliteTable('activities', {
+  id: text('id').primaryKey(),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id').notNull(),
+  organizationId: text('organization_id'),
+  type: text('type').notNull().default('note'), // call|meeting|whatsapp|email|note|task|document|decision|status_change|automation
+  title: text('title').notNull(),
+  content: text('content'),
+  metadata: text('metadata'), // JSON
+  occurredAt: integer('occurred_at').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
+export type Contact = typeof contacts.$inferSelect;
+export type Opportunity = typeof opportunities.$inferSelect;
+export type OpportunityPain = typeof opportunityPains.$inferSelect;
+export type OpportunitySolution = typeof opportunitySolutions.$inferSelect;
+export type Proposal = typeof proposals.$inferSelect;
+export type Project = typeof projects.$inferSelect;
+export type Milestone = typeof milestones.$inferSelect;
+export type ChangeRequest = typeof changeRequests.$inferSelect;
+export type Activity = typeof activities.$inferSelect;
 
 export type Client = typeof clients.$inferSelect;
 export type System = typeof systems.$inferSelect;
