@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { Context } from 'hono';
-import { desc, eq } from 'drizzle-orm';
-import { leads, systems, clients } from '../db/schema';
+import { desc, eq, inArray } from 'drizzle-orm';
+import { leads, systems, clients, settings } from '../db/schema';
 import { Env, db, uid, now, todayIL, notifyTelegram } from './util';
 
 export const leadsApp = new Hono<Env>();
@@ -42,7 +42,17 @@ export async function registerLeadPublic(c: Context<Env>) {
     `🌐 מקור: ${source}\n` +
     `🏢 מערכת: ${sys.name}\n` +
     `🕐 ${when}`;
-  const p = notifyTelegram(c.env, msg);
+  // הגדרות טלגרם: קודם מטבלת settings ב-D1, ואם חסר — נפילה חזרה ל-env
+  const cfg = await d
+    .select()
+    .from(settings)
+    .where(inArray(settings.key, ['telegram_bot_token', 'telegram_chat_id']))
+    .all()
+    .catch(() => [] as { key: string; value: string }[]);
+  const cfgMap = Object.fromEntries(cfg.map((r) => [r.key, r.value]));
+  const token = cfgMap['telegram_bot_token'] || c.env.TELEGRAM_BOT_TOKEN;
+  const chatIds = cfgMap['telegram_chat_id'] || c.env.TELEGRAM_CHAT_ID;
+  const p = notifyTelegram(token, chatIds, msg);
   if (c.executionCtx?.waitUntil) c.executionCtx.waitUntil(p);
   else await p;
 
