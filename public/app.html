@@ -1333,13 +1333,44 @@ async function delEngagement(id){ if(!confirm('למחוק התקשרות?'))retu
 
 // ---------- מחשבון מודלי חיוב ----------
 const CALC_MODELS=['one_time','retainer','hourly','revshare','value','hybrid'];
+
+// סוגי שירות — כל אחד מתאים את התוויות, ברירות המחדל והשדות הרלוונטיים
+const SERVICE_TYPES={
+  software:{icon:'💻',label:'פיתוח תוכנה',unit:'שעה',
+    L:{buildHours:'שעות בנייה (פרויקט)',months:'אורך התקשרות (חודשים)',costRate:'עלות שעה שלי ₪',sellRate:'תעריף שעה ללקוח ₪',setupFee:'הקמה/מקדמה ₪',monthlyFee:'ריטיינר חודשי ₪',monthlyHours:'שעות תמיכה בחודש',monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:80,months:12,costRate:120,sellRate:350,setupFee:0,monthlyFee:1500,monthlyHours:4,monthlyCost:150,clientRevenue:40000,sharePct:5,clientValue:8000,capturePct:25},
+    show:{revshare:true,value:true}},
+  consulting:{icon:'🧠',label:'ייעוץ',unit:'יום',
+    L:{buildHours:'ימי ייעוץ (פרויקט)',months:'אורך ליווי (חודשים)',costRate:'עלות יום שלי ₪',sellRate:'תעריף יום ללקוח ₪',setupFee:'אבחון/מקדמה ₪',monthlyFee:'ריטיינר ייעוץ חודשי ₪',monthlyHours:'ימי ליווי בחודש',monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:6,months:6,costRate:800,sellRate:2500,setupFee:0,monthlyFee:4000,monthlyHours:2,monthlyCost:100,clientRevenue:60000,sharePct:5,clientValue:12000,capturePct:25},
+    show:{revshare:true,value:true}},
+  process:{icon:'⚙️',label:'בניית תהליכים',unit:'יום',
+    L:{buildHours:'ימי מיפוי ובנייה',months:'אורך ליווי (חודשים)',costRate:'עלות יום שלי ₪',sellRate:'תעריף יום ללקוח ₪',setupFee:'פרויקט הקמה ₪',monthlyFee:'ליווי חודשי ₪',monthlyHours:'ימי תחזוקה בחודש',monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:10,months:6,costRate:700,sellRate:2200,setupFee:0,monthlyFee:2500,monthlyHours:1,monthlyCost:80,clientRevenue:50000,sharePct:4,clientValue:10000,capturePct:20},
+    show:{revshare:true,value:true}},
+  training:{icon:'🎓',label:'הדרכה',unit:'שעה',
+    L:{buildHours:'שעות הכנה',months:'אורך התוכנית (חודשים)',costRate:'עלות שעה שלי ₪',sellRate:'תעריף שעת הדרכה ₪',setupFee:'הקמת תוכנית ₪',monthlyFee:'מנוי/ליווי חודשי ₪',monthlyHours:'שעות הדרכה בחודש',monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:12,months:3,costRate:150,sellRate:400,setupFee:0,monthlyFee:0,monthlyHours:8,monthlyCost:50,clientRevenue:0,sharePct:0,clientValue:5000,capturePct:20},
+    show:{revshare:false,value:true}},
+  custom:{icon:'✳️',label:'מותאם אישית',unit:'יחידה',
+    L:{buildHours:"כמות עבודה (יח')",months:'חודשים',costRate:'עלות ליחידה ₪',sellRate:'מחיר ליחידה ₪',setupFee:'הקמה/מקדמה ₪',monthlyFee:'תשלום חודשי ₪',monthlyHours:"יח' בחודש",monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:1,months:12,costRate:0,sellRate:0,setupFee:0,monthlyFee:0,monthlyHours:0,monthlyCost:0,clientRevenue:0,sharePct:0,clientValue:0,capturePct:0},
+    show:{revshare:true,value:true}},
+};
+let CALC_SERVICE='software';
+let CALC_EXTRAS=[]; // משתנים חופשיים: {name, amount, kind:'setup'|'monthly'}
+
 function calcInputs(){
   return {
+    serviceType:CALC_SERVICE,
     buildHours:valN('c_buildHours'), costRate:valN('c_costRate'), sellRate:valN('c_sellRate'),
     setupFee:valN('c_setupFee'), monthlyFee:valN('c_monthlyFee'), monthlyHours:valN('c_monthlyHours'),
     clientRevenue:valN('c_clientRevenue'), sharePct:valN('c_sharePct'),
     clientValue:valN('c_clientValue'), capturePct:valN('c_capturePct'),
     monthlyCost:valN('c_monthlyCost'), months:valN('c_months')||12, vat:$('c_vat')?.checked,
+    extras:CALC_EXTRAS.map(e=>({name:e.name,amount:+e.amount||0,kind:e.kind})),
+    extraSetup:CALC_EXTRAS.filter(e=>e.kind==='setup').reduce((a,e)=>a+(+e.amount||0),0),
+    extraMonthly:CALC_EXTRAS.filter(e=>e.kind==='monthly').reduce((a,e)=>a+(+e.amount||0),0),
   };
 }
 // חישוב מודל בודד לפי אותם משתני קלט
@@ -1354,6 +1385,9 @@ function computeModel(model,I){
     case 'value':    setup=I.setupFee; monthly=I.clientValue*I.capturePct/100; break;
     case 'hybrid':   setup=build; monthly=I.monthlyFee + I.clientRevenue*I.sharePct/100; break;
   }
+  // משתנים חופשיים (רכיבי הצעה נוספים) נכנסים לכל מודל
+  setup += I.extraSetup||0;
+  monthly += I.extraMonthly||0;
   const months=I.months;
   const buildCost=I.buildHours*I.costRate;
   const deliverCost=I.monthlyHours*I.costRate;               // עלות שעות תמיכה חודשיות
@@ -1377,37 +1411,50 @@ RENDER.calculator=async()=>{
       <button class="btn ghost small" onclick="loadScenarios()">תרחישים שמורים</button></div>
     <div class="grid2">
       <div class="card">
-        <h3>משתני הקלט</h3>
-        <div class="f2">
-          <div class="f"><label>שעות בנייה (פרויקט)</label><input type="number" id="c_buildHours" value="80" oninput="calcOut()"></div>
-          <div class="f"><label>אורך התקשרות (חודשים)</label><input type="number" id="c_months" value="12" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>עלות שעה שלי ₪</label><input type="number" id="c_costRate" value="120" oninput="calcOut()"><div class="hint">כמה שעת עבודה עולה לך</div></div>
-          <div class="f"><label>תעריף שעה ללקוח ₪</label><input type="number" id="c_sellRate" value="350" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>הקמה/מקדמה ₪ <span class="muted">(0=לפי שעות)</span></label><input type="number" id="c_setupFee" value="0" oninput="calcOut()"></div>
-          <div class="f"><label>ריטיינר חודשי ₪</label><input type="number" id="c_monthlyFee" value="1500" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>שעות תמיכה בחודש</label><input type="number" id="c_monthlyHours" value="4" oninput="calcOut()"></div>
-          <div class="f"><label>עלות חודשית שלי ₪ <span class="muted">(כלים/קבלני משנה)</span></label><input type="number" id="c_monthlyCost" value="150" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>מחזור חודשי צפוי אצל הלקוח ₪</label><input type="number" id="c_clientRevenue" value="40000" oninput="calcOut()"></div>
-          <div class="f"><label>% ממחזור</label><input type="number" id="c_sharePct" value="5" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>ערך חודשי שאני מייצר ₪</label><input type="number" id="c_clientValue" value="8000" oninput="calcOut()"></div>
-          <div class="f"><label>% מהערך (capture)</label><input type="number" id="c_capturePct" value="25" oninput="calcOut()"></div>
-        </div>
-        <label class="row" style="gap:7px;cursor:pointer"><input type="checkbox" id="c_vat" style="width:auto" onchange="calcOut()"> הצג כולל מע"מ (18%)</label>
+        <div class="spread" style="margin-bottom:10px;align-items:center"><h3 style="margin:0">משתני הקלט</h3>
+          <select id="c_service" onchange="calcSetService(this.value)" style="padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit;font-weight:700;font-size:.9rem;background:#fff;cursor:pointer">
+            ${Object.entries(SERVICE_TYPES).map(([k,v])=>`<option value="${k}" ${k===CALC_SERVICE?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+          </select></div>
+        <div id="calcCard"></div>
       </div>
       <div id="calcOut"></div>
     </div>`;
+  $('calcCard').innerHTML=calcCardHTML();
+  renderExtras();
   calcOut();
 };
+
+// בונה את שדות הקלט לפי סוג השירות הנבחר
+function calcCardHTML(){
+  const S=SERVICE_TYPES[CALC_SERVICE]||SERVICE_TYPES.software, L=S.L, D=S.D;
+  const fld=(id,label,extra)=>`<div class="f"><label>${label}</label><input type="number" id="c_${id}" value="${D[id]}" oninput="calcOut()">${extra||''}</div>`;
+  return (
+    '<div class="f2">'+fld('buildHours',L.buildHours)+fld('months',L.months)+'</div>'+
+    '<div class="f2">'+fld('costRate',L.costRate,'<div class="hint">כמה יחידת עבודה עולה לך</div>')+fld('sellRate',L.sellRate)+'</div>'+
+    '<div class="f2">'+fld('setupFee',L.setupFee+' <span class="muted">(0=לפי כמות)</span>')+fld('monthlyFee',L.monthlyFee)+'</div>'+
+    '<div class="f2">'+fld('monthlyHours',L.monthlyHours)+fld('monthlyCost',L.monthlyCost+' <span class="muted">(כלים/קב״מ)</span>')+'</div>'+
+    (S.show.revshare?'<div class="f2">'+fld('clientRevenue','מחזור חודשי צפוי אצל הלקוח ₪')+fld('sharePct','% ממחזור')+'</div>':'<input type="hidden" id="c_clientRevenue" value="0"><input type="hidden" id="c_sharePct" value="0">')+
+    (S.show.value?'<div class="f2">'+fld('clientValue','ערך חודשי שאני מייצר ₪')+fld('capturePct','% מהערך (capture)')+'</div>':'<input type="hidden" id="c_clientValue" value="0"><input type="hidden" id="c_capturePct" value="0">')+
+    '<div class="f" style="margin-top:6px"><div class="spread" style="align-items:center;margin-bottom:4px"><label style="margin:0">✳️ משתנים נוספים <span class="muted" style="font-weight:400">(רכיבי הצעה חופשיים)</span></label>'+
+      '<button class="btn ghost small" onclick="calcAddExtra()">+ הוסף</button></div>'+
+      '<div id="calcExtras"></div></div>'+
+    '<label class="row" style="gap:7px;cursor:pointer;margin-top:8px"><input type="checkbox" id="c_vat" style="width:auto" onchange="calcOut()"> הצג כולל מע"מ (18%)</label>'
+  );
+}
+function calcSetService(t){ CALC_SERVICE=t; $('calcCard').innerHTML=calcCardHTML(); renderExtras(); calcOut(); }
+
+// משתנים חופשיים
+function calcExtraRow(i){
+  const e=CALC_EXTRAS[i], ib='padding:8px 10px;border:1.5px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.88rem';
+  return '<div class="row" style="gap:6px;margin-bottom:6px;align-items:center">'+
+    '<input value="'+esc(e.name||'')+'" oninput="CALC_EXTRAS['+i+'].name=this.value" placeholder="שם הרכיב (אפיון, סדנה…)" style="flex:1;'+ib+'">'+
+    '<input type="number" value="'+(e.amount||'')+'" oninput="CALC_EXTRAS['+i+'].amount=+this.value;calcOut()" placeholder="₪" style="width:92px;'+ib+'">'+
+    '<select onchange="CALC_EXTRAS['+i+'].kind=this.value;calcOut()" style="'+ib+';cursor:pointer"><option value="setup"'+(e.kind==='setup'?' selected':'')+'>חד-פעמי</option><option value="monthly"'+(e.kind==='monthly'?' selected':'')+'>חודשי</option></select>'+
+    '<button class="btn ghost small" onclick="calcDelExtra('+i+')" title="הסר">✕</button></div>';
+}
+function renderExtras(){ const b=$('calcExtras'); if(b) b.innerHTML=CALC_EXTRAS.length?CALC_EXTRAS.map((_,i)=>calcExtraRow(i)).join(''):'<div class="muted hint">אין רכיבים נוספים. לחץ "+ הוסף" כדי לשלב משתנה משלך.</div>'; }
+function calcAddExtra(){ CALC_EXTRAS.push({name:'',amount:0,kind:'setup'}); renderExtras(); }
+function calcDelExtra(i){ CALC_EXTRAS.splice(i,1); renderExtras(); calcOut(); }
 function calcOut(){
   const I=calcInputs();
   const results=CALC_MODELS.map(m=>computeModel(m,I));
@@ -1415,9 +1462,10 @@ function calcOut(){
   const vlabel=I.vat?' <span class="muted" style="font-size:.7rem">כולל מע"מ</span>':'';
   // המודל עם הרווח הגבוה ביותר
   const best=results.reduce((a,b)=>b.profit>a.profit?b:a,results[0]);
+  const S=SERVICE_TYPES[I.serviceType]||SERVICE_TYPES.software; const unit=S.unit;
   $('calcOut').innerHTML=`
     <div class="card" style="border-color:var(--accent-2)">
-      <div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מומלץ: ${ENG_MODEL[best.model]}</h3>${marginPill(best.margin)}</div>
+      <div class="spread" style="margin-bottom:6px"><h3 style="margin:0">${S.icon} מומלץ: ${ENG_MODEL[best.model]}</h3>${marginPill(best.margin)}</div>
       <div class="split" style="margin-bottom:10px">
         <div><div class="muted hint">חד-פעמי (הקמה)</div><div class="big">${money(best.setup*vat)}</div></div>
         <div><div class="muted hint">חודשי</div><div class="big" style="color:var(--accent-2)">${money(best.monthly*vat)}</div></div>
@@ -1425,7 +1473,7 @@ function calcOut(){
       <div class="stat-row"><span>סה"כ הכנסה (${I.months} ח')${vlabel}</span><b>${money(best.totalRevenue*vat)}</b></div>
       <div class="stat-row"><span>עלות כוללת שלי</span><b>${money(best.totalCost)}</b></div>
       <div class="stat-row"><span>רווח</span><b style="color:${best.profit>=0?'var(--green)':'var(--red)'}">${money(best.profit)}</b></div>
-      <div class="stat-row"><span>תעריף אפקטיבי לשעה</span><b>${money(best.effHourly)}</b></div>
+      <div class="stat-row"><span>תעריף אפקטיבי ל${unit}</span><b>${money(best.effHourly)}</b></div>
       <div class="stat-row"><span>החזר השקעה (break-even)</span><b>${best.breakEven!=null?best.breakEven+" ח'":'—'}</b></div>
     </div>
     <div class="card">
@@ -1440,7 +1488,7 @@ function calcOut(){
           <td class="num" style="color:${r.profit>=0?'var(--green)':'var(--red)'}">${money1(r.profit)}</td>
           <td>${marginPill(r.margin)}</td></tr>`).join('')}
       </table></div>
-      <div class="hint">השוליים מחושבים על בסיס עלות עבודה (${money(I.costRate)}/שעה) + עלות חודשית. תעריף אפקטיבי לשעה מגלם את כל ההכנסה חלקי כל השעות.</div>
+      <div class="hint">השוליים מחושבים על בסיס עלות עבודה (${money(I.costRate)}/${unit}) + עלות חודשית. תעריף אפקטיבי ל${unit} מגלם את כל ההכנסה חלקי כל יחידות העבודה.</div>
       <div class="modal-actions"><button class="btn primary small" onclick="saveScenario()">שמירת תרחיש</button>
         <button class="btn teal small" onclick="scenarioToEngagement()">צור התקשרות מהמומלץ</button></div>
     </div>`;
