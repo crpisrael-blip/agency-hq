@@ -310,7 +310,7 @@
 // ============ תשתית ============
 const TOKEN_KEY = 'agencyhq_token';
 let TOKEN = localStorage.getItem(TOKEN_KEY) || '';
-let CURRENT = 'dashboard';
+let CURRENT = 'today';
 const $ = (id) => document.getElementById(id);
 
 const money = (n) => new Intl.NumberFormat('he-IL',{style:'currency',currency:'ILS',maximumFractionDigits:0}).format(Math.round(n||0));
@@ -398,28 +398,47 @@ function showApp(){
   window.ideaBubbleInit && ideaBubbleInit();
 }
 
-// ============ ניווט ============
+// ============ ניווט (BOS — ניווט ראשי בעברית) ============
 const PAGES = [
-  ['dashboard','לוח בקרה'],
-  ['portfolio','לקוחות ומערכות'],
-  ['modules','מודולים'],
-  ['engagements','התקשרויות'],
-  ['calculator','מחשבון חיוב'],
-  ['cashflow','תזרים'],
-  ['ideas','מרכזי רווח'],
-  ['processes','תהליכים'],
-  ['documents','מסמכים'],
-  ['playbooks','מתודולוגיה'],
-  ['health','בריאות מסירה'],
-  ['tasks','משימות'],
-  ['skills','🧩 סקילז'],
+  ['today','היום'],
+  ['sales','מכירות'],
+  ['customers','לקוחות'],
+  ['work','עבודה'],
+  ['finance','כספים'],
+  ['growth','צמיחה'],
 ];
+// תפריט משני / הגדרות
+const SECONDARY = [
+  ['documents','מסמכים'],
+  ['playbooks','ספריית מתודולוגיה'],
+  ['skills','🧩 סקילז'],
+  ['tasks','משימות'],
+  ['portfolio','לקוחות ומערכות (מלא)'],
+  ['modules','מודולים'],
+  ['dashboard','לוח בקרה (ישן)'],
+];
+// מיפוי עמוד → קבוצת ניווט (להדגשה בתפריט הראשי)
+const NAV_GROUP = {
+  today:'today',
+  sales:'sales', opportunities:'sales', opportunity:'sales', proposals:'sales', leads:'sales',
+  customers:'customers', clients:'customers', organizations:'customers', organization:'customers',
+  work:'work', projects:'work', project:'work', systems:'work', processes:'work',
+  finance:'finance', engagements:'finance', cashflow:'finance', calculator:'finance',
+  growth:'growth', ideas:'growth',
+  portfolio:'portfolio',
+};
 function buildNav(){
-  $('nav').innerHTML = PAGES.map(([k,l])=>`<button data-p="${k}" class="${k===CURRENT?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+  const main = PAGES.map(([k,l])=>`<button data-p="${k}" class="${k===CURRENT?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+  $('nav').innerHTML = main + `<button data-p="__more" onclick="moreMenu()">עוד ▾</button>`;
+}
+function moreMenu(){
+  const items = SECONDARY.map(([k,l])=>`<button class="btn ghost" style="justify-content:flex-start;width:100%" onclick="closeModal();go('${k}')">${l}</button>`).join('');
+  openModal(`<h3>עוד</h3><div class="col" style="gap:6px">${items}</div>
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">סגירה</button></div>`);
 }
 function go(page){
   CURRENT=page;
-  const navKey=(page==='clients'||page==='systems')?'portfolio':page;
+  const navKey=NAV_GROUP[page]||page;
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===navKey));
   $('view').innerHTML='<div class="empty">טוען…</div>';
   (RENDER[page]||(()=> $('view').innerHTML='<div class="empty">בקרוב</div>'))();
@@ -2419,6 +2438,8 @@ async function skCopyConfirm(mark){
 // ============ הפעלה ============
 boot();
 </script>
+<script src="/js/labels.js"></script>
+<script src="/js/bos.js"></script>
 <script src="/idea-bubble.js"></script>
 </body>
 </html>
