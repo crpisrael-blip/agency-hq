@@ -1816,6 +1816,112 @@ async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await api
 
 // ---------- מתודולוגיה (פלייבוק) ----------
 let PB_CACHE=[], PBSECS=[], RUN=null;
+// ---------- הצעת מחיר על דף לוגו (PDF דרך הדפסה) ----------
+async function quoteForm(){
+  let cls=(CACHE.clients&&CACHE.clients.length)?CACHE.clients:[];
+  if(!cls.length){ try{ cls=await apiGet('/clients'); }catch(e){} }
+  const inp='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
+  const validDefault=new Date(Date.now()+14*86400e3).toISOString().slice(0,10);
+  openModal(
+    '<h3 style="margin:0 0 4px">📄 הצעת מחיר</h3>'+
+    '<div class="muted" style="font-size:.88rem;margin-bottom:14px">מלא את הפרטים — ייפתח דף הצעה ממותג עם הלוגו, מוכן להדפסה או לשמירה כ-PDF (בחלון ההדפסה: יעד → שמירה כ-PDF).</div>'+
+    '<div class="f2">'+
+      '<div class="f"><label>לקוח</label><select id="q_client" style="'+inp+'"><option value="">— בחר מהרשימה —</option>'+cls.map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('')+'</select></div>'+
+      '<div class="f"><label>או שם חופשי</label><input id="q_client_free" placeholder="שם הלקוח / העסק" style="'+inp+'"></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:10px"><label>נושא ההצעה</label><input id="q_title" placeholder="לדוגמה: מערכת ניהול לקליניקה" style="'+inp+'"></div>'+
+    '<div class="f" style="margin-top:10px"><label>פריטים</label><div id="qItems"></div>'+
+      '<button class="btn ghost small" onclick="quoteAddRow()">+ הוסף שורה</button></div>'+
+    '<div class="f2" style="margin-top:10px">'+
+      '<div class="f"><label>מע"מ % (0 = ללא)</label><input id="q_vat" type="number" value="18" style="'+inp+'"></div>'+
+      '<div class="f"><label>ההצעה בתוקף עד</label><input id="q_valid" type="date" value="'+validDefault+'" style="'+inp+'"></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:10px"><label>תנאי תשלום</label><input id="q_terms" value="50% מקדמה עם אישור ההצעה · 50% בעלייה לאוויר" style="'+inp+'"></div>'+
+    '<div class="f" style="margin-top:10px"><label>הערות</label><textarea id="q_notes" rows="2" placeholder="אופציונלי — מה כלול, מה לא כלול, לו״ז…" style="'+inp+'"></textarea></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn primary" onclick="quoteBuild()">📄 הפק PDF</button></div>'
+  , true);
+  quoteAddRow(); quoteAddRow();
+}
+function quoteAddRow(){
+  const box=$('qItems'); if(!box)return;
+  const d=document.createElement('div');
+  d.className='row q-item'; d.style.cssText='gap:6px;margin-bottom:6px;align-items:center';
+  d.innerHTML='<input class="qi-desc" placeholder="תיאור הפריט / השירות" style="flex:1;padding:8px 10px;border:1.5px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.9rem">'+
+    '<input class="qi-amt" type="number" min="0" placeholder="₪" style="width:110px;padding:8px 10px;border:1.5px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.9rem">'+
+    '<button class="btn ghost small" onclick="this.parentElement.remove()" title="הסר שורה">✕</button>';
+  box.appendChild(d);
+}
+function quoteBuild(){
+  const client=val('q_client_free')||val('q_client');
+  if(!client){ toast('חסר שם לקוח','bad'); return; }
+  const items=[...document.querySelectorAll('#qItems .q-item')].map(r=>({
+    desc:(r.querySelector('.qi-desc')||{}).value?.trim()||'',
+    amt:Number((r.querySelector('.qi-amt')||{}).value||0)
+  })).filter(x=>x.desc&&x.amt>0);
+  if(!items.length){ toast('הוסף לפחות פריט אחד עם תיאור וסכום','bad'); return; }
+  const title=val('q_title'), terms=val('q_terms'), notes=val('q_notes');
+  const vatPct=Math.max(0,Number(val('q_vat')||0));
+  const sub=items.reduce((a,x)=>a+x.amt,0);
+  const vatAmt=sub*vatPct/100;
+  const total=sub+vatAmt;
+  const fmt=n=>'₪'+Number(n).toLocaleString('he-IL',{maximumFractionDigits:0});
+  const now=new Date();
+  const qnum='ORT-'+now.toISOString().slice(2,10).replace(/-/g,'')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+  const validStr=val('q_valid')? new Date(val('q_valid')+'T12:00:00').toLocaleDateString('he-IL') : '';
+  const logoUrl=location.origin+'/ort-tech-logo.jpg';
+  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>הצעת מחיר '+qnum+'</title><style>'+
+    '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
+    "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}"+
+    '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:24px}'+
+    '.logo-crop{width:264px;height:60px;overflow:hidden;position:relative}'+
+    '.logo-crop img{width:369px;position:absolute;left:-48px;top:-82px}'+
+    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}'+
+    'h1{font-size:26px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:13px}'+
+    '.to{margin:18px 0 4px;font-size:15px}.subject{font-size:16px;font-weight:700;margin-bottom:16px}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:6px}'+
+    'th{background:#f4efe6;text-align:right;padding:9px 12px;font-size:13px;border-bottom:2px solid #0f7a5c}'+
+    'td{padding:9px 12px;border-bottom:1px solid #e3dccf}'+
+    'td.amt,th.amt{text-align:left;white-space:nowrap;width:130px}'+
+    '.totals{margin-inline-start:auto;width:290px;margin-top:8px}'+
+    '.totals div{display:flex;justify-content:space-between;padding:5px 12px}'+
+    '.totals .grand{background:#0f7a5c;color:#fff;font-weight:900;font-size:16px;border-radius:8px;margin-top:5px}'+
+    '.sec{margin-top:16px;font-size:13.5px}.sec b{display:block;margin-bottom:1px}'+
+    '.sig{margin-top:46px;display:flex;justify-content:space-between;align-items:flex-end;gap:30px}'+
+    '.sig .line{width:210px;border-top:1.5px solid #16202e;padding-top:5px;text-align:center;font-size:12.5px;color:#3d4b5e}'+
+    '.foot{margin-top:34px;border-top:1px solid #e3dccf;padding-top:9px;font-size:11.5px;color:#6b7a8d;display:flex;justify-content:space-between}'+
+    '@media print{body{padding:20px 26px}}'+
+    '</style></head><body>'+
+    '<div class="hdr">'+
+      '<div><h1>הצעת מחיר</h1><div class="meta">מס\' '+qnum+' · תאריך: '+now.toLocaleDateString('he-IL')+'</div></div>'+
+      '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="ORT-TECH"></div>'+
+      '<div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div>'+
+    '</div>'+
+    '<div class="to">לכבוד: <b>'+esc(client)+'</b></div>'+
+    (title?'<div class="subject">הנדון: '+esc(title)+'</div>':'')+
+    '<table><thead><tr><th style="width:34px">#</th><th>תיאור</th><th class="amt">סכום</th></tr></thead><tbody>'+
+    items.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.desc)+'</td><td class="amt">'+fmt(x.amt)+'</td></tr>').join('')+
+    '</tbody></table>'+
+    '<div class="totals">'+
+      '<div><span>סכום ביניים</span><b>'+fmt(sub)+'</b></div>'+
+      (vatPct>0?'<div><span>מע"מ '+vatPct+'%</span><b>'+fmt(vatAmt)+'</b></div>':'')+
+      '<div class="grand"><span>סה"כ לתשלום</span><span>'+fmt(total)+'</span></div>'+
+    '</div>'+
+    (validStr?'<div class="sec"><b>תוקף</b>ההצעה בתוקף עד '+validStr+'.</div>':'')+
+    (terms?'<div class="sec"><b>תנאי תשלום</b>'+esc(terms)+'</div>':'')+
+    (notes?'<div class="sec"><b>הערות</b>'+esc(notes).replace(/\n/g,'<br>')+'</div>':'')+
+    '<div class="sig">'+
+      '<div><div style="font-weight:700">בברכה,</div><div>ORT-TECH · פתרונות תפעול חכמים לעסק שלך</div></div>'+
+      '<div class="line">חתימת הלקוח ואישור ההצעה</div>'+
+    '</div>'+
+    '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+
+    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},400)}</scr'+'ipt>'+
+    '</body></html>';
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const w=window.open(URL.createObjectURL(blob),'_blank');
+  if(!w){ toast('הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); return; }
+  closeModal();
+}
+
 RENDER.playbooks=async()=>{
   const [list,runs]=await Promise.all([apiGet('/playbooks'),apiGet('/playbooks/runs')]);
   PB_CACHE=list;
@@ -1826,6 +1932,7 @@ RENDER.playbooks=async()=>{
     <div class="spread"><div><h2>מתודולוגיה ORT-TECH</h2>
       <div class="sub">תבניות המתודולוגיה לכל שלב בעבודה עם לקוח. בחר פורמט, החל על לקוח — ותקבל מהלך חי עם מעקב.</div></div>
       <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
+        <button class="btn teal" onclick="quoteForm()">📄 הצעת מחיר</button>
         <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
     ${activeRuns.length?`<div class="card">
       <h3>מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
