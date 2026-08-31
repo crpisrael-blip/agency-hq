@@ -968,17 +968,33 @@ async function loadSysLeads(id){
 // ---------- מסך לידים (CRM) ----------
 const LEAD_STATUS={new:['🆕 חדש','p-amber'],contacted:['📞 נוצר קשר','p-blue'],qualified:['⭐ רלוונטי','p-purple'],won:['✅ נסגר','p-green'],lost:['✕ לא רלוונטי','p-gray']};
 const LEAD_STATUS_ORDER=['new','contacted','qualified','won','lost'];
-let LEADS_ALL=[], LEADS_SYS={}, LEADS_FILTER='all';
+let LEADS_ALL=[], LEADS_SYS={}, LEADS_CLIENTS={}, SELF_SET=new Set(), LEADS_FILTER='all', LEADS_MODE='mine';
+const ACT_KINDS={call:['📞','שיחה'],whatsapp:['💬','הודעה'],meeting:['🤝','פגישה'],note:['📝','הערה'],status:['🔀','סטטוס']};
+const leadIsMine=(l)=>!l.clientId || SELF_SET.has(l.clientId);
+function fuBadge(l){
+  if(!l.followUpAt) return '';
+  if(['won','lost'].includes(l.status||'new')) return '';
+  const t=new Date(); t.setHours(0,0,0,0);
+  const d=new Date(l.followUpAt); d.setHours(0,0,0,0);
+  if(d.getTime()<t.getTime()) return '<span class="pill p-red">⏰ באיחור</span>';
+  if(d.getTime()===t.getTime()) return '<span class="pill p-amber">⏰ היום</span>';
+  return '<span class="pill p-gray">📅 '+new Date(l.followUpAt).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+'</span>';
+}
+const fuDue=(l)=>{ if(!l.followUpAt||['won','lost'].includes(l.status||'new'))return false; const e=new Date(); e.setHours(23,59,59,999); return l.followUpAt<=e.getTime(); };
 function leadPhone(note){ const m=(note||'').match(/0\d[\d\- ]{7,11}/); return m? m[0].replace(/\D/g,'') : ''; }
 function waNum(p){ p=(p||'').replace(/\D/g,''); if(p.startsWith('972'))return p; if(p.startsWith('0'))return '972'+p.slice(1); return p; }
 function timeAgo(ms){ const s=Math.floor((Date.now()-ms)/1000); if(s<60)return 'הרגע'; const m=Math.floor(s/60); if(m<60)return "לפני "+m+" דק'"; const h=Math.floor(m/60); if(h<24)return "לפני "+h+" ש'"; const d=Math.floor(h/24); if(d<30)return "לפני "+d+" ימים"; return new Date(ms).toLocaleDateString('he-IL'); }
 function leadStatusSelect(id,cur){ return '<select onchange="leadSetStatus(\''+id+'\',this.value)" style="padding:6px 10px;border:1px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.85rem;background:#fff;font-weight:700;cursor:pointer">'+LEAD_STATUS_ORDER.map(k=>'<option value="'+k+'" '+(k===cur?'selected':'')+'>'+LEAD_STATUS[k][0]+'</option>').join('')+'</select>'; }
 
 RENDER.leads=async()=>{
-  $('view').innerHTML='<h2>📥 לידים</h2><div class="sub">כל הפניות מהאתר במקום אחד — פרטים, יצירת קשר וסטטוס טיפול</div><div id="leadsBody"><div class="empty">טוען…</div></div>';
+  $('view').innerHTML='<h2>📥 לידים</h2><div class="sub">הלידים שלך — CRM מלא לניהול המכירה · לידים של מערכות לקוחות — מעקב וספירה בלבד</div><div id="leadsBody"><div class="empty">טוען…</div></div>';
   try{
-    const [rows,systems]=await Promise.all([apiGet('/leads'),apiGet('/systems')]);
-    LEADS_ALL=rows; LEADS_SYS=Object.fromEntries(systems.map(s=>[s.id,s.name]));
+    const [rows,systems,cls]=await Promise.all([apiGet('/leads'),apiGet('/systems'),apiGet('/clients')]);
+    LEADS_ALL=rows;
+    LEADS_SYS=Object.fromEntries(systems.map(s=>[s.id,s.name]));
+    LEADS_CLIENTS=Object.fromEntries(cls.map(c=>[c.id,c.name]));
+    SELF_SET=new Set(cls.filter(c=>c.isSelf).map(c=>c.id));
+    if(!SELF_SET.size) SELF_SET.add('cl-agency-hq-core'); // עד שהמיגרציה מסמנת את הלקוח הפנימי
     renderLeadsList();
   }catch(e){ const b=$('leadsBody'); if(b)b.innerHTML='<div class="empty">שגיאה בטעינת לידים</div>'; }
 };
@@ -986,29 +1002,88 @@ RENDER.leads=async()=>{
 function renderLeadsList(){
   const body=$('leadsBody'); if(!body)return;
   const all=LEADS_ALL.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const mine=all.filter(leadIsMine), others=all.filter(l=>!leadIsMine(l));
+  const toggle=
+    '<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:16px">'+
+      '<button class="btn '+(LEADS_MODE==='mine'?'primary':'ghost')+'" onclick="LEADS_MODE=\'mine\';renderLeadsList()">🎯 הלידים שלי <b>'+mine.length+'</b></button>'+
+      '<button class="btn '+(LEADS_MODE==='clients'?'primary':'ghost')+'" onclick="LEADS_MODE=\'clients\';renderLeadsList()">🏢 לידים של לקוחות <b>'+others.length+'</b></button>'+
+    '</div>';
+  body.innerHTML=toggle+(LEADS_MODE==='mine'? leadsMineHTML(mine) : leadsClientsHTML(others));
+}
+
+// --- הלידים שלי: CRM מלא ---
+function leadsMineHTML(mine){
   const monthPrefix=new Date().toISOString().slice(0,7);
-  const cnt=k=> k==='all'? all.length : all.filter(l=>(l.status||'new')===k).length;
-  const thisMonth=all.filter(l=>new Date(l.createdAt).toISOString().slice(0,7)===monthPrefix).length;
-  const filtered= LEADS_FILTER==='all'? all : all.filter(l=>(l.status||'new')===LEADS_FILTER);
+  const cnt=k=> k==='all'? mine.length : mine.filter(l=>(l.status||'new')===k).length;
+  const thisMonth=mine.filter(l=>new Date(l.createdAt).toISOString().slice(0,7)===monthPrefix).length;
+  const due=mine.filter(fuDue).length;
+  const filtered= LEADS_FILTER==='all'? mine : mine.filter(l=>(l.status||'new')===LEADS_FILTER);
   const chip=(k,label)=>'<button onclick="LEADS_FILTER=\''+k+'\';renderLeadsList()" class="btn small '+(LEADS_FILTER===k?'primary':'ghost')+'">'+label+' <b>'+cnt(k)+'</b></button>';
-  body.innerHTML=
+  return (
     '<div class="att" style="margin-bottom:14px">'+
-      '<div class="att-item teal"><div class="att-ico">📥</div><div class="att-txt"><span class="n">'+all.length+'</span><span class="l">סה"כ לידים</span></div></div>'+
       '<div class="att-item amber"><div class="att-ico">🆕</div><div class="att-txt"><span class="n">'+cnt('new')+'</span><span class="l">חדשים לטיפול</span></div></div>'+
+      '<div class="att-item red"><div class="att-ico">⏰</div><div class="att-txt"><span class="n">'+due+'</span><span class="l">לחזרה היום</span></div></div>'+
       '<div class="att-item blue"><div class="att-ico">🗓️</div><div class="att-txt"><span class="n">'+thisMonth+'</span><span class="l">החודש</span></div></div>'+
       '<div class="att-item green"><div class="att-ico">✅</div><div class="att-txt"><span class="n">'+cnt('won')+'</span><span class="l">נסגרו</span></div></div>'+
     '</div>'+
     '<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:14px">'+
       chip('all','הכל')+LEAD_STATUS_ORDER.map(k=>chip(k,LEAD_STATUS[k][0])).join('')+
     '</div>'+
-    (filtered.length? filtered.map(leadCard).join('') : '<div class="empty">אין לידים בסינון הזה</div>');
+    (filtered.length? filtered.map(leadCard).join('') : '<div class="empty">אין לידים בסינון הזה — כשליד חדש ייכנס מהאתר הוא יופיע כאן</div>')
+  );
+}
+
+// --- לידים של לקוחות: מעקב וספירה בלבד ---
+function leadsClientsHTML(others){
+  if(!others.length) return '<div class="empty">עדיין אין לידים ממערכות של לקוחות.<br>כשמערכת שבנית ללקוח תתחיל להזרים לידים — המעקב יופיע כאן אוטומטית.</div>';
+  const monthPrefix=new Date().toISOString().slice(0,7);
+  const won=others.filter(l=>l.status==='won').length;
+  const thisMonth=others.filter(l=>new Date(l.createdAt).toISOString().slice(0,7)===monthPrefix).length;
+  const conv=others.length? Math.round(won/others.length*100) : 0;
+  const bySys={};
+  others.forEach(l=>{ const k=l.systemId||'?'; (bySys[k]=bySys[k]||[]).push(l); });
+  const rows=Object.entries(bySys).map(([sid,ls])=>({
+    sid, sys:LEADS_SYS[sid]||sid, client:LEADS_CLIENTS[ls[0].clientId]||'—',
+    n:ls.length, won:ls.filter(x=>x.status==='won').length,
+    month:ls.filter(x=>new Date(x.createdAt).toISOString().slice(0,7)===monthPrefix).length,
+    last:Math.max(...ls.map(x=>x.createdAt)), ls
+  })).sort((a,b)=>b.n-a.n);
+  return (
+    '<div class="hint" style="margin-bottom:12px">👁️ מעקב בלבד — הלידים האלה מנוהלים אצל הלקוחות במערכות שלהם. כאן סופרים ורואים מה נסגר.</div>'+
+    '<div class="att" style="margin-bottom:14px">'+
+      '<div class="att-item teal"><div class="att-ico">📥</div><div class="att-txt"><span class="n">'+others.length+'</span><span class="l">סה"כ לידים</span></div></div>'+
+      '<div class="att-item blue"><div class="att-ico">🗓️</div><div class="att-txt"><span class="n">'+thisMonth+'</span><span class="l">החודש</span></div></div>'+
+      '<div class="att-item green"><div class="att-ico">✅</div><div class="att-txt"><span class="n">'+won+'</span><span class="l">נסגרו</span></div></div>'+
+      '<div class="att-item amber"><div class="att-ico">📈</div><div class="att-txt"><span class="n">'+conv+'%</span><span class="l">אחוז המרה</span></div></div>'+
+    '</div>'+
+    rows.map(r=>{
+      const convR=r.n? Math.round(r.won/r.n*100) : 0;
+      return '<div class="card" style="margin-bottom:10px">'+
+        '<div class="spread" style="cursor:pointer" onclick="var e=document.getElementById(\'clx_'+r.sid+'\');e.style.display=e.style.display===\'none\'?\'block\':\'none\'">'+
+          '<div><b>'+esc(r.client)+'</b><div class="muted" style="font-size:.83rem">'+esc(r.sys)+' · ליד אחרון '+timeAgo(r.last)+'</div></div>'+
+          '<div class="row" style="gap:14px;flex:none;align-items:center">'+
+            '<span class="muted" style="font-size:.85rem">לידים <b style="color:inherit">'+r.n+'</b></span>'+
+            '<span class="muted" style="font-size:.85rem">החודש <b style="color:inherit">'+r.month+'</b></span>'+
+            '<span class="muted" style="font-size:.85rem">נסגרו <b style="color:inherit">'+r.won+'</b></span>'+
+            '<span class="bar" style="width:90px;flex:none;margin-top:0"><span style="width:'+convR+'%"></span></span>'+
+            '<b style="font-size:.9rem">'+convR+'%</b>'+
+          '</div>'+
+        '</div>'+
+        '<div id="clx_'+r.sid+'" style="display:none;margin-top:10px;border-top:1px dashed #e3dccf;padding-top:8px">'+
+          r.ls.slice().sort((a,b)=>b.createdAt-a.createdAt).map(l=>
+            '<div class="stat-row"><span>'+esc(l.name||'ליד')+' '+pill(LEAD_STATUS,l.status||'new')+'</span><span class="muted" style="font-size:.82rem;flex:none">'+esc(LEAD_SOURCES[l.source]||l.source||'')+' · '+timeAgo(l.createdAt)+'</span></div>'
+          ).join('')+
+        '</div>'+
+      '</div>';
+    }).join('')
+  );
 }
 
 function leadCard(l){
   const ph=leadPhone(l.note); const st=l.status||'new';
   return '<div class="card" style="margin-bottom:10px">'+
     '<div class="spread" style="align-items:flex-start">'+
-      '<div><b style="font-size:1.05rem">'+esc(l.name||'ליד ללא שם')+'</b> '+pill(LEAD_STATUS,st)+
+      '<div><b style="font-size:1.05rem">'+esc(l.name||'ליד ללא שם')+'</b> '+pill(LEAD_STATUS,st)+' '+fuBadge(l)+
         '<div class="muted" style="font-size:.83rem;margin-top:2px">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+' · '+timeAgo(l.createdAt)+'</div></div>'+
       '<div class="row" style="gap:6px;flex:none">'+
         (ph?'<a class="btn teal small" href="tel:'+ph+'" title="חייג">📞</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank" title="וואטסאפ">💬</a>':'')+
@@ -1025,19 +1100,67 @@ function leadCard(l){
 function openLead(id){
   const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
   const ph=leadPhone(l.note);
+  const fuVal=l.followUpAt? new Date(l.followUpAt).toISOString().slice(0,10) : '';
+  const inputStyle='padding:8px 10px;border:1px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.9rem;background:#fff';
   openModal(
-    '<div class="spread"><h3 style="margin:0">'+esc(l.name||'ליד')+'</h3>'+pill(LEAD_STATUS,l.status||'new')+'</div>'+
+    '<div class="spread"><h3 style="margin:0">'+esc(l.name||'ליד')+'</h3><span>'+pill(LEAD_STATUS,l.status||'new')+' '+fuBadge(l)+'</span></div>'+
     '<div class="muted" style="margin:6px 0 14px;font-size:.88rem">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+'<br>נכנס: '+new Date(l.createdAt).toLocaleString('he-IL')+(l.handledAt?' · טופל: '+new Date(l.handledAt).toLocaleString('he-IL'):'')+'</div>'+
     (ph?'<div class="row" style="gap:8px;margin-bottom:14px"><a class="btn teal small" href="tel:'+ph+'">📞 '+ph+'</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank">💬 וואטסאפ</a></div>':'')+
     (l.note?'<div class="card" style="margin:0 0 14px;white-space:pre-wrap">'+esc(l.note)+'</div>':'')+
-    '<div class="f"><label>סטטוס טיפול</label>'+leadStatusSelect(l.id,l.status||'new')+'</div>'+
+    '<div class="f2">'+
+      '<div class="f"><label>סטטוס טיפול</label>'+leadStatusSelect(l.id,l.status||'new')+'</div>'+
+      '<div class="f"><label>⏰ חזרה ללקוח</label><input type="date" value="'+fuVal+'" onchange="leadSetFollowUp(\''+l.id+'\',this.value)" style="'+inputStyle+'"></div>'+
+    '</div>'+
+    '<div style="margin-top:16px;border-top:1px solid #eee6d8;padding-top:12px">'+
+      '<b style="font-size:.95rem">📋 יומן פעילות</b>'+
+      '<div class="row" style="gap:6px;margin:10px 0;flex-wrap:wrap">'+
+        '<select id="actKind" style="'+inputStyle+';font-weight:700">'+['call','whatsapp','meeting','note'].map(k=>'<option value="'+k+'">'+ACT_KINDS[k][0]+' '+ACT_KINDS[k][1]+'</option>').join('')+'</select>'+
+        '<input id="actText" placeholder="מה קרה? (דיברנו, מעוניין בהצעה…)" style="'+inputStyle+';flex:1;min-width:180px" onkeydown="if(event.key===\'Enter\')leadAddActivity(\''+l.id+'\')">'+
+        '<button class="btn teal small" onclick="leadAddActivity(\''+l.id+'\')">רשום</button>'+
+      '</div>'+
+      '<div id="actList"><div class="muted hint">טוען יומן…</div></div>'+
+    '</div>'+
     '<div class="spread" style="margin-top:18px"><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑 מחק ליד</button><button class="btn primary" onclick="closeModal()">סגור</button></div>'
-  );
+  , true);
+  loadLeadActivities(id);
+}
+
+async function loadLeadActivities(id){
+  const box=$('actList'); if(!box)return;
+  try{
+    const rows=await apiGet('/leads/'+id+'/activities');
+    box.innerHTML= rows.length? rows.map(a=>{
+      const k=ACT_KINDS[a.kind]||ACT_KINDS.note;
+      return '<div class="stat-row"><span>'+k[0]+' '+esc(a.text||k[1])+'</span><span class="muted" style="font-size:.8rem;flex:none">'+new Date(a.createdAt).toLocaleString('he-IL',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})+'</span></div>';
+    }).join('') : '<div class="muted hint">אין תיעוד עדיין — רשום את הפעולה הראשונה 👆</div>';
+  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת היומן</div>'; }
+}
+
+async function leadAddActivity(id){
+  const kind=($('actKind')&&$('actKind').value)||'note';
+  const text=(($('actText')&&$('actText').value)||'').trim();
+  if(!text){ toast('כתוב קודם מה קרה','bad'); return; }
+  try{ await apiPost('/leads/'+id+'/activities',{kind,text}); if($('actText'))$('actText').value=''; toast('נרשם ביומן ✓'); loadLeadActivities(id); }
+  catch(e){ toast('שגיאה ברישום','bad'); }
+}
+
+async function leadSetFollowUp(id,dateStr){
+  const ts=dateStr? new Date(dateStr+'T09:00:00').getTime() : null;
+  try{
+    await apiPatch('/leads/'+id,{followUpAt:ts});
+    const l=LEADS_ALL.find(x=>x.id===id); if(l)l.followUpAt=ts;
+    toast(ts?'נקבעה חזרה ✓':'החזרה בוטלה'); renderLeadsList();
+  }catch(e){ toast('שגיאה בעדכון','bad'); }
 }
 
 async function leadSetStatus(id,status){
-  try{ await apiPatch('/leads/'+id,{status}); const l=LEADS_ALL.find(x=>x.id===id); if(l){l.status=status;l.handledAt=Date.now();} toast('סטטוס עודכן ✓'); renderLeadsList(); }
-  catch(e){ toast('שגיאה בעדכון הסטטוס','bad'); }
+  try{
+    await apiPatch('/leads/'+id,{status});
+    const l=LEADS_ALL.find(x=>x.id===id); if(l){l.status=status;l.handledAt=Date.now();}
+    // תיעוד אוטומטי ביומן הפעילות
+    apiPost('/leads/'+id+'/activities',{kind:'status',text:'הסטטוס שונה ל: '+(LEAD_STATUS[status]?LEAD_STATUS[status][0]:status)}).then(()=>loadLeadActivities(id)).catch(()=>{});
+    toast('סטטוס עודכן ✓'); renderLeadsList();
+  }catch(e){ toast('שגיאה בעדכון הסטטוס','bad'); }
 }
 async function leadDelete(id){
   if(!confirm('למחוק את הליד לצמיתות?'))return;

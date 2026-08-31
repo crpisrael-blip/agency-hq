@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { Context } from 'hono';
 import { desc, eq, inArray } from 'drizzle-orm';
-import { leads, systems, clients, settings } from '../db/schema';
+import { leads, systems, clients, settings, leadActivities } from '../db/schema';
 import { Env, db, uid, now, todayIL, notifyTelegram } from './util';
 
 export const leadsApp = new Hono<Env>();
@@ -123,12 +123,47 @@ leadsApp.patch('/:id', async (c) => {
   }
   if (body.name !== undefined) patch.name = body.name ? String(body.name).slice(0, 120) : null;
   if (body.note !== undefined) patch.note = body.note ? String(body.note).slice(0, 300) : null;
+  if (body.followUpAt !== undefined) {
+    const n = Number(body.followUpAt);
+    patch.followUpAt = Number.isFinite(n) && n > 0 ? n : null;
+  }
   if (Object.keys(patch).length === 0) return c.json({ error: 'nothing_to_update' }, 400);
   await db(c).update(leads).set(patch).where(eq(leads.id, id));
   return c.json({ ok: true });
 });
 
+// --- יומן פעילות (תיעוד CRM) ---
+const ACTIVITY_KINDS = ['call', 'whatsapp', 'meeting', 'note', 'status'];
+
+leadsApp.get('/:id/activities', async (c) => {
+  const rows = await db(c)
+    .select()
+    .from(leadActivities)
+    .where(eq(leadActivities.leadId, c.req.param('id')))
+    .orderBy(desc(leadActivities.createdAt))
+    .all();
+  return c.json(rows);
+});
+
+leadsApp.post('/:id/activities', async (c) => {
+  const leadId = c.req.param('id');
+  const body = await c.req.json().catch(() => ({} as any));
+  const kind = String(body.kind || 'note');
+  if (!ACTIVITY_KINDS.includes(kind)) return c.json({ error: 'bad_kind' }, 400);
+  const text = body.text ? String(body.text).slice(0, 500) : null;
+  const row = { id: uid(), leadId, kind, text, createdAt: now() };
+  await db(c).insert(leadActivities).values(row);
+  return c.json(row);
+});
+
+leadsApp.delete('/activities/:aid', async (c) => {
+  await db(c).delete(leadActivities).where(eq(leadActivities.id, c.req.param('aid')));
+  return c.json({ ok: true });
+});
+
 leadsApp.delete('/:id', async (c) => {
-  await db(c).delete(leads).where(eq(leads.id, c.req.param('id')));
+  const id = c.req.param('id');
+  await db(c).delete(leadActivities).where(eq(leadActivities.leadId, id));
+  await db(c).delete(leads).where(eq(leads.id, id));
   return c.json({ ok: true });
 });
