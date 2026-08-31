@@ -50,6 +50,19 @@
 כל הטפסים מזינים את אותו webhook לידים (`/api/hook/lead`) עם `source` שונה לכל עמוד, כך שבדשבורד
 רואים בפאנל **לידים לפי מקור** מאיפה הגיע כל ליד.
 
+### התראות טלגרם על כל ליד
+
+בכל ליד שנכנס נשלחת התראה לטלגרם (best-effort, לא חוסמת ולא שוברת שמירה). דורש שני **סודות**
+ב-Cloudflare Pages (Settings → Environment variables → Production, סוג *Secret*):
+
+| משתנה | ערך |
+|-------|-----|
+| `TELEGRAM_BOT_TOKEN` | הטוקן מ-@BotFather |
+| `TELEGRAM_CHAT_ID` | מזהה הצ'אט שלך (אפשר כמה, מופרדים בפסיק) |
+
+בלי הסודות — ההתראות פשוט מושבתות, שאר המערכת עובדת רגיל. הקוד: `src/api/util.ts` (`notifyTelegram`)
+ו-`src/api/leads.ts`.
+
 ## מודל הנתונים (D1 / Drizzle)
 
 `clients` · `systems` · `engagements` · `scenarios` · `cashflow` · `profit_centers` · `processes` · `playbooks` · `playbook_runs` · `tasks` · `settings` · `admin_sessions`

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { Context } from 'hono';
 import { desc, eq } from 'drizzle-orm';
 import { leads, systems, clients } from '../db/schema';
-import { Env, db, uid, now, todayIL } from './util';
+import { Env, db, uid, now, todayIL, notifyTelegram } from './util';
 
 export const leadsApp = new Hono<Env>();
 
@@ -18,15 +18,34 @@ export async function registerLeadPublic(c: Context<Env>) {
   const d = db(c);
   const sys = (await d.select().from(systems).where(eq(systems.id, systemId)).limit(1))[0];
   if (!sys) return c.json({ error: 'unknown_system' }, 404);
+  const source = body.source ? String(body.source) : 'website';
+  const name = body.name ? String(body.name).slice(0, 120) : null;
+  const note = body.note ? String(body.note).slice(0, 300) : null;
   await d.insert(leads).values({
     id: uid(),
     systemId,
     clientId: sys.clientId,
-    source: body.source ? String(body.source) : 'website',
-    name: body.name ? String(body.name).slice(0, 120) : null,
-    note: body.note ? String(body.note).slice(0, 300) : null,
+    source,
+    name,
+    note,
     createdAt: now(),
   });
+
+  // התראת טלגרם — best-effort, לא מעכבת את התגובה ולא שוברת שמירה אם נכשלת
+  const when = new Intl.DateTimeFormat('he-IL', {
+    timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short',
+  }).format(new Date());
+  const msg =
+    '🔔 ליד חדש מהאתר\n\n' +
+    (name ? `👤 ${name}\n` : '') +
+    (note ? `${note}\n` : '') +
+    `🌐 מקור: ${source}\n` +
+    `🏢 מערכת: ${sys.name}\n` +
+    `🕐 ${when}`;
+  const p = notifyTelegram(c.env, msg);
+  if (c.executionCtx?.waitUntil) c.executionCtx.waitUntil(p);
+  else await p;
+
   return c.json({ ok: true });
 }
 
