@@ -40,6 +40,7 @@ export const clients = sqliteTable('clients', {
   health: text('health').notNull().default('green'),     // green | yellow | red
   tags: text('tags'),
   notes: text('notes'),
+  isSelf: integer('is_self').default(0),      // 1 = העסק שלי (ORT-TECH) — לידים שלו מנוהלים כ-CRM מלא
   createdAt: integer('created_at').notNull(),
 });
 
@@ -201,6 +202,16 @@ export const leads = sqliteTable('leads', {
   note: text('note'),
   status: text('status').default('new'), // new | contacted | qualified | won | lost
   handledAt: integer('handled_at'),
+  followUpAt: integer('follow_up_at'),   // תאריך חזרה ללקוח (follow-up)
+  createdAt: integer('created_at').notNull(),
+});
+
+// יומן פעילות לליד — תיעוד שיחות, הודעות, פגישות והערות (CRM)
+export const leadActivities = sqliteTable('lead_activities', {
+  id: text('id').primaryKey(),
+  leadId: text('lead_id').notNull(),
+  kind: text('kind').notNull(), // call | whatsapp | meeting | note | status
+  text: text('text'),
   createdAt: integer('created_at').notNull(),
 });
 
