@@ -84,12 +84,12 @@ playbooksApp.post('/reseed', async (c) => {
 
 /** מיפוי שלב-במסע-הלקוח → פורמט ברירת המחדל שנפתח אוטומטית */
 const STAGE_TO_PLAYBOOK: Record<string, string> = {
-  lead: 'pb_discovery_call',
-  discovery: 'pb_discovery_onepager',
-  proposal: 'pb_proposal_sow',
-  building: 'pb_build_dod',
+  lead: 'pb_ort_discovery',
+  discovery: 'pb_ort_process_map',
+  proposal: 'pb_ort_proposal',
+  building: 'pb_ort_project_file',
   live: 'pb_launch_golive',
-  retainer: 'pb_advisory_qbr',
+  retainer: 'pb_ort_review',
 };
 
 // קישור אוטומטי: כשלקוח עובר שלב, נפתח לו המהלך המתאים (אידמפוטנטי — לא מכפיל)
