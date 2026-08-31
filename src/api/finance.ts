@@ -224,6 +224,7 @@ financeApp.get('/forecast', async (c) => {
         hit = ym === rStart;
       }
       if (!hit) continue;
+      if (!amt) continue; // תנועה בסכום 0 (מערכת/כלי שלא עלו כסף) לא מופיעה בפירוט החודש
       if (r.kind === 'income') income += amt;
       else expense += amt;
       items.push({ label: r.label, amount: amt, kind: r.kind as 'income' | 'expense', source: 'manual', recurring: r.recurring });

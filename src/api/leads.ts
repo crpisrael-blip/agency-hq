@@ -127,6 +127,9 @@ leadsApp.patch('/:id', async (c) => {
     const n = Number(body.followUpAt);
     patch.followUpAt = Number.isFinite(n) && n > 0 ? n : null;
   }
+  if (body.convertedClientId !== undefined) {
+    patch.convertedClientId = body.convertedClientId ? String(body.convertedClientId) : null;
+  }
   if (Object.keys(patch).length === 0) return c.json({ error: 'nothing_to_update' }, 400);
   await db(c).update(leads).set(patch).where(eq(leads.id, id));
   return c.json({ ok: true });

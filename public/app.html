@@ -1093,7 +1093,9 @@ function leadCard(l){
     '<div class="spread" style="margin-top:10px">'+
       leadStatusSelect(l.id,st)+
       '<div class="row" style="gap:6px">'+
-        (st!=='won'?'<button class="btn ghost small" onclick="leadConvert(\''+l.id+'\')" title="צור כרטיס לקוח מהליד">🤝 ללקוח</button>':'')+
+        (l.convertedClientId
+          ?'<button class="btn teal small" onclick="openClient(\''+l.convertedClientId+'\')" title="הליד כבר הומר — פתיחת כרטיס הלקוח">👤 פתח לקוח</button>'
+          :(st!=='won'?'<button class="btn ghost small" onclick="leadConvert(\''+l.id+'\')" title="צור כרטיס לקוח מהליד">🤝 ללקוח</button>':''))+
         '<button class="btn ghost small" onclick="openLead(\''+l.id+'\')">פרטים</button><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑</button></div>'+
     '</div>'+
   '</div>';
@@ -1122,7 +1124,11 @@ function openLead(id){
       '</div>'+
       '<div id="actList"><div class="muted hint">טוען יומן…</div></div>'+
     '</div>'+
-    '<div class="spread" style="margin-top:18px"><span class="row" style="gap:6px"><button class="btn teal small" onclick="leadConvert(\''+l.id+'\')">🤝 הפוך ללקוח</button><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑 מחק</button></span><button class="btn primary" onclick="closeModal()">סגור</button></div>'
+    '<div class="spread" style="margin-top:18px"><span class="row" style="gap:6px">'+
+      (l.convertedClientId
+        ?'<button class="btn teal small" onclick="closeModal();openClient(\''+l.convertedClientId+'\')">👤 פתח לקוח</button>'
+        :'<button class="btn teal small" onclick="leadConvert(\''+l.id+'\')">🤝 הפוך ללקוח</button>')+
+      '<button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑 מחק</button></span><button class="btn primary" onclick="closeModal()">סגור</button></div>'
   , true);
   loadLeadActivities(id);
 }
@@ -1130,6 +1136,7 @@ function openLead(id){
 // --- הפיכת ליד ללקוח ---
 function leadConvert(id){
   const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  if(l.convertedClientId){ toast('הליד כבר הומר ללקוח — פותח את הכרטיס'); closeModal(); openClient(l.convertedClientId); return; }
   const ph=leadPhone(l.note);
   const indM=(l.note||'').match(/תחום:\s*([^·]+)/);
   const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
@@ -1148,12 +1155,13 @@ function leadConvert(id){
 
 async function leadConvertDo(id){
   const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  if(l.convertedClientId){ toast('הליד כבר הומר ללקוח','bad'); return; }
   const name=val('cv_name'); if(!name){ toast('חסר שם לקוח','bad'); return; }
   try{
     const r=await apiPost('/clients',{name, industry:val('cv_industry')||null, phone:val('cv_phone')||null,
       contactName:l.name||null, status:'prospect', stage:'lead', health:'green', notes:val('cv_notes')||null});
-    await apiPatch('/leads/'+id,{status:'won'});
-    l.status='won'; l.handledAt=Date.now();
+    await apiPatch('/leads/'+id,{status:'won', convertedClientId:(r&&r.id)||null});
+    l.status='won'; l.handledAt=Date.now(); l.convertedClientId=(r&&r.id)||null;
     apiPost('/leads/'+id+'/activities',{kind:'note',text:'🤝 הפך ללקוח: '+name}).catch(()=>{});
     closeModal(); toast('🤝 נוצר לקוח חדש ✓'); renderLeadsList();
     if(r&&r.id) openClient(r.id);

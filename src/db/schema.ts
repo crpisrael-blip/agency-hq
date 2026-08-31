@@ -203,6 +203,7 @@ export const leads = sqliteTable('leads', {
   status: text('status').default('new'), // new | contacted | qualified | won | lost
   handledAt: integer('handled_at'),
   followUpAt: integer('follow_up_at'),   // תאריך חזרה ללקוח (follow-up)
+  convertedClientId: text('converted_client_id'), // הלקוח שנוצר מהליד — מונע המרה כפולה
   createdAt: integer('created_at').notNull(),
 });
 
