@@ -1092,7 +1092,9 @@ function leadCard(l){
     (l.note?'<div class="muted" style="margin-top:8px;font-size:.9rem;white-space:pre-wrap;border-inline-start:3px solid #e3dccf;padding-inline-start:10px">'+esc(l.note)+'</div>':'')+
     '<div class="spread" style="margin-top:10px">'+
       leadStatusSelect(l.id,st)+
-      '<div class="row" style="gap:6px"><button class="btn ghost small" onclick="openLead(\''+l.id+'\')">פרטים</button><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑</button></div>'+
+      '<div class="row" style="gap:6px">'+
+        (st!=='won'?'<button class="btn ghost small" onclick="leadConvert(\''+l.id+'\')" title="צור כרטיס לקוח מהליד">🤝 ללקוח</button>':'')+
+        '<button class="btn ghost small" onclick="openLead(\''+l.id+'\')">פרטים</button><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑</button></div>'+
     '</div>'+
   '</div>';
 }
@@ -1120,9 +1122,42 @@ function openLead(id){
       '</div>'+
       '<div id="actList"><div class="muted hint">טוען יומן…</div></div>'+
     '</div>'+
-    '<div class="spread" style="margin-top:18px"><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑 מחק ליד</button><button class="btn primary" onclick="closeModal()">סגור</button></div>'
+    '<div class="spread" style="margin-top:18px"><span class="row" style="gap:6px"><button class="btn teal small" onclick="leadConvert(\''+l.id+'\')">🤝 הפוך ללקוח</button><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑 מחק</button></span><button class="btn primary" onclick="closeModal()">סגור</button></div>'
   , true);
   loadLeadActivities(id);
+}
+
+// --- הפיכת ליד ללקוח ---
+function leadConvert(id){
+  const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  const ph=leadPhone(l.note);
+  const indM=(l.note||'').match(/תחום:\s*([^·]+)/);
+  const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
+  openModal(
+    '<h3 style="margin:0 0 4px">🤝 הפוך ללקוח</h3>'+
+    '<div class="muted" style="font-size:.88rem;margin-bottom:14px">ייווצר כרטיס לקוח חדש מהליד, הליד יסומן כ"✅ נסגר" והמעבר יתועד ביומן הפעילות.</div>'+
+    '<div class="f"><label>שם הלקוח / העסק <b style="color:#a8452f">*</b></label><input id="cv_name" value="'+esc(l.name||'')+'" style="'+inputStyle+'"></div>'+
+    '<div class="f2" style="margin-top:10px">'+
+      '<div class="f"><label>תחום</label><input id="cv_industry" value="'+esc(indM?indM[1].trim():'')+'" placeholder="קליניקה, צימרים…" style="'+inputStyle+'"></div>'+
+      '<div class="f"><label>טלפון</label><input id="cv_phone" value="'+esc(ph)+'" style="'+inputStyle+'"></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:10px"><label>הערות</label><textarea id="cv_notes" rows="3" style="'+inputStyle+'">'+esc('נוצר מליד ('+(LEAD_SOURCES[l.source]||l.source||'אתר')+'): '+(l.note||''))+'</textarea></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn primary" onclick="leadConvertDo(\''+l.id+'\')">🤝 צור לקוח</button></div>'
+  );
+}
+
+async function leadConvertDo(id){
+  const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  const name=val('cv_name'); if(!name){ toast('חסר שם לקוח','bad'); return; }
+  try{
+    const r=await apiPost('/clients',{name, industry:val('cv_industry')||null, phone:val('cv_phone')||null,
+      contactName:l.name||null, status:'prospect', stage:'lead', health:'green', notes:val('cv_notes')||null});
+    await apiPatch('/leads/'+id,{status:'won'});
+    l.status='won'; l.handledAt=Date.now();
+    apiPost('/leads/'+id+'/activities',{kind:'note',text:'🤝 הפך ללקוח: '+name}).catch(()=>{});
+    closeModal(); toast('🤝 נוצר לקוח חדש ✓'); renderLeadsList();
+    if(r&&r.id) openClient(r.id);
+  }catch(e){ toast('שגיאה ביצירת הלקוח','bad'); }
 }
 
 async function loadLeadActivities(id){
