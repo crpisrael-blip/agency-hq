@@ -3,7 +3,7 @@ import { AppShell } from '../pages/AppShell';
 
 test.describe('לוח בקרה', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app');
     await new AppShell(page).waitReady();
   });
 

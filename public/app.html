@@ -1,0 +1,2425 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agency HQ — מרכז הבקרה של בית התוכנה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&family=Rubik:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef0f4;--bg-2:#f5f7fb;--card:#ffffff;--card-2:#f5f7fb;--line:#e4e7ee;
+    --txt:#0f1322;--muted:#6b7183;--accent:#2b5cff;--accent-2:#0fb981;--amber:#f5a623;
+    --green:#0fb981;--red:#ef4444;--blue:#2b5cff;--purple:#a855f7;--coral:#ff6a5d;--primary-ink:#1741d6;
+    --shadow-sm:0 2px 10px rgba(15,19,34,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Heebo',system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.5;padding-bottom:40px}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer}
+  /* ---- topbar / nav ---- */
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .topbar-in{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;max-width:1180px;margin:0 auto}
+  .brand{font-weight:900;font-size:1.08rem;display:flex;align-items:center;gap:9px}
+  .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1rem;color:#fff}
+  .brand span{color:var(--accent-2)}
+  .nav{display:flex;gap:4px;overflow-x:auto;padding:0 14px 9px;max-width:1180px;margin:0 auto;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav button{flex:0 0 auto;padding:7px 15px;border-radius:999px;font-size:.87rem;font-weight:700;color:var(--muted);border:1px solid transparent;white-space:nowrap;background:none}
+  .nav button.on{background:var(--card);color:var(--txt);border-color:var(--line)}
+  .nav button:hover{color:var(--txt)}
+  /* ---- layout ---- */
+  .wrap{max-width:1180px;margin:0 auto;padding:18px}
+  h2{font-size:1.32rem;font-weight:900;margin-bottom:3px}
+  .sub{color:var(--muted);font-size:.87rem;margin-bottom:16px}
+  .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .grow{flex:1}
+  .spread{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  /* ---- buttons ---- */
+  .btn{background:var(--card);border:1.5px solid var(--line);color:var(--txt);font-weight:700;padding:8px 16px;border-radius:999px;font-size:.88rem}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--primary-ink)}
+  .btn.teal{background:var(--accent-2);border-color:var(--accent-2);color:#04201c}
+  .btn.small{padding:5px 12px;font-size:.8rem}
+  .btn.ghost{background:transparent}
+  .btn.danger{color:var(--red);border-color:transparent}
+  .btn.danger:hover{border-color:var(--red)}
+  /* ---- inputs ---- */
+  input,select,textarea{background:var(--bg-2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;font-family:inherit;font-size:.92rem;width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  input::placeholder,textarea::placeholder{color:#5e6c96}
+  .search{max-width:280px}
+  /* ---- kpis ---- */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px;margin:6px 0 18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px}
+  .kpi b{font-size:1.5rem;font-weight:900;display:block;line-height:1.2}
+  .kpi small{color:var(--muted);font-size:.78rem}
+  .kpi.accent b{color:var(--accent-2)}
+  .kpi.amber b{color:var(--amber)}
+  .kpi.green b{color:var(--green)}
+  /* ---- cards ---- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px 17px;margin-bottom:13px}
+  .card h3{font-size:1.02rem;font-weight:800;margin-bottom:11px}
+  .list-item{display:flex;justify-content:space-between;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .list-item:last-child{border-bottom:0}
+  .li-main{min-width:0}
+  .li-main b{display:block;font-size:.96rem}
+  .li-main small{color:var(--muted);font-size:.8rem}
+  .li-val{text-align:left;white-space:nowrap;font-weight:800}
+  /* ---- pills ---- */
+  .pill{padding:2px 11px;border-radius:999px;font-size:.74rem;font-weight:700;border:1px solid;white-space:nowrap;display:inline-block}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:600;background:rgba(245,158,11,.13);color:#f5c073;border:1px solid rgba(245,158,11,.32);white-space:nowrap}
+  .p-blue{background:rgba(59,130,246,.14);color:#1741d6;border-color:rgba(59,130,246,.4)}
+  .p-green{background:rgba(34,197,94,.14);color:#0a7f5a;border-color:rgba(34,197,94,.4)}
+  .p-amber{background:rgba(246,183,60,.14);color:#9a6a00;border-color:rgba(246,183,60,.4)}
+  .p-red{background:rgba(239,68,68,.14);color:#b42323;border-color:rgba(239,68,68,.4)}
+  .p-purple{background:rgba(168,85,247,.14);color:#7a2fb0;border-color:rgba(168,85,247,.4)}
+  .p-gray{background:rgba(147,160,200,.12);color:var(--muted);border-color:var(--line)}
+  .p-teal{background:rgba(0,209,178,.14);color:#0a7f6b;border-color:rgba(0,209,178,.4)}
+  .empty{color:var(--muted);text-align:center;padding:34px 10px;font-size:.9rem}
+  .muted{color:var(--muted)}
+  .tag{display:inline-block;background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:.74rem;color:var(--muted);margin-inline-end:4px}
+  /* ---- progress ---- */
+  .bar{height:7px;background:var(--bg-2);border-radius:999px;overflow:hidden;margin-top:6px}
+  .bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  /* ---- table ---- */
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th,td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:700;font-size:.78rem}
+  td.num,th.num{text-align:left;font-variant-numeric:tabular-nums}
+  .tbl-wrap{overflow-x:auto}
+  tr.hot td{background:rgba(43,92,255,.08)}
+  /* ---- modal ---- */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.66);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+  @media(min-width:640px){.overlay{align-items:center}}
+  .modal{background:var(--bg-2);border:1px solid var(--line);border-radius:18px 18px 0 0;width:100%;max-width:600px;max-height:93vh;overflow-y:auto;padding:20px}
+  @media(min-width:640px){.modal{border-radius:18px}}
+  .modal.wide{max-width:820px}
+  .modal h3{font-size:1.15rem;font-weight:900;margin-bottom:15px}
+  .f{margin-bottom:12px}
+  .f label{display:block;font-size:.8rem;color:var(--muted);font-weight:700;margin-bottom:4px}
+  .f2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+  @media(max-width:560px){.f2,.f3{grid-template-columns:1fr}}
+  .modal-actions{display:flex;gap:9px;justify-content:flex-start;margin-top:18px;flex-wrap:wrap}
+  /* ---- login ---- */
+  #login{position:fixed;inset:0;z-index:100;background:radial-gradient(900px 500px at 80% -10%,rgba(43,92,255,.25),transparent 60%),var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px 26px;max-width:380px;width:100%;text-align:center}
+  .login-card .mark{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1.7rem;margin:0 auto 14px}
+  .login-card h1{font-size:1.4rem;font-weight:900;margin-bottom:4px}
+  .login-card p{color:var(--muted);font-size:.88rem;margin-bottom:20px}
+  .login-card input{text-align:center;letter-spacing:.3em;font-size:1.1rem;margin-bottom:12px}
+  .err{color:var(--red);font-size:.82rem;min-height:18px;margin-bottom:6px}
+  /* ---- toast ---- */
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .toast{background:var(--card-2);border:1px solid var(--line);border-radius:11px;padding:10px 18px;font-size:.88rem;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .toast.ok{border-color:var(--green)}.toast.bad{border-color:var(--red)}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:.9rem}
+  .stat-row:last-child{border-bottom:0}
+  .stat-row b{font-variant-numeric:tabular-nums}
+  .big{font-size:1.9rem;font-weight:900;line-height:1.1}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:3px}
+  .pstep{padding:8px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--bg-2)}
+  .pstep input::placeholder{font-size:.82rem}
+  .seg{display:flex;gap:4px;background:var(--bg-2);border:1px solid var(--line);border-radius:11px;padding:4px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:70px;border:0;background:none;color:var(--muted);font-weight:700;padding:7px 8px;border-radius:8px;font-size:.83rem}
+  .seg button.on{background:var(--accent);color:#fff}
+  /* ---- מתודולוגיה (פלייבוק) ---- */
+  .pb-list{margin:6px 0 0;padding-inline-start:20px}
+  .pb-list li{margin-bottom:6px;font-size:.9rem}
+  .pb-doc{white-space:pre-wrap;word-break:break-word;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:.84rem;line-height:1.6;max-height:54vh;overflow:auto;font-family:inherit}
+  .pb-sec{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:var(--bg-2)}
+  .pb-check{display:flex;gap:10px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+  .pb-check:last-child{border-bottom:0}
+  .pb-check input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--accent)}
+  .pb-check span{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .pb-check.on b{opacity:.55;text-decoration:line-through}
+  .pb-check .hint{margin-top:0}
+  .pb-item{border-bottom:1px solid var(--line);padding-bottom:9px}
+  .pb-item:last-child{border-bottom:0;padding-bottom:0}
+  .pb-item .pb-check{border-bottom:0;padding-bottom:4px}
+  /* בטופס השאלה נשארת קריאה גם אחרי מענה — הסימון עובר לתיבה ולתשובה */
+  .pb-item .pb-check.on b{opacity:1;text-decoration:none}
+  .pb-answer{width:100%;margin:0 0 4px;padding:9px 11px;font-size:.88rem;line-height:1.55;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:10px;color:var(--txt);resize:vertical}
+  .pb-answer:focus{outline:none;border-color:var(--accent)}
+  .pb-item.on .pb-answer{border-color:rgba(0,209,178,.35)}
+  .run-row{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);cursor:pointer}
+  .run-row:last-child{border-bottom:0}
+  .run-row .grow{min-width:0}
+  .run-row b{display:block;font-size:.9rem}
+  /* ===== ליטוש ממשק — make-interfaces-feel-better (ECC) ===== */
+  html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  /* טקסט: איזון כותרות, ריכוך תיאורים, מספרים מיושרים */
+  h2,.card h3,.modal h3,.login-card h1{text-wrap:balance}
+  .sub,.hint,.li-main small,.kpi small,.empty{text-wrap:pretty}
+  .kpi b,.li-val,.big{font-variant-numeric:tabular-nums}
+  /* צללים עדינים לעומק כרטיסים */
+  .kpi,.card{box-shadow:var(--shadow-sm)}
+  /* תנועה: מאפיינים מפורשים בלבד, לחיצה טקטילית ואזורי-מגע נוחים */
+  .btn{transition-property:transform,background-color,border-color,color,box-shadow;transition-duration:140ms;transition-timing-function:ease-out;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .btn.small{min-height:34px}
+  .btn:active{transform:scale(.96)}
+  .nav button{min-height:36px}
+  .nav button,.seg button{transition:color .14s ease-out,background-color .14s ease-out,border-color .14s ease-out}
+  .nav button:active,.seg button:active{transform:scale(.97)}
+  input,select,textarea{transition:border-color .14s ease-out,box-shadow .14s ease-out}
+  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(43,92,255,.22)}
+  .list-item,.run-row,.pb-check{transition:background-color .14s ease-out}
+  .list-item:hover,.run-row:hover,.pb-check:hover{background:rgba(43,92,255,.06)}
+  /* מצבי-פוקוס נראים למקלדת */
+  button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* קו-מתאר עדין לתמונות כדי שלא יטשטשו לרקע */
+  img{outline:1px solid rgba(255,255,255,.1);outline-offset:-1px}
+  /* כיבוד העדפת הפחתת-תנועה */
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+  /* ===== מאגר סקילז (ECC) ===== */
+  .sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:9px;margin-top:8px}
+  .sk-item{background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;position:relative;transition:border-color .14s ease-out,transform .06s}
+  .sk-item:hover{border-color:var(--accent)}
+  .sk-item:active{transform:scale(.99)}
+  .sk-item.star{border-color:rgba(246,183,60,.5)}
+  .sk-item.inst{border-color:rgba(34,197,94,.5);background:linear-gradient(0deg,rgba(34,197,94,.06),transparent 60%)}
+  .sk-inst{margin-top:7px;display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:#0a7f5a;background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.35);border-radius:7px;padding:2px 8px}
+  .sk-name{font-weight:800;font-size:.84rem;direction:ltr;text-align:right;color:var(--accent-2);word-break:break-word}
+  .sk-item.cmd .sk-name{color:var(--amber)}
+  .sk-desc{color:var(--muted);font-size:.79rem;margin-top:3px;line-height:1.45}
+  .sk-rel{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+  .sk-rel .t{font-size:.65rem;direction:ltr;background:var(--card-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--muted)}
+  .sk-star-tag{position:absolute;top:8px;left:10px;font-size:.72rem}
+  .sk-cat-count{color:var(--muted);font-weight:700;font-size:.76rem;margin-inline-start:4px}
+  .sk-sec{padding-bottom:14px}
+  /* בחירה מרובה */
+  .sk-item{padding-inline-start:32px}
+  .sk-cb{position:absolute;inset-inline-start:10px;top:12px;width:18px;height:18px;border:2px solid var(--line);border-radius:5px;display:grid;place-items:center;color:#fff;font-size:.72rem;line-height:1;transition:background-color .12s ease-out,border-color .12s ease-out}
+  .sk-item.sel{border-color:var(--accent);background:linear-gradient(0deg,rgba(43,92,255,.12),transparent 62%)}
+  .sk-item.sel .sk-cb{background:var(--accent);border-color:var(--accent)}
+  .sk-item.sel .sk-cb::before{content:'✓'}
+  /* מגירת בחירה */
+  .sk-tray{position:fixed;inset-inline:0;bottom:0;z-index:60;transform:translateY(115%);transition:transform .22s ease;background:var(--card-2);border-top:1px solid var(--line);box-shadow:0 -10px 30px rgba(0,0,0,.4);backdrop-filter:blur(8px)}
+  .sk-tray.open{transform:translateY(0)}
+  .sk-tray-in{max-width:1180px;margin:0 auto;padding:11px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .sk-tray-chips{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;max-height:118px;overflow-y:auto}
+  .sk-tray-grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .sk-tray-lbl{font-size:.75rem;color:var(--muted);font-weight:700;margin-inline-end:4px}
+  .sk-chip{font-family:inherit;font-size:.76rem;background:var(--bg-2);border:1px solid var(--line);border-radius:7px;padding:3px 8px;cursor:pointer;color:var(--txt);white-space:nowrap}
+  .sk-chip:hover{border-color:var(--red);color:var(--red)}
+  .sk-tray-act{display:flex;gap:8px;align-items:center;flex:none}
+  /* ===== לוח בקרה — היררכיה ויזואלית ===== */
+  .rev{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:8px 0 12px;box-shadow:var(--shadow-sm)}
+  @media(max-width:640px){.rev{grid-template-columns:1fr}}
+  .rev-hero{border-inline-end:1px solid var(--line);padding-inline-end:18px}
+  @media(max-width:640px){.rev-hero{border-inline-end:0;border-bottom:1px solid var(--line);padding-inline-end:0;padding-bottom:14px}}
+  .rev-hero .lbl{color:var(--muted);font-size:.82rem;font-weight:700}
+  .rev-hero .val{font-size:2.6rem;font-weight:900;line-height:1.04;color:var(--accent-2);font-variant-numeric:tabular-nums;margin:2px 0 3px}
+  .rev-hero .note{color:var(--muted);font-size:.82rem}
+  .rev-side{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:center}
+  @media(max-width:400px){.rev-side{grid-template-columns:1fr}}
+  .rev-stat .n{font-size:1.45rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;display:block;color:var(--amber)}
+  .rev-stat .l{color:var(--muted);font-size:.77rem}
+  .att{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px}
+  .att-item{display:flex;align-items:center;gap:10px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px;padding:10px 13px;cursor:pointer;transition:border-color .14s ease-out,transform .06s;flex:1 1 155px}
+  .att-item:hover{border-color:var(--accent)}
+  .att-item:active{transform:scale(.99)}
+  .att-ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:1.05rem;flex:none}
+  .att-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+  .att-txt .n{font-size:1.3rem;font-weight:900;font-variant-numeric:tabular-nums}
+  .att-txt .l{color:var(--muted);font-size:.76rem}
+  .att-item.red .att-ico{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.42);color:#b42323}
+  .att-item.blue .att-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.42);color:#1741d6}
+  .att-item.amber .att-ico{background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.42);color:#9a6a00}
+  .att-item.teal .att-ico{background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.42);color:#0a7f6b}
+  /* ===== תיק לקוחות ומערכות (אקורדיון) ===== */
+  .pf-group{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow-sm)}
+  .pf-head{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer;transition:background-color .14s ease-out}
+  .pf-head:hover{background:rgba(43,92,255,.06)}
+  .pf-caret{flex:none;color:var(--muted);font-size:.7rem;width:12px;text-align:center;transition:transform .18s}
+  .pf-caret::before{content:'\25B8'}
+  .pf-group.open .pf-caret{transform:rotate(90deg)}
+  .pf-main{min-width:0;flex:1}
+  .pf-main b{display:block;font-size:.98rem}
+  .pf-main small{color:var(--muted);font-size:.8rem}
+  .pf-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .pf-systems{display:none;border-top:1px solid var(--line);padding:2px 15px 6px;background:var(--bg-2)}
+  .pf-group.open .pf-systems{display:block}
+  .pf-sys{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:background-color .12s ease-out}
+  .pf-sys:last-child{border-bottom:0}
+  .pf-sys:hover{background:rgba(43,92,255,.05)}
+  .pf-sys-main{min-width:0;flex:1}
+  .pf-sys-main b{display:block;font-size:.9rem}
+  .pf-sys-main small{color:var(--muted);font-size:.76rem}
+  /* ===== Momentum — ערכת עיצוב בהירה ===== */
+  h1,h2,h3,.brand,.kpi b,.big,.rev-hero .val,.rev-stat .n,.li-val,.pf-main b{font-family:'Rubik','Heebo',sans-serif;letter-spacing:-.01em}
+  .topbar{border-bottom:1px solid var(--line)}
+  .nav button.on{background:var(--txt);color:#fff;border-color:var(--txt)}
+  .toast{box-shadow:0 10px 30px rgba(15,19,34,.14)}
+  .sk-tray{box-shadow:0 -8px 30px rgba(15,19,34,.12)}
+  /* לוח בקרה — פאנל הכנסה כחול */
+  .rev{background:transparent;border:0;box-shadow:none;padding:0;gap:16px}
+  .rev-hero{background:var(--accent);border-inline-end:0;border-radius:18px;padding:22px 24px;color:#fff}
+  .rev-hero .lbl{color:rgba(255,255,255,.9)}
+  .rev-hero .val{color:#fff}
+  .rev-hero .note{color:rgba(255,255,255,.85)}
+  .rev-stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+  .rev-stat .n{color:var(--accent-2)}
+  @media(max-width:640px){.rev-hero{border-bottom:0;padding-bottom:20px}}
+  /* סימון שימוש בסקילז לפי מערכת */
+  .sk-inst-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:8px}
+  .sk-inst-lbl{font-size:.72rem;font-weight:700;color:var(--green)}
+  .sk-use{font-size:.7rem;font-weight:700;color:#0a7f5a;background:rgba(15,185,129,.12);border:1px solid rgba(15,185,129,.4);border-radius:6px;padding:1px 7px;cursor:pointer}
+  .sk-use:hover{border-color:var(--red);color:var(--red)}
+  .sk-use-add{font-size:.7rem;font-weight:700;color:var(--muted);background:none;border:1px dashed var(--line);border-radius:6px;padding:1px 8px;cursor:pointer;font-family:inherit}
+  .sk-use-add:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- מסך כניסה -->
+<div id="login">
+  <div class="login-card">
+    <div class="mark">◆</div>
+    <h1>Agency <span style="color:var(--accent-2)">HQ</span></h1>
+    <p id="loginSub">מרכז הבקרה של בית התוכנה</p>
+    <div class="err" id="loginErr"></div>
+    <input type="password" id="pin" inputmode="numeric" placeholder="••••" autocomplete="current-password" />
+    <button class="btn primary" style="width:100%" id="loginBtn" onclick="doLogin()">כניסה</button>
+  </div>
+</div>
+
+<!-- אפליקציה -->
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div class="topbar-in">
+      <div class="brand"><span class="mark">◆</span>Agency <span>HQ</span></div>
+      <div class="row" style="gap:6px"><button class="btn small ghost" onclick="go('skills')" title="מאגר הסקילז והפקודות">🧩 סקילז</button><button class="btn small ghost" onclick="changePinForm()">🔒 קוד</button><button class="btn small ghost" onclick="logout()">יציאה</button></div>
+    </div>
+    <div class="nav" id="nav"></div>
+  </div>
+  <div class="wrap" id="view"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============ תשתית ============
+const TOKEN_KEY = 'agencyhq_token';
+let TOKEN = localStorage.getItem(TOKEN_KEY) || '';
+let CURRENT = 'dashboard';
+const $ = (id) => document.getElementById(id);
+
+const money = (n) => new Intl.NumberFormat('he-IL',{style:'currency',currency:'ILS',maximumFractionDigits:0}).format(Math.round(n||0));
+const money1 = (n) => new Intl.NumberFormat('he-IL',{maximumFractionDigits:0}).format(Math.round(n||0));
+const esc = (s) => String(s??'').replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const j = (o) => esc(JSON.stringify(o)); // JSON בטוח ל-attribute עם גרשיים בעברית
+const waLink = (phone) => { let p=String(phone||'').replace(/\D/g,''); if(p.startsWith('0')) p='972'+p.slice(1); return 'https://wa.me/'+p; };
+const todayISO = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem'}).format(new Date());
+
+async function api(path, opts={}){
+  const res = await fetch('/api'+path, {
+    ...opts,
+    headers:{'Content-Type':'application/json','x-admin-token':TOKEN, ...(opts.headers||{})},
+  });
+  if(res.status===401){ TOKEN=''; localStorage.removeItem(TOKEN_KEY); showLogin(); throw new Error('unauthorized'); }
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||('http_'+res.status));
+  return data;
+}
+const apiGet = (p)=>api(p);
+const apiPost = (p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
+const apiPatch = (p,b)=>api(p,{method:'PATCH',body:JSON.stringify(b||{})});
+const apiPut = (p,b)=>api(p,{method:'PUT',body:JSON.stringify(b||{})});
+const apiDel = (p)=>api(p,{method:'DELETE'});
+
+function toast(msg, kind='ok'){
+  const el = document.createElement('div');
+  el.className='toast '+kind; el.textContent=msg;
+  $('toast').appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='.3s';setTimeout(()=>el.remove(),300);},2200);
+}
+
+// ============ כניסה ============
+async function boot(){
+  if(TOKEN){
+    try{ await apiGet('/dashboard'); showApp(); return; }catch(e){ /* ננסה מסך כניסה */ }
+  }
+  showLogin();
+}
+async function showLogin(){
+  $('app').style.display='none'; $('login').style.display='flex';
+  window.ideaBubbleDestroy && ideaBubbleDestroy();
+  try{
+    const s = await fetch('/api/auth/status').then(r=>r.json());
+    $('loginSub').textContent = s.setup ? 'מרכז הבקרה של בית התוכנה' : 'הגדרת קוד גישה ראשוני (4 ספרות ומעלה)';
+    $('loginBtn').textContent = s.setup ? 'כניסה' : 'הגדרת קוד וכניסה';
+    $('login').dataset.setup = s.setup ? '1':'0';
+  }catch(e){ $('loginErr').textContent='שגיאת חיבור לשרת'; }
+  $('pin').focus();
+}
+async function doLogin(){
+  const pin = $('pin').value.trim();
+  const isSetup = $('login').dataset.setup==='0';
+  $('loginErr').textContent='';
+  if(pin.length<4){ $('loginErr').textContent='קוד קצר מדי'; return; }
+  try{
+    const r = await apiPost(isSetup?'/auth/setup':'/auth/login',{pin});
+    TOKEN=r.token; localStorage.setItem(TOKEN_KEY,TOKEN);
+    showApp();
+  }catch(e){
+    $('loginErr').textContent = e.message==='wrong_pin'?'קוד שגוי': e.message==='pin_too_short'?'קוד קצר מדי':'שגיאה, נסה שוב';
+  }
+}
+$('pin')?.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+async function logout(){ try{ await apiPost('/auth/logout'); }catch(e){} TOKEN=''; localStorage.removeItem(TOKEN_KEY); showLogin(); }
+function changePinForm(){
+  openModal(`<h3>שינוי קוד גישה</h3>
+    <div class="f"><label>קוד נוכחי</label><input type="password" id="f_cur" inputmode="numeric" autocomplete="off"></div>
+    <div class="f"><label>קוד חדש (4 ספרות ומעלה)</label><input type="password" id="f_new" inputmode="numeric" autocomplete="off"></div>
+    <div class="f"><label>אימות קוד חדש</label><input type="password" id="f_new2" inputmode="numeric" autocomplete="off"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="changePin()">עדכון</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+}
+async function changePin(){
+  const cur=val('f_cur'), n1=val('f_new'), n2=val('f_new2');
+  if(n1.length<4){toast('הקוד החדש קצר מדי','bad');return;}
+  if(n1!==n2){toast('הקודים אינם תואמים','bad');return;}
+  try{ await apiPost('/auth/change',{currentPin:cur,newPin:n1}); closeModal(); toast('הקוד עודכן ✓'); }
+  catch(e){ toast(e.message==='wrong_pin'?'הקוד הנוכחי שגוי': e.message==='pin_too_short'?'קוד קצר מדי':'שגיאה, נסה שוב','bad'); }
+}
+
+function showApp(){
+  $('login').style.display='none'; $('app').style.display='block';
+  buildNav(); go(CURRENT);
+  window.ideaBubbleInit && ideaBubbleInit();
+}
+
+// ============ ניווט ============
+const PAGES = [
+  ['dashboard','לוח בקרה'],
+  ['portfolio','לקוחות ומערכות'],
+  ['modules','מודולים'],
+  ['engagements','התקשרויות'],
+  ['calculator','מחשבון חיוב'],
+  ['cashflow','תזרים'],
+  ['ideas','מרכזי רווח'],
+  ['processes','תהליכים'],
+  ['documents','מסמכים'],
+  ['playbooks','מתודולוגיה'],
+  ['health','בריאות מסירה'],
+  ['tasks','משימות'],
+  ['skills','🧩 סקילז'],
+];
+function buildNav(){
+  $('nav').innerHTML = PAGES.map(([k,l])=>`<button data-p="${k}" class="${k===CURRENT?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+}
+function go(page){
+  CURRENT=page;
+  const navKey=(page==='clients'||page==='systems')?'portfolio':page;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===navKey));
+  $('view').innerHTML='<div class="empty">טוען…</div>';
+  (RENDER[page]||(()=> $('view').innerHTML='<div class="empty">בקרוב</div>'))();
+  window.scrollTo(0,0);
+}
+
+
+// ============ מודאל ============
+function openModal(html, wide){
+  closeModal();
+  const ov=document.createElement('div'); ov.className='overlay'; ov.id='modal';
+  ov.innerHTML=`<div class="modal ${wide?'wide':''}">${html}</div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeModal(); });
+  document.body.appendChild(ov);
+}
+function closeModal(){ $('modal')?.remove(); }
+const val = (id)=> $(id)?.value?.trim() ?? '';
+const valN = (id)=> Number($(id)?.value||0);
+
+// ============ תוויות ============
+const CLIENT_STATUS={prospect:['ליד','p-amber'],active:['פעיל','p-green'],paused:['בהמתנה','p-gray'],churned:['נטש','p-red']};
+const CLIENT_STAGE={lead:'ליד',discovery:'אפיון',proposal:'הצעה',building:'בבנייה',live:'עלה לאוויר',retainer:'ריטיינר'};
+const SYS_STATUS={discovery:['אפיון','p-amber'],design:['עיצוב','p-purple'],building:['בבנייה','p-blue'],live:['חי','p-green'],maintenance:['תחזוקה','p-teal'],retired:['הוקפא','p-gray']};
+const ENG_MODEL={one_time:'חד-פעמי',retainer:'ריטיינר',hourly:'שעתי',revshare:'אחוז ממחזור',value:'מבוסס-ערך',hybrid:'היברידי'};
+const ENG_STATUS={proposed:['מוצע','p-amber'],active:['פעיל','p-green'],paused:['מושהה','p-gray'],ended:['הסתיים','p-red']};
+const HEALTH={green:['🟢','p-green'],yellow:['🟡','p-amber'],red:['🔴','p-red']};
+const EFFORT={low:'נמוך',medium:'בינוני',high:'גבוה'};
+const IDEA_STATUS={idea:['רעיון','p-gray'],exploring:['בבדיקה','p-amber'],pitched:['הוצע','p-blue'],active:['פעיל','p-green'],dropped:['נזנח','p-red']};
+const DOC_CAT={live:['🌐','ממשק חי'],repo:['💻','קוד'],infra:['🗄️','תשתית'],guide:['📖','מדריך'],deck:['📊','מצגת'],design:['🎨','עיצוב'],security:['🔒','אבטחה'],devlog:['🗓️','יומן פיתוח'],ideas:['💡','רעיונות'],spec:['📋','מפרט'],doc:['📄','מסמך'],other:['🔗','אחר']};
+const docIcon=(c)=>(DOC_CAT[c]||DOC_CAT.other)[0];
+const docCatLabel=(c)=>(DOC_CAT[c]||DOC_CAT.other)[1];
+const catOptions=(sel)=>Object.entries(DOC_CAT).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v[0]} ${v[1]}</option>`).join('');
+const pill=(map,k)=>{const m=map[k]||[k,'p-gray'];return `<span class="pill ${m[1]}">${m[0]}</span>`;};
+const STAGE_LABELS={discovery:'אפיון וגילוי',proposal:'הצעה והתקשרות',design:'תכנון ואדריכלות',build:'פיתוח',quality:'בדיקות ואיכות',security:'אבטחה ופרטיות',launch:'עלייה לאוויר',handoff:'מסירה ללקוח',care:'תחזוקה ותמיכה',advisory:'ליווי וייעוץ עסקי'};
+const STAGE_ORDER=['discovery','proposal','design','build','quality','security','launch','handoff','care','advisory'];
+const STAGE_EMOJI={discovery:'🔍',proposal:'📝',design:'🧭',build:'🛠️',quality:'✅',security:'🔒',launch:'🚀',handoff:'🤝',care:'🛡️',advisory:'📈'};
+const PB_KIND={checklist:['צ׳ק־ליסט','p-blue'],template:['תבנית מסמך','p-purple'],canvas:['קנבס','p-teal']};
+
+// ============ מסכים ============
+const RENDER={};
+let CACHE={clients:[],systems:[],engagements:[]};
+async function loadRefs(){
+  const [cl,sy,en]=await Promise.all([apiGet('/clients'),apiGet('/systems'),apiGet('/engagements')]);
+  CACHE={clients:cl,systems:sy,engagements:en};
+}
+const clientOptions=(sel)=>`<option value="">— ללא —</option>`+CACHE.clients.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('');
+const systemOptions=(sel,clientId)=>`<option value="">— ללא —</option>`+CACHE.systems.filter(s=>!clientId||s.clientId===clientId).map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${esc(s.name)}</option>`).join('');
+
+// ---------- לוח בקרה ----------
+RENDER.dashboard=async()=>{
+  const d=await apiGet('/dashboard');
+  const k=d.kpis;
+  const modelRows=Object.entries(d.byModel||{}).sort((a,b)=>b[1]-a[1]);
+  const modelTotal=modelRows.reduce((a,[,v])=>a+v,0)||1;
+  const att=[
+    ['blue','🛠️',k.systemsBuilding,'מערכות בפיתוח','systems'],
+    ['amber','📋',k.openTasks,'משימות פתוחות','tasks'],
+    ['red','⚠️',d.health.red,'לקוחות בסיכון','clients'],
+    ['teal','📥',k.leadsMonth||0,'לידים החודש','systems'],
+  ];
+  $('view').innerHTML=`
+    <h2>לוח בקרה</h2>
+    <div class="sub">התמונה הכוללת של בית התוכנה — ${todayISO()}</div>
+
+    <div class="rev">
+      <div class="rev-hero">
+        <div class="lbl">הכנסה חוזרת חודשית · MRR</div>
+        <div class="val">${money(k.mrr)}</div>
+        <div class="note">≈ ${money(k.arr)} בשנה · בריאות לקוחות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
+      </div>
+      <div class="rev-side">
+        <div class="rev-stat"><span class="n">${money(k.pipeline)}</span><span class="l">בצנרת · הצעות פתוחות</span></div>
+        <div class="rev-stat"><span class="n">${money(k.ideasWeighted)}</span><span class="l">פוטנציאל מרווח (משוקלל)</span></div>
+      </div>
+    </div>
+
+    <div class="att">
+      ${att.map(a=>`<div class="att-item ${a[0]}" onclick="go('${a[4]}')"><div class="att-ico">${a[1]}</div><div class="att-txt"><span class="n">${a[2]}</span><span class="l">${a[3]}</span></div></div>`).join('')}
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><b>${k.clientsActive}</b><small>לקוחות פעילים${k.clientsProspect?` · ${k.clientsProspect} לידים`:''}</small></div>
+      <div class="kpi green"><b>${k.systemsLive}</b><small>מערכות חיות מתוך ${k.systemsTotal}</small></div>
+      <div class="kpi"><b>${k.leadsTotal||0}</b><small>סה"כ לידים שנאספו</small></div>
+    </div>
+
+    ${d.leadsBySystem&&d.leadsBySystem.length?`<div class="card">
+      <h3>📥 לידים לפי מערכת</h3>
+      ${d.leadsBySystem.map(l=>`<div class="list-item" onclick="go('systems')"><div class="li-main"><b>${esc(l.name)}</b><small>${esc(l.clientName)}</small></div><b class="li-val" style="color:var(--accent-2)">${l.count}</b></div>`).join('')}
+    </div>`:''}
+
+    <div class="grid2">
+      <div class="card">
+        <h3>MRR לפי לקוח</h3>
+        ${d.mrrByClient.length?d.mrrByClient.map(c=>`
+          <div class="list-item" onclick="openClient('${c.id}')">
+            <div class="li-main"><b>${esc(c.name)}</b></div>
+            <div class="li-val" style="color:var(--accent-2)">${money(c.mrr)}</div>
+          </div>`).join(''):'<div class="empty">אין עדיין התקשרויות פעילות</div>'}
+      </div>
+      <div class="card">
+        <h3>תמהיל הכנסה לפי מודל חיוב</h3>
+        ${modelRows.length?modelRows.map(([m,v])=>`
+          <div style="margin-bottom:11px">
+            <div class="row" style="justify-content:space-between"><b>${ENG_MODEL[m]||m}</b><span style="color:var(--accent-2);font-weight:800">${money(v)}</span></div>
+            <div class="bar"><span style="width:${Math.round(v/modelTotal*100)}%"></span></div>
+          </div>`).join(''):'<div class="empty">אין נתונים</div>'}
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>מערכות בפיתוח</h3>
+        ${d.activeSystems.length?d.activeSystems.map(s=>`
+          <div class="list-item" onclick="go('systems')">
+            <div class="li-main"><b>${esc(s.name)}</b><small>${esc(s.clientName)} · ${(SYS_STATUS[s.status]||[s.status])[0]}</small>
+              <div class="bar" style="width:130px"><span style="width:${s.progress}%"></span></div></div>
+            <div class="li-val muted">${s.progress}%</div>
+          </div>`).join(''):'<div class="empty">אין מערכות בפיתוח כרגע</div>'}
+      </div>
+      <div class="card">
+        <h3>משימות קרובות</h3>
+        ${d.recentTasks.length?d.recentTasks.map(t=>`
+          <div class="list-item" onclick="go('tasks')">
+            <div class="li-main"><b>${esc(t.title)}</b><small>${t.dueDate?('יעד: '+t.dueDate):'ללא יעד'} · ${t.priority==='urgent'?'דחוף':t.priority==='high'?'גבוה':'רגיל'}</small></div>
+            <div class="li-val">${pill({todo:['לביצוע','p-gray'],doing:['בעבודה','p-blue']},t.status)}</div>
+          </div>`).join(''):'<div class="empty">אין משימות פתוחות 🎉</div>'}
+      </div>
+    </div>`;
+}
+
+// ---------- לקוחות ----------
+RENDER.clients=async()=>{
+  const list=await apiGet('/clients'); CACHE.clients=list;
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>לקוחות</h2><div class="sub">${list.length} לקוחות · ${money(list.reduce((a,c)=>a+(c.mrr||0),0))} MRR כולל</div></div>
+      <div class="row"><input class="search" id="clSearch" placeholder="חיפוש…" oninput="filterList('clSearch','clRow')"><button class="btn primary" onclick="clientForm()">+ לקוח</button></div></div>
+    <div class="card" style="padding:6px 17px">
+      ${list.length?list.map(c=>{const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];return `
+        <div class="list-item clRow" data-s="${esc(c.name+' '+(c.industry||''))}" onclick="openClient('${c.id}')">
+          <div class="li-main"><b>${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</b>
+            <small>${esc(c.industry||'')} · ${c.systemsCount} מערכות · ${CLIENT_STAGE[c.stage]||c.stage}</small></div>
+          <div class="row" style="gap:8px"><span class="pill ${st[1]}">${st[0]}</span><b class="li-val" style="color:var(--accent-2)">${c.mrr?money(c.mrr):''}</b></div>
+        </div>`;}).join(''):'<div class="empty">אין עדיין לקוחות. הוסף את הראשון!</div>'}
+    </div>`;
+};
+function filterList(inputId,rowClass){
+  const q=$(inputId).value.trim().toLowerCase();
+  document.querySelectorAll('.'+rowClass).forEach(r=>{ r.style.display=(r.dataset.s||'').toLowerCase().includes(q)?'':'none'; });
+}
+let CLIENT_EDIT_STAGE=null;
+function clientForm(c={}){
+  CLIENT_EDIT_STAGE=c.stage||null;
+  openModal(`<h3>${c.id?'עריכת לקוח':'לקוח חדש'}</h3>
+    <div class="f"><label>שם העסק *</label><input id="f_name" value="${esc(c.name||'')}"></div>
+    <div class="f2"><div class="f"><label>תחום</label><input id="f_industry" value="${esc(c.industry||'')}"></div>
+      <div class="f"><label>גודל</label><select id="f_size">${opts({solo:'עצמאי',micro:'זעיר',small:'קטן',medium:'בינוני'},c.size||'solo')}</select></div></div>
+    <div class="f2"><div class="f"><label>איש קשר</label><input id="f_contactName" value="${esc(c.contactName||'')}"></div>
+      <div class="f"><label>תפקיד איש קשר</label><input id="f_contactRole" value="${esc(c.contactRole||'')}" placeholder="בעלים / מנהל / מנהלת שיווק…"></div></div>
+    <div class="f2"><div class="f"><label>טלפון</label><input id="f_phone" value="${esc(c.phone||'')}"></div>
+      <div class="f"><label>אימייל</label><input id="f_email" value="${esc(c.email||'')}"></div></div>
+    <div class="f3"><div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(CLIENT_STATUS),c.status||'prospect')}</select></div>
+      <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(CLIENT_STAGE,c.stage||'lead')}</select></div>
+      <div class="f"><label>בריאות</label><select id="f_health">${opts({green:'🟢 תקין',yellow:'🟡 לב לב',red:'🔴 סיכון'},c.health||'green')}</select></div></div>
+    <div class="f"><label>הערות</label><textarea id="f_notes" rows="2">${esc(c.notes||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveClient('${c.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${c.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delClient('${c.id}')">מחיקה</button>`:''}</div>`);
+}
+const opts=(map,sel)=>Object.entries(map).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
+const mapLabels=(m)=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,v[0]]));
+async function saveClient(id){
+  const body={name:val('f_name'),industry:val('f_industry'),size:val('f_size'),contactName:val('f_contactName'),contactRole:val('f_contactRole'),
+    phone:val('f_phone'),email:val('f_email'),status:val('f_status'),stage:val('f_stage'),health:val('f_health'),notes:val('f_notes')};
+  if(!body.name){toast('חסר שם','bad');return;}
+  try{
+    let cid=id;
+    if(id){ await apiPatch('/clients/'+id,body); }
+    else{ const r=await apiPost('/clients',body); cid=r.id; }
+    closeModal(); toast('נשמר');
+    // קישור אוטומטי: שלב חדש/שינוי שלב → פתיחת המהלך המתאים במתודולוגיה
+    if(cid && (!id || body.stage!==CLIENT_EDIT_STAGE)){
+      try{ const a=await apiPost('/playbooks/autolaunch',{clientId:cid,clientStage:body.stage});
+        if(a.created) toast('נפתח מהלך: '+a.title); }catch(e){}
+    }
+    go('clients');
+  }
+  catch(e){toast('שגיאה: '+e.message,'bad');}
+}
+async function delClient(id){
+  if(!confirm('למחוק את הלקוח? (יש להסיר קודם מערכות והתקשרויות)'))return;
+  try{ await apiDel('/clients/'+id); closeModal(); toast('נמחק'); go('clients'); }
+  catch(e){toast(e.message==='has_systems'?'יש מערכות מקושרות':e.message==='has_engagements'?'יש התקשרויות מקושרות':'שגיאה','bad');}
+}
+let CLIENT360=null;
+async function openClient(id){
+  const d=await apiGet('/clients/'+id); const c=d.client; CLIENT360=d; const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
+  openModal(`<div class="spread"><h3 style="margin:0">${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</h3><span class="pill ${st[1]}">${st[0]}</span></div>
+    <div class="sub">${esc(c.industry||'')} ${c.contactName?'· '+esc(c.contactName):''} ${c.phone?'· '+esc(c.phone):''}</div>
+    <div class="kpis" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="kpi accent"><b>${money(d.mrr)}</b><small>MRR</small></div>
+      <div class="kpi"><b>${d.systems.length}</b><small>מערכות</small></div>
+      <div class="kpi"><b>${d.engagements.filter(e=>e.status==='active').length}</b><small>התקשרויות פעילות</small></div>
+    </div>
+    ${(c.contactName||c.phone||c.email)?`<div class="card"><h3>👤 איש קשר</h3>
+      <div class="stat-row"><span><b>${esc(c.contactName||'—')}</b>${c.contactRole?' · '+esc(c.contactRole):''}</span></div>
+      ${c.phone?`<div class="stat-row"><span>טלפון</span><span>${esc(c.phone)} · <a href="tel:${esc(c.phone)}" style="color:var(--accent-2)">חיוג</a> · <a href="${waLink(c.phone)}" target="_blank" style="color:var(--accent-2)">וואטסאפ</a></span></div>`:''}
+      ${c.email?`<div class="stat-row"><span>אימייל</span><a href="mailto:${esc(c.email)}" style="color:var(--accent-2)">${esc(c.email)}</a></div>`:''}
+    </div>`:''}
+    <div class="card"><h3>מערכות</h3>${d.systems.length?d.systems.map(s=>`<div class="stat-row"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}</div>
+    ${d.modules&&d.modules.length?`<div class="card"><h3>מודולים מוטמעים (${d.modules.length})</h3>
+      <div class="row" style="flex-wrap:wrap;gap:6px">${d.modules.map(m=>`<span class="pill ${m.status==='planned'?'p-amber':m.status==='deprecated'?'p-gray':'p-teal'}" onclick='moduleForm(${j(m)})' style="cursor:pointer" title="${esc(m.description||'')}">${esc(m.name)}</span>`).join('')}</div></div>`:''}
+    <div class="card"><h3>התקשרויות</h3>${d.engagements.length?d.engagements.map(e=>`<div class="stat-row"><span>${esc(e.title)} <span class="tag">${ENG_MODEL[e.model]||e.model}</span></span><b>${money(engMonthly(e))}/ח'</b></div>`).join(''):'<div class="muted">—</div>'}</div>
+    ${d.ideas.length?`<div class="card"><h3>מרכזי רווח</h3>${d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><b>${money(i.potentialMonthly)}/ח'</b></div>`).join('')}</div>`:''}
+    <div class="card"><div class="spread" style="margin-bottom:6px"><h3 style="margin:0">🧭 מהלכי מתודולוגיה${d.runs&&d.runs.length?` (${d.runs.length})`:''}</h3>
+      <button class="btn ghost small" onclick="startRunForClient('${id}')">+ מהלך</button></div>
+      ${d.runs&&d.runs.length?d.runs.map(r=>`<div class="run-row" onclick="openRun('${r.id}')">
+        <div class="grow"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+          <div class="hint">${STAGE_LABELS[r.stage]||''}${r.status==='done'?' · הושלם':''}</div>
+          <div class="bar" style="max-width:200px"><span style="width:${r.progress||0}%"></span></div></div>
+        <span class="pill ${r.status==='done'?'p-green':r.progress?'p-amber':'p-gray'}">${r.status==='done'?'✓':(r.progress||0)+'%'}</span>
+      </div>`).join(''):'<div class="muted">אין עדיין מהלכים. פתח את הפורמט המתאים לשלב שבו הלקוח נמצא.</div>'}</div>
+    ${d.documents&&d.documents.length?`<div class="card"><h3>מסמכים ותוצרים (${d.documents.length})</h3>${d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join('')}</div>`:''}
+    ${c.notes?`<div class="card"><h3>הערות</h3><div class="muted">${esc(c.notes)}</div></div>`:''}
+    <div class="modal-actions"><button class="btn primary" onclick='clientForm(${j(c)})'>עריכה</button>
+      <button class="btn teal" onclick="closeModal();engagementForm({clientId:'${id}'})">+ התקשרות</button>
+      <button class="btn ghost" onclick="closeModal();systemForm({clientId:'${id}'})">+ מערכת</button>
+      <button class="btn ghost" onclick="closeModal();docForm({clientId:'${id}'})">+ מסמך</button>
+      <button class="btn ghost" onclick="moduleForm({clientId:'${id}'})">+ מודול</button>
+      <button class="btn teal" onclick="handoffMsg()">📤 הודעת מסירה</button>
+      <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+// ---------- הודעת מסירה ללקוח ----------
+function handoffMsg(){
+  const d=CLIENT360; if(!d){toast('פתח קודם לקוח','bad');return;}
+  const c=d.client;
+  const sys=(d.systems||[]).find(s=>s.status==='live')||(d.systems||[])[0]||{};
+  const mods=(d.modules||[]).filter(m=>m.status!=='deprecated').slice(0,8).map(m=>m.name);
+  const collab=(d.modules||[]).some(m=>/שיתופ|שותפ/.test(m.name||''));
+  openModal(`<h3>📤 הודעת מסירה — ${esc(c.name)}</h3>
+    <div class="f3">
+      <div class="f"><label>איש קשר</label><input id="h_contact" value="${esc(c.contactName||c.name||'')}" oninput="handoffBuild()"></div>
+      <div class="f"><label>טלפון (לוואטסאפ)</label><input id="h_phone" value="${esc(c.phone||'')}" oninput="handoffBuild()"></div>
+      <div class="f"><label>שם המערכת</label><input id="h_sysname" value="${esc(sys.name||'')}" oninput="handoffBuild()"></div>
+    </div>
+    <div class="f2">
+      <div class="f"><label>עמוד ציבורי / נחיתה</label><input id="h_landing" value="${esc(sys.leadUrl||sys.url||'')}" oninput="handoffBuild()"></div>
+      <div class="f"><label>ממשק ניהול</label><input id="h_admin" value="${esc(sys.adminUrl||'')}" oninput="handoffBuild()"></div>
+    </div>
+    <div class="f"><label>פרטי כניסה ראשונית</label><input id="h_creds" value="${esc(sys.credentials||'')}" oninput="handoffBuild()" placeholder="משתמש / סיסמה / קוד"></div>
+    <div class="f"><label>📖 מדריך למערכת (לינק)</label><input id="h_guide" value="${esc(sys.guideUrl||'')}" oninput="handoffBuild()" placeholder="https://…/guide"></div>
+    <input type="hidden" id="h_desc" value="${esc(sys.description||'')}">
+    <input type="hidden" id="h_mods" value="${esc(mods.join(', '))}">
+    <input type="hidden" id="h_collab" value="${collab?'1':''}">
+    <input type="hidden" id="h_bubble" value="${sys.ideaBubble?'1':''}">
+    <div class="f"><label>ההודעה (ניתנת לעריכה)</label><textarea id="h_msg" rows="11" style="font-size:.9rem;line-height:1.6"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="handoffCopy()">📋 העתק</button>
+      <button class="btn teal" onclick="handoffWa()">💬 וואטסאפ</button>
+      <button class="btn ghost" onclick="openClient('${c.id}')">חזרה</button></div>`, true);
+  handoffBuild();
+}
+function handoffBuild(){
+  const contact=val('h_contact')||'', sysname=val('h_sysname')||'המערכת';
+  const landing=val('h_landing'), admin=val('h_admin'), creds=val('h_creds'), guide=val('h_guide');
+  const desc=val('h_desc'), mods=val('h_mods');
+  let m=`היי ${contact}, המערכת מוכנה עבורך 🎉\n\n`;
+  m+=`${sysname}${desc?' — '+desc:''}\n`;
+  if(landing) m+=`\n🌐 עמוד ציבורי:\n${landing}\n`;
+  if(admin) m+=`\n🛠️ ממשק ניהול:\n${admin}\n`;
+  if(creds) m+=`\n🔑 פרטי כניסה ראשונית:\n${creds}\n`;
+  if(guide) m+=`\n📖 מדריך למערכת:\n${guide}\n`;
+  if(mods) m+=`\nמה המערכת יודעת לעשות:\n${mods.split(', ').map(x=>'• '+x).join('\n')}\n`;
+  if($('h_bubble')&&$('h_bubble').value) m+=`\n💡 בועת רעיונות:\nבפינת המסך תמצא בועה — לחיצה עליה מאפשרת לך לשלוח לי רעיון לשיפור או דיווח על באג תוך כדי עבודה, ואני מטפל. כך המערכת ממשיכה להשתפר בדיוק לפי הצורך שלך.\n`;
+  if($('h_collab')&&$('h_collab').value) m+=`\n🤝 שיתופי פעולה (שת״פ):\nהמערכת מאפשרת לך לצרף שותפים ולמכור חבילות/תוספות להזמנה — מרכז רווח נוסף, עם מעקב הכנסה ורווחיות.\n`;
+  m+=`\nמוזמן להיכנס, להתרשם ולשחק עם המערכת — היא בנויה בהתאמה אישית לעסק שלך. אשמח לשמוע התרשמות ולעבור יחד על הכל. 🙌`;
+  const el=$('h_msg'); if(el) el.value=m;
+}
+function handoffCopy(){ const t=$('h_msg').value; navigator.clipboard.writeText(t).then(()=>toast('ההודעה הועתקה ✓'),()=>toast('העתק ידנית','bad')); }
+function handoffWa(){
+  let p=(val('h_phone')||'').replace(/\D/g,'');
+  if(p.startsWith('0')) p='972'+p.slice(1);
+  const url=(p?`https://wa.me/${p}`:`https://wa.me/`)+`?text=${encodeURIComponent($('h_msg').value)}`;
+  window.open(url,'_blank');
+}
+function moduleForm(m={}){
+  openModal(`<h3>${m.id?'עריכת מודול':'מודול חדש'}</h3>
+    <div class="f"><label>שם המודול *</label><input id="f_name" value="${esc(m.name||'')}"></div>
+    <div class="f2"><div class="f"><label>מערכת</label><select id="f_systemId">${systemOptions(m.systemId,m.clientId)}</select></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts({active:'פעיל',planned:'מתוכנן',deprecated:'הוצא'},m.status||'active')}</select></div></div>
+    <div class="f"><label>תיאור</label><textarea id="f_description" rows="2">${esc(m.description||'')}</textarea></div>
+    <input type="hidden" id="f_clientId" value="${esc(m.clientId||'')}">
+    <div class="modal-actions"><button class="btn primary" onclick="saveModule('${m.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="${m.clientId?`openClient('${m.clientId}')`:'closeModal()'}">חזרה</button>
+      ${m.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delModule('${m.id}','${m.clientId||''}')">מחיקה</button>`:''}</div>`);
+}
+async function saveModule(id){
+  const body={name:val('f_name'),systemId:val('f_systemId')||null,status:val('f_status'),description:val('f_description'),clientId:val('f_clientId')||null};
+  if(!body.name){toast('חסר שם','bad');return;}
+  try{ id?await apiPatch('/modules/'+id,body):await apiPost('/modules',body); toast('נשמר'); if(body.clientId)openClient(body.clientId); else{closeModal();go('clients');} }
+  catch(e){toast('שגיאה','bad');}
+}
+async function delModule(id,clientId){ if(!confirm('למחוק מודול?'))return; await apiDel('/modules/'+id); toast('נמחק'); if(clientId)openClient(clientId); else{closeModal();go('clients');} }
+// חישוב MRR בצד לקוח (תואם לשרת)
+function engMonthly(e){
+  const r=+e.monthlyFee||0,h=(+e.hourlyRate||0)*(+e.monthlyHours||0),rv=(+e.revshareBase||0)*((+e.revsharePercent||0)/100);
+  switch(e.model){case 'retainer':case 'value':return r;case 'hourly':return h;case 'revshare':return rv;case 'one_time':return 0;case 'hybrid':return r+h+rv;default:return r;}
+}
+
+// ---------- מערכות (+ Dev Cockpit) ----------
+RENDER.systems=async()=>{
+  await loadRefs(); const list=CACHE.systems;
+  const withUrl=list.filter(s=>s.url).length;
+  let leadMap={}; try{ const ls=await apiGet('/leads/summary'); (ls.bySystem||[]).forEach(x=>leadMap[x.systemId]={count:x.count,month:x.month}); }catch(e){}
+  let taskMap={}; try{ const ts=await apiGet('/tasks'); ts.forEach(t=>{ if(t.entityType==='system'&&t.entityId&&t.status!=='done') taskMap[t.entityId]=(taskMap[t.entityId]||0)+1; }); }catch(e){}
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מערכות</h2><div class="sub">${list.length} מערכות · ${list.filter(s=>s.status==='live').length} חיות · ${withUrl} עם כתובת חיה</div></div>
+      <div class="row"><input class="search" id="syS" placeholder="חיפוש…" oninput="filterList('syS','syRow')">
+        <button class="btn ghost" id="pingBtn" onclick="pingSystems()">🔄 בדוק חי/נפל</button>
+        <button class="btn primary" onclick="systemForm()">+ מערכת</button></div></div>
+    <div class="card" style="padding:6px 17px">
+      ${list.length?list.map(s=>{const st=SYS_STATUS[s.status]||[s.status,'p-gray'];const sysLink=s.adminUrl||s.url;const leadLink=s.leadUrl||s.url;const leadLinkB=s.leadUrlB;return `
+        <div class="list-item syRow" data-s="${esc(s.name+' '+s.clientName+' '+(s.stack||''))}" onclick='systemForm(${j(s)})'>
+          <div class="li-main"><b><span data-syid="${s.id}" title="${s.url?'לא נבדק':'אין כתובת חיה'}" style="cursor:default">${s.url?'⚪':''}</span> ${esc(s.name)}</b>
+            <small>${esc(s.clientName)} ${s.stack?'· '+esc(s.stack):''}${s.authMethod?' · 🔑 '+esc(s.authMethod):''}</small>
+            <div class="bar" style="max-width:200px"><span style="width:${s.progress}%"></span></div></div>
+          <div class="row" style="gap:6px">
+            ${sysLink?`<a class="pill p-blue" href="${esc(sysLink)}" target="_blank" onclick="event.stopPropagation()" title="כניסה למערכת">🛠️ מערכת</a>`:''}
+            ${leadLink?`<a class="pill p-teal" href="${esc(leadLink)}" target="_blank" onclick="event.stopPropagation()" title="דף נחיתה ציבורי — גרסה א'">🎯 לידים א'</a>`:''}
+            ${leadLinkB?`<a class="pill p-teal" href="${esc(leadLinkB)}" target="_blank" onclick="event.stopPropagation()" title="דף נחיתה ציבורי — גרסה ב'">🎯 לידים ב'</a>`:''}
+            ${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" onclick="event.stopPropagation()" title="Repo" style="font-size:1.05rem">📦</a>`:''}
+            ${leadMap[s.id]?`<span class="pill p-teal" title="לידים שנכנסו דרך המערכת">📥 ${leadMap[s.id].count}</span>`:''}
+            ${taskMap[s.id]?`<span class="pill p-amber" title="משימות פתוחות">📋 ${taskMap[s.id]}</span>`:''}
+            ${s.authScore?`<span class="pill ${s.authScore>=4?'p-green':s.authScore>=3?'p-blue':'p-amber'}" title="ציון אבטחת כניסה (5=הכי מאובטח)">🔒 ${s.authScore}/5</span>`:''}
+            <span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b></div>
+        </div>`;}).join(''):'<div class="empty">אין עדיין מערכות</div>'}
+    </div>
+    <div class="hint" style="padding:0 4px">💡 הנקודה ליד כל מערכת מציגה חי/נפל אחרי בדיקה. פתיחת מערכת מציגה גם סטטוס GitHub (אם מחובר).</div>`;
+};
+// ---------- תיק לקוחות ומערכות (מסך מאוחד ומקונן) ----------
+RENDER.portfolio=async()=>{
+  await loadRefs();
+  const clients=CACHE.clients, systems=CACHE.systems;
+  let leadMap={}; try{ const ls=await apiGet('/leads/summary'); (ls.bySystem||[]).forEach(x=>leadMap[x.systemId]={count:x.count}); }catch(e){}
+  let taskMap={}; try{ const ts=await apiGet('/tasks'); ts.forEach(t=>{ if(t.entityType==='system'&&t.entityId&&t.status!=='done') taskMap[t.entityId]=(taskMap[t.entityId]||0)+1; }); }catch(e){}
+  const byClient={}, internal=[];
+  systems.forEach(s=>{ if(s.clientId){ (byClient[s.clientId]=byClient[s.clientId]||[]).push(s); } else internal.push(s); });
+  const liveCount=systems.filter(s=>s.status==='live').length;
+  const sorted=[...clients].sort((a,b)=>(b.mrr||0)-(a.mrr||0)||String(a.name).localeCompare(String(b.name),'he'));
+
+  const sysRow=(s)=>{
+    const st=SYS_STATUS[s.status]||[s.status,'p-gray'];
+    const sysLink=s.adminUrl||s.url, leadLink=s.leadUrl||s.url, leadLinkB=s.leadUrlB;
+    return `<div class="pf-sys" data-s="${esc(s.name+' '+(s.stack||''))}" onclick='systemForm(${j(s)})'>
+      <div class="pf-sys-main"><b><span data-syid="${s.id}" title="${s.url?'לא נבדק':'אין כתובת חיה'}">${s.url?'⚪':''}</span> ${esc(s.name)}</b>
+        <small>${s.stack?esc(s.stack):'—'}${s.authMethod?' · 🔑 '+esc(s.authMethod):''}</small>
+        <div class="bar" style="max-width:180px"><span style="width:${s.progress}%"></span></div></div>
+      <div class="row" style="gap:6px">
+        ${sysLink?`<a class="pill p-blue" href="${esc(sysLink)}" target="_blank" onclick="event.stopPropagation()" title="כניסה למערכת">🛠️</a>`:''}
+        ${leadLink?`<a class="pill p-teal" href="${esc(leadLink)}" target="_blank" onclick="event.stopPropagation()" title="דף נחיתה א'">🎯</a>`:''}
+        ${leadLinkB?`<a class="pill p-teal" href="${esc(leadLinkB)}" target="_blank" onclick="event.stopPropagation()" title="דף נחיתה ב'">🎯</a>`:''}
+        ${s.repoUrl?`<a href="${esc(s.repoUrl)}" target="_blank" onclick="event.stopPropagation()" title="Repo" style="font-size:1.05rem">📦</a>`:''}
+        ${leadMap[s.id]?`<span class="pill p-teal" title="לידים שנכנסו">📥 ${leadMap[s.id].count}</span>`:''}
+        ${taskMap[s.id]?`<span class="pill p-amber" title="משימות פתוחות">📋 ${taskMap[s.id]}</span>`:''}
+        ${s.authScore?`<span class="pill ${s.authScore>=4?'p-green':s.authScore>=3?'p-blue':'p-amber'}" title="אבטחת כניסה">🔒 ${s.authScore}/5</span>`:''}
+        <span class="pill ${st[1]}">${st[0]}</span><b class="li-val muted">${s.progress}%</b>
+      </div></div>`;
+  };
+
+  const groupHtml=(c)=>{
+    const sys=byClient[c.id]||[], st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
+    return `<div class="pf-group" data-s="${esc(c.name+' '+(c.industry||''))}">
+      <div class="pf-head" onclick="pfToggle(this)">
+        <span class="pf-caret"></span>
+        <div class="pf-main"><b>${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</b>
+          <small>${esc(c.industry||'')}${c.industry?' · ':''}${CLIENT_STAGE[c.stage]||c.stage}</small></div>
+        <div class="pf-meta">
+          <span class="pill p-blue" title="מספר מערכות">🖥️ ${sys.length}</span>
+          <span class="pill ${st[1]}">${st[0]}</span>
+          <b class="li-val" style="color:var(--accent-2)">${c.mrr?money(c.mrr):''}</b>
+          <button class="btn small ghost" onclick="event.stopPropagation();openClient('${c.id}')" title="פרטים מלאים">פרטים</button>
+        </div>
+      </div>
+      <div class="pf-systems">
+        ${sys.length?sys.map(sysRow).join(''):`<div class="empty" style="padding:14px 4px">אין עדיין מערכות ללקוח זה. <a onclick="systemForm()" style="color:var(--accent-2);cursor:pointer">הוסף מערכת</a></div>`}
+      </div></div>`;
+  };
+
+  const internalHtml=internal.length?`<div class="pf-group" data-s="פנימי מערכות ניהול">
+      <div class="pf-head" onclick="pfToggle(this)">
+        <span class="pf-caret"></span>
+        <div class="pf-main"><b>⚙️ מערכות פנימיות</b><small>ללא לקוח — כלים של הסוכנות</small></div>
+        <div class="pf-meta"><span class="pill p-gray">🖥️ ${internal.length}</span></div>
+      </div>
+      <div class="pf-systems">${internal.map(sysRow).join('')}</div></div>`:'';
+
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>לקוחות ומערכות</h2>
+      <div class="sub">${clients.length} לקוחות · ${systems.length} מערכות · ${liveCount} חיות</div></div>
+      <div class="row">
+        <input class="search" id="pfS" placeholder="חיפוש לקוח או מערכת…" oninput="pfFilter()">
+        <button class="btn ghost" onclick="pfExpandAll(this)">הרחב הכל</button>
+        <button class="btn ghost" id="pingBtn" onclick="pingSystems()">🔄 חי/נפל</button>
+        <button class="btn ghost" onclick="systemForm()">+ מערכת</button>
+        <button class="btn primary" onclick="clientForm()">+ לקוח</button>
+      </div></div>
+    ${sorted.length?sorted.map(groupHtml).join(''):'<div class="empty">אין עדיין לקוחות. הוסף את הראשון!</div>'}
+    ${internalHtml}
+    <div class="hint" style="padding:2px 4px">💡 לחיצה על לקוח פותחת את המערכות שלו · לחיצה על מערכת פותחת עריכה · ״חי/נפל״ בודק זמינות.</div>`;
+};
+RENDER.clients=RENDER.portfolio;
+RENDER.systems=RENDER.portfolio;
+function pfToggle(head){ head.parentElement.classList.toggle('open'); }
+function pfExpandAll(btn){
+  const groups=document.querySelectorAll('.pf-group');
+  const anyClosed=[...groups].some(g=>!g.classList.contains('open'));
+  groups.forEach(g=>g.classList.toggle('open',anyClosed));
+  if(btn) btn.textContent=anyClosed?'כווץ הכל':'הרחב הכל';
+}
+function pfFilter(){
+  const q=($('pfS').value||'').trim().toLowerCase();
+  document.querySelectorAll('.pf-group').forEach(g=>{
+    const clientMatch=!q||(g.dataset.s||'').toLowerCase().includes(q);
+    let shown=0;
+    g.querySelectorAll('.pf-sys').forEach(r=>{ const m=clientMatch||!q||(r.dataset.s||'').toLowerCase().includes(q); r.style.display=m?'':'none'; if(m)shown++; });
+    const show=clientMatch||shown>0;
+    g.style.display=show?'':'none';
+    if(q&&show) g.classList.add('open');
+  });
+}
+async function pingSystems(){
+  const btn=$('pingBtn'); if(btn){btn.textContent='בודק…';btn.disabled=true;}
+  try{
+    const map=await apiGet('/systems/status');
+    document.querySelectorAll('[data-syid]').forEach(el=>{
+      const r=map[el.dataset.syid];
+      if(!r){ el.textContent=el.textContent.trim()?'⚪':''; return; }
+      el.textContent=r.ok?'🟢':'🔴';
+      el.title=(r.ok?'חי':'נפל')+` · HTTP ${r.status||'—'} · ${r.ms}ms`;
+    });
+    toast('הסטטוס עודכן');
+  }catch(e){toast('שגיאת בדיקה','bad');}
+  if(btn){btn.textContent='🔄 בדוק חי/נפל';btn.disabled=false;}
+}
+async function loadGithub(id){
+  const box=$('ghBox'); if(!box)return;
+  try{
+    const g=await apiGet('/systems/'+id+'/github');
+    if(!g.configured){ box.innerHTML='<div class="muted hint">חיבור GitHub לא מוגדר. הוסף secret בשם <b>GITHUB_TOKEN</b> לפרויקט ה-Pages כדי לראות commit אחרון ו-PRs פתוחים.</div>'; return; }
+    if(!g.repo){ box.innerHTML='<div class="muted hint">אין כתובת repo תקינה בשדה Repo.</div>'; return; }
+    if(g.error){ box.innerHTML=`<div class="muted hint">${esc(g.repo)} · שגיאת GitHub (${esc(g.error)})</div>`; return; }
+    box.innerHTML=`
+      <div class="stat-row"><span>Repo</span><b>${esc(g.repo)}</b></div>
+      <div class="stat-row"><span>ענף ראשי</span><b>${esc(g.defaultBranch||'—')}</b></div>
+      <div class="stat-row"><span>PRs פתוחים</span><b>${g.openPRs}</b></div>
+      ${g.lastCommit?`<div class="stat-row"><span>Commit אחרון</span><b>${esc(g.lastCommit.sha)}</b></div>
+        <div class="hint">${esc(g.lastCommit.message||'')}${g.lastCommit.date?' — '+new Date(g.lastCommit.date).toLocaleDateString('he-IL'):''}</div>`:''}`;
+  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת GitHub</div>'; }
+}
+async function loadSysTasks(id){
+  const box=$('sysTasks'); if(!box)return;
+  const PRI={urgent:'🔴',high:'🟠',normal:'',low:'⚪'};
+  const ST={todo:['לביצוע','p-gray'],doing:['בעבודה','p-blue'],done:['הושלם','p-green']};
+  try{
+    const list=await apiGet('/tasks?entityType=system&entityId='+id);
+    const open=list.filter(t=>t.status!=='done').length;
+    box.innerHTML=`
+      <div class="spread" style="margin-bottom:8px"><small class="muted">${list.length} משימות · ${open} פתוחות</small></div>
+      ${list.map(t=>{const st=ST[t.status]||['',''];return `
+        <div class="list-item" style="padding:8px 0;cursor:default">
+          <div class="li-main"><b style="${t.status==='done'?'text-decoration:line-through;opacity:.6':''}">${PRI[t.priority]||''} ${esc(t.title)}</b>
+            <small>${st[0]}${t.dueDate?' · יעד '+t.dueDate:''}${t.details?' · '+esc(t.details).slice(0,70):''}</small></div>
+          <div class="row" style="gap:5px">
+            ${t.status!=='done'?`<button class="btn teal small" onclick="advanceSysTask('${t.id}','${t.status==='todo'?'doing':'done'}','${id}')">${t.status==='todo'?'התחל':'סיים'}</button>`
+              :`<button class="btn ghost small" onclick="advanceSysTask('${t.id}','todo','${id}')">↺</button>`}
+            <button class="btn ghost small" title="מחק" onclick="delSysTask('${t.id}','${id}')">🗑️</button>
+          </div>
+        </div>`;}).join('')||'<div class="muted hint">אין עדיין משימות למערכת זו.</div>'}
+      <div class="row" style="gap:6px;margin-top:10px">
+        <input id="sysNewTask" class="search" style="flex:1" placeholder="משימה חדשה למערכת…" onkeydown="if(event.key==='Enter')addSysTask('${id}')">
+        <button class="btn primary small" onclick="addSysTask('${id}')">+ הוסף</button>
+      </div>`;
+  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת משימות</div>'; }
+}
+// לידים של המערכת מפולחים לפי מקור — כך רואים איזו גרסת דף נחיתה באמת מביאה לידים
+const LEAD_SOURCES={'landing':"דף נחיתה א'",'landing-b':"דף נחיתה ב'",'website':'אתר','manual':'ידני'};
+async function loadSysLeads(id){
+  const box=$('sysLeads'); if(!box)return;
+  try{
+    const rows=await apiGet('/leads?systemId='+id);
+    if(!rows.length){ box.innerHTML='<div class="muted hint">עדיין לא נכנסו לידים למערכת זו. ברגע שדפי הנחיתה יעלו לפרסום — הפילוח יופיע כאן.</div>'; return; }
+    const monthPrefix=new Date().toISOString().slice(0,7);
+    const by={};
+    rows.forEach(r=>{ const k=r.source||'website'; const e=by[k]||(by[k]={n:0,month:0,last:0});
+      e.n++; if(new Date(r.createdAt).toISOString().slice(0,7)===monthPrefix)e.month++; if(r.createdAt>e.last)e.last=r.createdAt; });
+    const list=Object.keys(by).map(k=>({k,...by[k]})).sort((a,b)=>b.n-a.n);
+    const top=list[0], tie=list.length>1&&list[1].n===top.n;
+    box.innerHTML=`
+      ${list.map(x=>{const pct=Math.round(x.n/rows.length*100);return `
+        <div class="stat-row" style="align-items:center">
+          <span>${esc(LEAD_SOURCES[x.k]||x.k)}${x.k===top.k&&!tie?' 🏆':''}</span>
+          <span class="row" style="gap:8px">
+            <span class="bar" style="width:110px;flex:none;margin-top:0"><span style="width:${pct}%"></span></span>
+            <b>${x.n}</b><small class="muted">${pct}% · החודש ${x.month}</small>
+          </span>
+        </div>`;}).join('')}
+      <div class="hint" style="margin-top:7px">סה"כ ${rows.length} לידים${list.length>1&&!tie?` · המקור המוביל: <b>${esc(LEAD_SOURCES[top.k]||top.k)}</b>`:''}${tie?' · תיקו בין המקורות המובילים':''}</div>`;
+  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת לידים</div>'; }
+}
+async function advanceSysTask(taskId,status,systemId){ try{ await apiPatch('/tasks/'+taskId,{status}); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
+async function delSysTask(taskId,systemId){ if(!confirm('למחוק משימה?'))return; try{ await apiDel('/tasks/'+taskId); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
+async function addSysTask(systemId){
+  const el=$('sysNewTask'); const title=(el&&el.value||'').trim(); if(!title){return;}
+  try{ await apiPost('/tasks',{title,status:'todo',priority:'normal',entityType:'system',entityId:systemId}); if(el)el.value=''; loadSysTasks(systemId); toast('נוספה משימה'); }
+  catch(e){ toast('שגיאה','bad'); }
+}
+function systemForm(s={}){
+  openModal(`<h3>${s.id?'עריכת מערכת':'מערכת חדשה'}</h3>
+    <div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      ${s.repoUrl?`<a class="btn small ghost" href="${esc(s.repoUrl)}" target="_blank">📦 Repo</a>`:''}
+      ${s.url?`<a class="btn small ghost" href="${esc(s.url)}" target="_blank">🌐 אתר חי</a>`:''}
+      ${s.adminUrl?`<a class="btn small ghost" href="${esc(s.adminUrl)}" target="_blank">🛠️ ניהול</a>`:''}
+      ${s.leadUrl?`<a class="btn small ghost" href="${esc(s.leadUrl)}" target="_blank">🎯 דף לידים א'</a>`:''}
+      ${s.leadUrlB?`<a class="btn small ghost" href="${esc(s.leadUrlB)}" target="_blank">🎯 דף לידים ב'</a>`:''}
+      <a class="btn small ghost" href="https://dash.cloudflare.com" target="_blank">☁️ Cloudflare</a>
+    </div>
+    <div class="f2"><div class="f"><label>שם המערכת *</label><input id="f_name" value="${esc(s.name||'')}"></div>
+      <div class="f"><label>לקוח *</label><select id="f_clientId">${clientOptions(s.clientId)}</select></div></div>
+    <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({web_app:'אפליקציית ווב',crm:'CRM',automation:'אוטומציה',website:'אתר',dashboard:'דשבורד',other:'אחר'},s.kind||'web_app')}</select></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(SYS_STATUS),s.status||'discovery')}</select></div></div>
+    <div class="f"><label>Stack טכנולוגי</label><input id="f_stack" value="${esc(s.stack||'')}" placeholder="Cloudflare, D1, Hono…"></div>
+    <div class="f2"><div class="f"><label>כתובת חיה (עמוד ציבורי)</label><input id="f_url" value="${esc(s.url||'')}"></div>
+      <div class="f"><label>Repo</label><input id="f_repoUrl" value="${esc(s.repoUrl||'')}"></div></div>
+    <div class="f2"><div class="f"><label>🎯 דף נחיתה א' (איסוף לידים)</label><input id="f_leadUrl" value="${esc(s.leadUrl||'')}" placeholder="https://…/lp"></div>
+      <div class="f"><label>🎯 דף נחיתה ב' (גרסה מקבילה ל-A/B)</label><input id="f_leadUrlB" value="${esc(s.leadUrlB||'')}" placeholder="https://…/lp2"></div></div>
+    <div class="f"><label>כתובת ממשק ניהול</label><input id="f_adminUrl" value="${esc(s.adminUrl||'')}"></div>
+    <div class="f"><label>פרטי כניסה ראשונית ללקוח</label><input id="f_credentials" value="${esc(s.credentials||'')}" placeholder="משתמש / סיסמה / קוד"></div>
+    <div class="f2"><div class="f"><label>🔑 אופן כניסה / הזדהות</label><input id="f_authMethod" value="${esc(s.authMethod||'')}" placeholder="PIN מנהל / אימייל+סיסמה / Google OAuth…"></div>
+      <div class="f"><label>ציון אבטחת כניסה (5 = הכי מאובטח)</label><select id="f_authScore">${opts({'':'— לא נקבע —','5':'5 · הכי מאובטח','4':'4 · טוב','3':'3 · סביר','2':'2 · חלש','1':'1 · חשוף'},s.authScore!=null?String(s.authScore):'')}</select></div></div>
+    <div class="f2"><div class="f"><label>📖 מדריך למערכת (לינק ללקוח)</label><input id="f_guideUrl" value="${esc(s.guideUrl||'')}" placeholder="https://…/guide"></div>
+      <div class="f"><label>בועת רעיונות</label><label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer"><input type="checkbox" id="f_ideaBubble" ${s.ideaBubble?'checked':''} style="width:18px;height:18px"> יש בועת רעיונות (יוסבר בהודעת המסירה)</label></div></div>
+    <div class="f3"><div class="f"><label>תחילת עבודה</label><input type="date" id="f_startDate" value="${esc(s.startDate||'')}"></div>
+      <div class="f"><label>עלייה לאוויר</label><input type="date" id="f_launchDate" value="${esc(s.launchDate||'')}"></div>
+      <div class="f"><label>התקדמות %</label><input type="number" id="f_progress" min="0" max="100" value="${s.progress||0}"></div></div>
+    <div class="f"><label>תיאור / הערות</label><textarea id="f_description" rows="2">${esc(s.description||'')}</textarea></div>
+    ${s.id?`<div class="f"><label>📋 משימות המערכת</label><div id="sysTasks" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
+    <div class="f"><label>מצב פיתוח (GitHub)</label><div id="ghBox" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
+    <div class="f"><label>🎯 לידים לפי מקור (השוואת גרסאות)</label><div id="sysLeads" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
+    <div class="f"><label>📥 Webhook לידים</label><div class="card" style="margin:0;padding:11px 13px">
+      <div class="hint">כדי שהמערכת תספור לידים ב-Agency HQ — הוסף בה קריאה כשנכנס ליד:</div>
+      <code id="hookCode" style="display:block;direction:ltr;text-align:left;font-size:.72rem;background:var(--bg-2);padding:8px;border-radius:8px;margin-top:6px;word-break:break-all">POST ${location.origin}/api/hook/lead&#10;{"systemId":"${s.id}","source":"website"}</code>
+      <button class="btn small ghost" type="button" onclick="copyHook('${s.id}')" style="margin-top:6px">העתק endpoint</button>
+    </div></div>`:''}
+    <div class="modal-actions"><button class="btn primary" onclick="saveSystem('${s.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${s.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delSystem('${s.id}')">מחיקה</button>`:''}</div>`);
+  if(s.id){ setTimeout(()=>loadGithub(s.id),0); setTimeout(()=>loadSysTasks(s.id),0); setTimeout(()=>loadSysLeads(s.id),0); }
+}
+async function saveSystem(id){
+  const body={name:val('f_name'),clientId:val('f_clientId'),kind:val('f_kind'),status:val('f_status'),stack:val('f_stack'),
+    url:val('f_url'),leadUrl:val('f_leadUrl'),leadUrlB:val('f_leadUrlB'),adminUrl:val('f_adminUrl'),credentials:val('f_credentials'),authMethod:val('f_authMethod'),authScore:val('f_authScore')||null,guideUrl:val('f_guideUrl'),ideaBubble:$('f_ideaBubble')&&$('f_ideaBubble').checked?1:0,repoUrl:val('f_repoUrl'),startDate:val('f_startDate'),launchDate:val('f_launchDate'),progress:valN('f_progress'),description:val('f_description')};
+  if(!body.name||!body.clientId){toast('חסר שם או לקוח','bad');return;}
+  try{ id?await apiPatch('/systems/'+id,body):await apiPost('/systems',body); closeModal(); toast('נשמר'); go('systems'); }
+  catch(e){toast('שגיאה: '+e.message,'bad');}
+}
+async function delSystem(id){ if(!confirm('למחוק מערכת?'))return; await apiDel('/systems/'+id); closeModal(); toast('נמחק'); go('systems'); }
+async function copyHook(id){
+  const txt=`${location.origin}/api/hook/lead`;
+  try{ await navigator.clipboard.writeText(txt); toast('ה-endpoint הועתק'); }catch(e){ toast('העתק ידנית','bad'); }
+}
+
+// ---------- התקשרויות ----------
+RENDER.engagements=async()=>{
+  await loadRefs(); const list=CACHE.engagements;
+  const activeMrr=list.filter(e=>e.status==='active').reduce((a,e)=>a+(e.monthlyValue||0),0);
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>התקשרויות</h2><div class="sub">${money(activeMrr)} MRR מ-${list.filter(e=>e.status==='active').length} התקשרויות פעילות</div></div>
+      <button class="btn primary" onclick="engagementForm()">+ התקשרות</button></div>
+    <div class="card" style="padding:6px 17px">
+      ${list.length?list.map(e=>{const st=ENG_STATUS[e.status]||[e.status,'p-gray'];return `
+        <div class="list-item" onclick='engagementForm(${j(e)})'>
+          <div class="li-main"><b>${esc(e.title)}</b><small>${esc(e.clientName)} · ${ENG_MODEL[e.model]||e.model}${e.setupValue?` · הקמה ${money(e.setupValue)}`:''}</small></div>
+          <div class="row" style="gap:8px"><span class="pill ${st[1]}">${st[0]}</span><b class="li-val" style="color:var(--accent-2)">${money(e.monthlyValue)}/ח'</b></div>
+        </div>`;}).join(''):'<div class="empty">אין עדיין התקשרויות</div>'}
+    </div>`;
+};
+function engagementForm(e={}){
+  const m=e.model||'retainer';
+  openModal(`<h3>${e.id?'עריכת התקשרות':'התקשרות חדשה'}</h3>
+    <div class="f2"><div class="f"><label>כותרת *</label><input id="f_title" value="${esc(e.title||'')}"></div>
+      <div class="f"><label>לקוח *</label><select id="f_clientId">${clientOptions(e.clientId)}</select></div></div>
+    <div class="f"><label>מודל חיוב</label><select id="f_model" onchange="engModelHint()">${opts(ENG_MODEL,m)}</select><div class="hint" id="engHint"></div></div>
+    <div class="f3">
+      <div class="f"><label>הקמה/מקדמה ₪</label><input type="number" id="f_setupFee" value="${e.setupFee||0}"></div>
+      <div class="f"><label>ריטיינר חודשי ₪</label><input type="number" id="f_monthlyFee" value="${e.monthlyFee||0}"></div>
+      <div class="f"><label>יום חיוב</label><input type="number" id="f_billingDay" min="1" max="28" value="${e.billingDay||1}"></div>
+    </div>
+    <div class="f3">
+      <div class="f"><label>תעריף שעה ₪</label><input type="number" id="f_hourlyRate" value="${e.hourlyRate||0}"></div>
+      <div class="f"><label>שעות בחודש</label><input type="number" id="f_monthlyHours" value="${e.monthlyHours||0}"></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(ENG_STATUS),e.status||'proposed')}</select></div>
+    </div>
+    <div class="f3">
+      <div class="f"><label>% ממחזור</label><input type="number" id="f_revsharePercent" value="${e.revsharePercent||0}"></div>
+      <div class="f"><label>מחזור לקוח ₪/ח'</label><input type="number" id="f_revshareBase" value="${e.revshareBase||0}"></div>
+      <div class="f"><label>תאריך התחלה</label><input type="date" id="f_startDate" value="${esc(e.startDate||'')}"></div>
+    </div>
+    <div class="f"><label>מערכת מקושרת</label><select id="f_systemId">${systemOptions(e.systemId,e.clientId)}</select></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveEngagement('${e.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="go('calculator')">פתח במחשבון</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${e.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delEngagement('${e.id}')">מחיקה</button>`:''}</div>`);
+  engModelHint();
+}
+function engModelHint(){
+  const m=val('f_model');
+  const hints={one_time:'פרויקט חד-פעמי — מלא רק "הקמה/מקדמה".',retainer:'ריטיינר חודשי קבוע.',hourly:'תעריף שעה × שעות בחודש.',revshare:'% ממחזור × מחזור לקוח.',value:'מבוסס-ערך — הזן את הסכום ב"ריטיינר חודשי".',hybrid:'שילוב: ריטיינר + שעות + % ממחזור.'};
+  const el=$('engHint'); if(el)el.textContent=hints[m]||'';
+}
+async function saveEngagement(id){
+  const body={title:val('f_title'),clientId:val('f_clientId'),model:val('f_model'),status:val('f_status'),
+    setupFee:valN('f_setupFee'),monthlyFee:valN('f_monthlyFee'),hourlyRate:valN('f_hourlyRate'),monthlyHours:valN('f_monthlyHours'),
+    revsharePercent:valN('f_revsharePercent'),revshareBase:valN('f_revshareBase'),billingDay:valN('f_billingDay'),
+    startDate:val('f_startDate'),systemId:val('f_systemId')};
+  if(!body.title||!body.clientId){toast('חסר כותרת או לקוח','bad');return;}
+  try{ id?await apiPatch('/engagements/'+id,body):await apiPost('/engagements',body); closeModal(); toast('נשמר'); go('engagements'); }
+  catch(e){toast('שגיאה: '+e.message,'bad');}
+}
+async function delEngagement(id){ if(!confirm('למחוק התקשרות?'))return; await apiDel('/engagements/'+id); closeModal(); toast('נמחק'); go('engagements'); }
+
+// ---------- מחשבון מודלי חיוב ----------
+const CALC_MODELS=['one_time','retainer','hourly','revshare','value','hybrid'];
+function calcInputs(){
+  return {
+    buildHours:valN('c_buildHours'), costRate:valN('c_costRate'), sellRate:valN('c_sellRate'),
+    setupFee:valN('c_setupFee'), monthlyFee:valN('c_monthlyFee'), monthlyHours:valN('c_monthlyHours'),
+    clientRevenue:valN('c_clientRevenue'), sharePct:valN('c_sharePct'),
+    clientValue:valN('c_clientValue'), capturePct:valN('c_capturePct'),
+    monthlyCost:valN('c_monthlyCost'), months:valN('c_months')||12, vat:$('c_vat')?.checked,
+  };
+}
+// חישוב מודל בודד לפי אותם משתני קלט
+function computeModel(model,I){
+  const build = I.setupFee>0 ? I.setupFee : I.buildHours*I.sellRate;
+  let setup=0, monthly=0;
+  switch(model){
+    case 'one_time': setup=build; monthly=0; break;
+    case 'retainer': setup=build; monthly=I.monthlyFee; break;
+    case 'hourly':   setup=I.setupFee; monthly=I.sellRate*I.monthlyHours; break;
+    case 'revshare': setup=I.setupFee; monthly=I.clientRevenue*I.sharePct/100; break;
+    case 'value':    setup=I.setupFee; monthly=I.clientValue*I.capturePct/100; break;
+    case 'hybrid':   setup=build; monthly=I.monthlyFee + I.clientRevenue*I.sharePct/100; break;
+  }
+  const months=I.months;
+  const buildCost=I.buildHours*I.costRate;
+  const deliverCost=I.monthlyHours*I.costRate;               // עלות שעות תמיכה חודשיות
+  const monthlyCostTotal=I.monthlyCost + deliverCost;
+  const totalRevenue=setup + monthly*months;
+  const totalCost=buildCost + monthlyCostTotal*months;
+  const profit=totalRevenue-totalCost;
+  const margin=totalRevenue>0?profit/totalRevenue:0;
+  const totalHours=I.buildHours + I.monthlyHours*months;
+  const effHourly=totalHours>0?totalRevenue/totalHours:0;
+  const monthlyNet=monthly-monthlyCostTotal;
+  const breakEven = monthlyNet>0 ? Math.ceil(Math.max(0,(buildCost-setup))/monthlyNet) : null;
+  return {model,setup,monthly,buildCost,monthlyCostTotal,totalRevenue,totalCost,profit,margin,effHourly,breakEven};
+}
+const marginPill=(m)=>{const c=m>=0.5?'p-green':m>=0.3?'p-amber':'p-red';return `<span class="pill ${c}">${Math.round(m*100)}%</span>`;};
+
+RENDER.calculator=async()=>{
+  await loadRefs();
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מחשבון מודלי חיוב</h2><div class="sub">כל המשתנים במקום אחד — השווה מודלים ובחר את הרווחי ביותר ללקוח ולך</div></div>
+      <button class="btn ghost small" onclick="loadScenarios()">תרחישים שמורים</button></div>
+    <div class="grid2">
+      <div class="card">
+        <h3>משתני הקלט</h3>
+        <div class="f2">
+          <div class="f"><label>שעות בנייה (פרויקט)</label><input type="number" id="c_buildHours" value="80" oninput="calcOut()"></div>
+          <div class="f"><label>אורך התקשרות (חודשים)</label><input type="number" id="c_months" value="12" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>עלות שעה שלי ₪</label><input type="number" id="c_costRate" value="120" oninput="calcOut()"><div class="hint">כמה שעת עבודה עולה לך</div></div>
+          <div class="f"><label>תעריף שעה ללקוח ₪</label><input type="number" id="c_sellRate" value="350" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>הקמה/מקדמה ₪ <span class="muted">(0=לפי שעות)</span></label><input type="number" id="c_setupFee" value="0" oninput="calcOut()"></div>
+          <div class="f"><label>ריטיינר חודשי ₪</label><input type="number" id="c_monthlyFee" value="1500" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>שעות תמיכה בחודש</label><input type="number" id="c_monthlyHours" value="4" oninput="calcOut()"></div>
+          <div class="f"><label>עלות חודשית שלי ₪ <span class="muted">(כלים/קבלני משנה)</span></label><input type="number" id="c_monthlyCost" value="150" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>מחזור חודשי צפוי אצל הלקוח ₪</label><input type="number" id="c_clientRevenue" value="40000" oninput="calcOut()"></div>
+          <div class="f"><label>% ממחזור</label><input type="number" id="c_sharePct" value="5" oninput="calcOut()"></div>
+        </div>
+        <div class="f2">
+          <div class="f"><label>ערך חודשי שאני מייצר ₪</label><input type="number" id="c_clientValue" value="8000" oninput="calcOut()"></div>
+          <div class="f"><label>% מהערך (capture)</label><input type="number" id="c_capturePct" value="25" oninput="calcOut()"></div>
+        </div>
+        <label class="row" style="gap:7px;cursor:pointer"><input type="checkbox" id="c_vat" style="width:auto" onchange="calcOut()"> הצג כולל מע"מ (18%)</label>
+      </div>
+      <div id="calcOut"></div>
+    </div>`;
+  calcOut();
+};
+function calcOut(){
+  const I=calcInputs();
+  const results=CALC_MODELS.map(m=>computeModel(m,I));
+  const vat=I.vat?1.18:1;
+  const vlabel=I.vat?' <span class="muted" style="font-size:.7rem">כולל מע"מ</span>':'';
+  // המודל עם הרווח הגבוה ביותר
+  const best=results.reduce((a,b)=>b.profit>a.profit?b:a,results[0]);
+  $('calcOut').innerHTML=`
+    <div class="card" style="border-color:var(--accent-2)">
+      <div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מומלץ: ${ENG_MODEL[best.model]}</h3>${marginPill(best.margin)}</div>
+      <div class="split" style="margin-bottom:10px">
+        <div><div class="muted hint">חד-פעמי (הקמה)</div><div class="big">${money(best.setup*vat)}</div></div>
+        <div><div class="muted hint">חודשי</div><div class="big" style="color:var(--accent-2)">${money(best.monthly*vat)}</div></div>
+      </div>
+      <div class="stat-row"><span>סה"כ הכנסה (${I.months} ח')${vlabel}</span><b>${money(best.totalRevenue*vat)}</b></div>
+      <div class="stat-row"><span>עלות כוללת שלי</span><b>${money(best.totalCost)}</b></div>
+      <div class="stat-row"><span>רווח</span><b style="color:${best.profit>=0?'var(--green)':'var(--red)'}">${money(best.profit)}</b></div>
+      <div class="stat-row"><span>תעריף אפקטיבי לשעה</span><b>${money(best.effHourly)}</b></div>
+      <div class="stat-row"><span>החזר השקעה (break-even)</span><b>${best.breakEven!=null?best.breakEven+" ח'":'—'}</b></div>
+    </div>
+    <div class="card">
+      <h3>השוואת מודלים</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th>מודל</th><th class="num">הקמה</th><th class="num">חודשי</th><th class="num">סה"כ</th><th class="num">רווח</th><th>שוליים</th></tr>
+        ${results.map(r=>`<tr class="${r.model===best.model?'hot':''}">
+          <td>${ENG_MODEL[r.model]}</td>
+          <td class="num">${money1(r.setup*vat)}</td>
+          <td class="num">${money1(r.monthly*vat)}</td>
+          <td class="num">${money1(r.totalRevenue*vat)}</td>
+          <td class="num" style="color:${r.profit>=0?'var(--green)':'var(--red)'}">${money1(r.profit)}</td>
+          <td>${marginPill(r.margin)}</td></tr>`).join('')}
+      </table></div>
+      <div class="hint">השוליים מחושבים על בסיס עלות עבודה (${money(I.costRate)}/שעה) + עלות חודשית. תעריף אפקטיבי לשעה מגלם את כל ההכנסה חלקי כל השעות.</div>
+      <div class="modal-actions"><button class="btn primary small" onclick="saveScenario()">שמירת תרחיש</button>
+        <button class="btn teal small" onclick="scenarioToEngagement()">צור התקשרות מהמומלץ</button></div>
+    </div>`;
+}
+async function saveScenario(){
+  const name=prompt('שם התרחיש:'); if(!name)return;
+  const I=calcInputs(); const results=CALC_MODELS.map(m=>computeModel(m,I));
+  const best=results.reduce((a,b)=>b.profit>a.profit?b:a,results[0]);
+  try{ await apiPost('/finance/scenarios',{name,model:best.model,inputs:I,results:{best,all:results}}); toast('התרחיש נשמר'); }
+  catch(e){toast('שגיאה','bad');}
+}
+async function loadScenarios(){
+  const list=await apiGet('/finance/scenarios');
+  openModal(`<h3>תרחישים שמורים</h3>${list.length?list.map(s=>{const r=JSON.parse(s.results||'{}').best||{};return `
+    <div class="list-item"><div class="li-main"><b>${esc(s.name)}</b><small>${ENG_MODEL[s.model]||s.model} ${s.clientName?'· '+esc(s.clientName):''} · רווח ${money(r.profit||0)}</small></div>
+      <button class="btn danger small" onclick="delScenario('${s.id}')">מחק</button></div>`;}).join(''):'<div class="empty">אין תרחישים שמורים</div>'}
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">סגירה</button></div>`);
+}
+async function delScenario(id){ await apiDel('/finance/scenarios/'+id); loadScenarios(); toast('נמחק'); }
+function scenarioToEngagement(){
+  const I=calcInputs(); const best=CALC_MODELS.map(m=>computeModel(m,I)).reduce((a,b)=>b.profit>a.profit?b:a);
+  go('engagements');
+  setTimeout(()=>engagementForm({model:best.model,setupFee:Math.round(best.setup),monthlyFee:best.model==='retainer'||best.model==='hybrid'||best.model==='value'?Math.round(best.monthly):0,
+    hourlyRate:I.sellRate,monthlyHours:I.monthlyHours,revsharePercent:I.sharePct,revshareBase:I.clientRevenue}),150);
+}
+
+// ---------- תזרים ----------
+let CF_MONTHS=12;
+RENDER.cashflow=async()=>{
+  await loadRefs();
+  const [f,ledger,opening,byProj]=await Promise.all([apiGet('/finance/forecast?months='+CF_MONTHS),apiGet('/finance/cashflow'),apiGet('/finance/opening'),apiGet('/finance/by-project')]);
+  const s=f.summary; const maxAbs=Math.max(1,...f.buckets.map(b=>Math.max(b.income,b.expense)));
+  const recurExp=ledger.filter(r=>r.recurring==='monthly'&&r.kind==='expense').reduce((a,r)=>a+(r.amount||0),0);
+  const recurInc=ledger.filter(r=>r.recurring==='monthly'&&r.kind==='income').reduce((a,r)=>a+(r.amount||0),0);
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>תזרים</h2><div class="sub">תחזית מבוססת התקשרויות פעילות + תנועות ידניות</div></div>
+      <div class="row"><div class="seg">${[6,12,24].map(n=>`<button class="${n===CF_MONTHS?'on':''}" onclick="CF_MONTHS=${n};go('cashflow')">${n} ח'</button>`).join('')}</div>
+        <button class="btn ghost" onclick="infraForm()">🧩 תשתית</button>
+        <button class="btn primary" onclick="cfForm()">+ תנועה</button></div></div>
+    <div class="kpis">
+      <div class="kpi accent"><b>${money(s.mrr)}</b><small>MRR נוכחי</small></div>
+      <div class="kpi amber"><b>${money(recurExp)}</b><small>הוצאות קבועות/מנויים לחודש</small></div>
+      <div class="kpi green"><b>${money(s.totalIncome)}</b><small>סה"כ הכנסות (${CF_MONTHS} ח')</small></div>
+      <div class="kpi amber"><b>${money(s.totalExpense)}</b><small>סה"כ הוצאות</small></div>
+      <div class="kpi"><b>${money(s.net)}</b><small>נטו</small></div>
+      <div class="kpi ${s.endBalance>=0?'green':''}"><b>${money(s.endBalance)}</b><small>מאזן צפוי בסוף</small></div>
+    </div>
+    <div class="card">
+      <div class="spread"><h3 style="margin:0">תחזית חודשית</h3>
+        <button class="btn ghost small" onclick="openingForm(${opening.value})">יתרת פתיחה: ${money(opening.value)}</button></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>חודש</th><th class="num">הכנסה</th><th class="num">הוצאה</th><th class="num">נטו</th><th class="num">מאזן מצטבר</th><th style="width:130px"></th></tr>
+        ${f.buckets.map(b=>`<tr>
+          <td>${b.label}</td>
+          <td class="num" style="color:var(--green)">${money1(b.income)}</td>
+          <td class="num" style="color:var(--amber)">${money1(b.expense)}</td>
+          <td class="num">${money1(b.net)}</td>
+          <td class="num" style="color:${b.balance>=0?'var(--txt)':'var(--red)'};font-weight:800">${money1(b.balance)}</td>
+          <td><div class="bar" style="height:9px"><span style="width:${Math.round(b.income/maxAbs*100)}%"></span></div></td>
+        </tr>`).join('')}
+      </table></div>
+    </div>
+    ${byProj.projects.length?`<div class="card">
+      <div class="spread"><h3 style="margin:0">💠 עלות תשתית/מנויים לפי פרויקט</h3><small class="sub">${money(byProj.totalAllocated)}/ח' משויך${byProj.unassigned.monthly?` · ${money(byProj.unassigned.monthly)}/ח' לא משויך`:''}</small></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>פרויקט</th><th class="num">₪/חודש</th><th>מנויים</th></tr>
+        ${byProj.projects.map(p=>`<tr>
+          <td><b>${esc(p.name)}</b></td>
+          <td class="num" style="font-weight:800;color:var(--amber)">${money1(p.monthly)}</td>
+          <td><small class="sub">${p.items.map(it=>esc(it.label)+' ('+money1(it.monthly)+')').join(' · ')}</small></td>
+        </tr>`).join('')}
+      </table></div>
+      ${byProj.unassigned.items.length?`<div class="sub" style="margin-top:8px">לא משויך: ${byProj.unassigned.items.map(it=>esc(it.label)).join(' · ')} — לחצו על תנועה כדי לשייך לפרויקטים</div>`:''}
+    </div>`:''}
+    <div class="card">
+      <h3>תנועות ידניות (${ledger.length})</h3>
+      ${ledger.length?ledger.map(r=>`<div class="list-item" onclick='cfForm(${j(r)})'>
+        <div class="li-main"><b>${r.kind==='income'?'⬆️':'⬇️'} ${esc(r.label)}</b><small>${r.startDate} · ${r.recurring==='monthly'?('🔁 חודשי'+(r.billingDay?` · חיוב ב-${r.billingDay} לחודש`:'')):'חד-פעמי'}${r.clientName?' · '+esc(r.clientName):''}${r.category?' · '+esc(r.category):''}</small>
+        ${r.kind==='expense'&&r.allocations&&r.allocations.length?`<div class="chips" style="margin-top:5px">${r.allocations.map(a=>`<span class="chip">${esc(a.clientName)} · ${money1(a.share)}</span>`).join('')}</div>`:''}</div>
+        <div class="row" style="gap:8px">
+          ${r.kind==='expense'?`<button class="btn ghost small" onclick='event.stopPropagation();allocForm(${j(r)})'>🔗 שיוך</button>`:''}
+          <b class="li-val" style="color:${r.kind==='income'?'var(--green)':'var(--amber)'}">${r.kind==='income'?'+':'−'}${money(r.amount)}</b></div></div>`).join(''):'<div class="empty">אין תנועות ידניות. ההכנסות מההתקשרויות מחושבות אוטומטית.</div>'}
+    </div>`;
+};
+// ---------- שיוך הוצאה לפרויקטים (פיצול עלות שווה) ----------
+function allocForm(r){
+  const cur=new Set((r.allocations||[]).map(a=>a.clientId||'__internal__'));
+  const rows=[{id:'__internal__',name:'מערכת הניהול (Agency HQ)'}].concat(CACHE.clients.map(c=>({id:c.id,name:c.name})));
+  openModal(`<h3>שיוך הוצאה לפרויקטים</h3>
+    <div class="sub" style="margin-bottom:10px">${esc(r.label)} · ${money(r.amount)}${r.recurring==='monthly'?"/ח'":''} — סמנו את הפרויקטים שמשתמשים במנוי. העלות מתחלקת שווה בשווה ביניהם.</div>
+    <div id="allocList" style="max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px">
+      ${rows.map(o=>`<label class="list-item" style="cursor:pointer">
+        <div class="li-main"><b>${o.id==='__internal__'?'🏠 ':''}${esc(o.name)}</b></div>
+        <input type="checkbox" class="alloc-cb" value="${o.id}" ${cur.has(o.id)?'checked':''} onchange="allocPreview(${r.amount})" style="width:20px;height:20px">
+      </label>`).join('')}
+    </div>
+    <div id="allocPrev" class="sub" style="margin-top:10px"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveAlloc('${r.id}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      <button class="btn danger" style="margin-inline-start:auto" onclick="clearAlloc('${r.id}')">בטל שיוך</button></div>`);
+  allocPreview(r.amount);
+}
+function allocCbs(){return [...document.querySelectorAll('.alloc-cb:checked')].map(cb=>cb.value);}
+function allocPreview(amount){
+  const sel=allocCbs(); const p=$('allocPrev'); if(!p)return;
+  if(!sel.length){p.textContent='לא משויך — העלות נשארת ברמת הסוכנות.';return;}
+  const per=Math.round(amount/sel.length*100)/100;
+  p.textContent=`מתחלק בין ${sel.length} פרויקטים · ${money(per)} לכל אחד`;
+}
+async function saveAlloc(id){
+  const targets=allocCbs().map(v=>({clientId:v==='__internal__'?null:v,weight:1}));
+  try{ await apiPut('/finance/cashflow/'+id+'/allocations',{targets}); closeModal(); toast('השיוך נשמר'); go('cashflow'); }
+  catch(e){ toast('שגיאה','bad'); }
+}
+async function clearAlloc(id){
+  try{ await apiPut('/finance/cashflow/'+id+'/allocations',{targets:[]}); closeModal(); toast('השיוך בוטל'); go('cashflow'); }
+  catch(e){ toast('שגיאה','bad'); }
+}
+function cfForm(r={}){
+  openModal(`<h3>${r.id?'עריכת תנועה':'תנועת תזרים'}</h3>
+    <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({income:'הכנסה',expense:'הוצאה'},r.kind||'expense')}</select></div>
+      <div class="f"><label>סכום ₪ *</label><input type="number" id="f_amount" value="${r.amount||''}"></div></div>
+    <div class="f"><label>תיאור *</label><input id="f_label" value="${esc(r.label||'')}"></div>
+    <div class="f2"><div class="f"><label>חזרתיות</label><select id="f_recurring">${opts({once:'חד-פעמי',monthly:'חודשי (מנוי)'},r.recurring||'once')}</select></div>
+      <div class="f"><label>יום חיוב בחודש (למנוי)</label><input type="number" id="f_billingDay" min="1" max="31" value="${r.billingDay||''}" placeholder="1–31"></div></div>
+    <div class="f"><label>קטגוריה</label><input id="f_category" value="${esc(r.category||'')}" placeholder="מנוי / כלים / שכ""ד / קבלן…"></div>
+    <div class="f2"><div class="f"><label>תאריך התחלה</label><input type="date" id="f_startDate" value="${esc(r.startDate||todayISO())}"></div>
+      <div class="f"><label>עד (לחודשי, אופציונלי)</label><input type="date" id="f_endDate" value="${esc(r.endDate||'')}"></div></div>
+    <div class="f"><label>לקוח מקושר</label><select id="f_clientId">${clientOptions(r.clientId)}</select></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveCf('${r.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${r.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delCf('${r.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveCf(id){
+  const body={kind:val('f_kind'),amount:valN('f_amount'),label:val('f_label'),recurring:val('f_recurring'),billingDay:val('f_billingDay')||null,
+    category:val('f_category'),startDate:val('f_startDate'),endDate:val('f_endDate')||null,clientId:val('f_clientId')||null};
+  if(!body.label||!body.amount){toast('חסר תיאור או סכום','bad');return;}
+  try{ id?await apiPatch('/finance/cashflow/'+id,body):await apiPost('/finance/cashflow',body); closeModal(); toast('נשמר'); go('cashflow'); }
+  catch(e){toast('שגיאה','bad');}
+}
+async function delCf(id){ if(!confirm('למחוק תנועה?'))return; await apiDel('/finance/cashflow/'+id); closeModal(); toast('נמחק'); go('cashflow'); }
+
+// ---------- קטלוג הוצאות תשתית / ממשקים (דומיין, אירוח, דוא״ל, DB, ניטור…) ----------
+// אומדני מחיר ניתנים לעריכה לפני ההוספה. כל פריט נוסף כהוצאה חודשית — ואז ניתן לעריכה ולשיוך לפרויקטים ככל מנוי אחר.
+const INFRA_CATALOG=[
+  {label:'דומיין (חידוש שנתי)',            amount:12, category:'דומיין',        note:'≈ ₪120–₪150 לשנה · שווה-ערך חודשי'},
+  {label:'אירוח / Cloudflare Workers',    amount:20, category:'אירוח וענן',    note:'תוכנית Paid · $5 לחודש'},
+  {label:'Cloudflare Pro (אופציונלי)',    amount:75, category:'אירוח וענן',    note:'$20 לחודש · חומת אש ואנליטיקס'},
+  {label:'בסיס נתונים מנוהל (D1)',         amount:20, category:'בסיס נתונים',   note:'מעבר למכסה החינמית'},
+  {label:'דוא״ל עסקי (Google Workspace)', amount:25, category:'דוא״ל',         note:'לכל תיבה בחודש'},
+  {label:'GitHub (Team)',                 amount:16, category:'קוד ו-DevOps',  note:'$4 למשתמש בחודש'},
+  {label:'ניטור זמינות (Uptime)',          amount:30, category:'ניטור',         note:'BetterStack / UptimeRobot'},
+  {label:'גיבויים מנוהלים',               amount:20, category:'גיבוי',          note:'גיבוי אוטומטי של נתונים'},
+  {label:'שירות SMS / וואטסאפ',           amount:50, category:'תקשורת',        note:'לפי נפח הודעות'},
+  {label:'AI API (Anthropic / OpenAI)',   amount:80, category:'AI',            note:'לפי צריכה בפועל'},
+  {label:'כלי עיצוב (Figma / Canva)',      amount:45, category:'עיצוב',         note:'מנוי חודשי'},
+  {label:'סליקת אשראי (מנוי בסיס)',        amount:30, category:'סליקה',         note:'ללא עמלות עסקה'},
+  {label:'תעודת SSL בתשלום',              amount:0,  category:'אבטחה',         note:'בד״כ חינם ב-Cloudflare — ערכו אם בתשלום'},
+  {label:'CDN בתשלום',                    amount:0,  category:'אירוח וענן',    note:'בד״כ כלול — ערכו אם בתשלום'},
+];
+async function infraForm(){
+  let existing=new Set();
+  try{ const led=await apiGet('/finance/cashflow'); existing=new Set(led.map(r=>r.label)); }catch(e){}
+  const rows=INFRA_CATALOG.map((it,i)=>{
+    const dup=existing.has(it.label);
+    return `<label class="list-item" style="cursor:pointer;align-items:center;gap:10px">
+      <input type="checkbox" class="infra-cb" data-i="${i}" ${dup?'':'checked'} onchange="infraPreview()" style="width:20px;height:20px">
+      <div class="li-main" style="flex:1">
+        <b>${esc(it.label)}${dup?' <span class="chip">כבר קיים</span>':''}</b>
+        <small>${esc(it.category)}${it.note?' · '+esc(it.note):''}</small></div>
+      <div class="row" style="gap:4px;align-items:center">
+        <input type="number" id="infra_amt_${i}" value="${it.amount}" min="0" style="width:82px;text-align:end" onchange="infraPreview()">
+        <small class="sub">₪/ח׳</small></div>
+    </label>`;
+  }).join('');
+  openModal(`<h3>🧩 קטלוג הוצאות תשתית / ממשקים</h3>
+    <div class="sub" style="margin-bottom:10px">סמנו את השירותים שאתם משלמים עליהם וערכו את הסכום. כל פריט נוסף כהוצאה חודשית — ניתן לעריכה ולשיוך לפרויקטים אחר כך (כפתור 🔗 שיוך).</div>
+    <div style="max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:6px">${rows}</div>
+    <div id="infraPrev" class="sub" style="margin-top:10px"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="addInfra()">הוספת נבחרים</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+  infraPreview();
+}
+function infraCbs(){ return [...document.querySelectorAll('.infra-cb:checked')]; }
+function infraPreview(){
+  const p=$('infraPrev'); if(!p)return;
+  const sel=infraCbs(); let sum=0; sel.forEach(cb=>{ sum+=valN('infra_amt_'+cb.dataset.i)||0; });
+  p.textContent=sel.length?`${sel.length} שירותים · סה״כ ${money(sum)}/חודש`:'לא נבחרו שירותים';
+}
+async function addInfra(){
+  const sel=infraCbs(); if(!sel.length){ toast('לא נבחרו שירותים','bad'); return; }
+  let n=0;
+  for(const cb of sel){
+    const it=INFRA_CATALOG[+cb.dataset.i];
+    const amount=valN('infra_amt_'+cb.dataset.i)||0;
+    try{ await apiPost('/finance/cashflow',{kind:'expense',amount,label:it.label,recurring:'monthly',category:it.category,startDate:todayISO()}); n++; }
+    catch(e){}
+  }
+  closeModal(); toast(`נוספו ${n} הוצאות תשתית`); go('cashflow');
+}
+function openingForm(v){
+  openModal(`<h3>יתרת פתיחה</h3><div class="f"><label>יתרת מזומן נוכחית ₪</label><input type="number" id="f_open" value="${v||0}"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveOpening()">שמירה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+}
+async function saveOpening(){ await apiPost('/finance/opening',{value:valN('f_open')}); closeModal(); toast('נשמר'); go('cashflow'); }
+
+// ---------- מרכזי רווח ----------
+RENDER.ideas=async()=>{
+  await loadRefs(); const list=await apiGet('/ideas');
+  const totalWeighted=list.filter(i=>!['dropped','active'].includes(i.status)).reduce((a,i)=>a+(i.weighted||0),0);
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מרכזי רווח</h2><div class="sub">רעיונות והכנסות חדשות · ${money(totalWeighted)} פוטנציאל משוקלל</div></div>
+      <div class="row"><button class="btn ghost" onclick="seedIdeas()" title="טעינת שירותים מוכנים למכירה (אינטגרציות, קמפיינים)">+ רעיונות מוכנים</button>
+        <button class="btn primary" onclick="ideaForm()">+ רעיון</button></div></div>
+    <div class="card" style="padding:6px 17px">
+      ${list.length?list.map(i=>`<div class="list-item" onclick='ideaForm(${j(i)})'>
+        <div class="li-main"><b>💡 ${esc(i.title)}</b><small>${i.clientName?esc(i.clientName)+' · ':''}${i.model?esc(i.model)+' · ':''}מאמץ ${EFFORT[i.effort]||i.effort} · סבירות ${i.confidence}%</small></div>
+        <div class="row" style="gap:8px">${pill(IDEA_STATUS,i.status)}<b class="li-val" style="color:var(--accent-2)">${i.potentialMonthly?money(i.potentialMonthly)+"/ח'":i.potentialOneTime?money(i.potentialOneTime):''}</b></div></div>`).join(''):'<div class="empty">כאן נולדים מרכזי הרווח החדשים 🚀</div>'}
+    </div>`;
+};
+function ideaForm(i={}){
+  openModal(`<h3>${i.id?'עריכת מרכז רווח':'מרכז רווח חדש'}</h3>
+    <div class="f"><label>כותרת *</label><input id="f_title" value="${esc(i.title||'')}"></div>
+    <div class="f2"><div class="f"><label>לקוח (אופציונלי)</label><select id="f_clientId">${clientOptions(i.clientId)}</select></div>
+      <div class="f"><label>מודל הכנסה</label><input id="f_model" value="${esc(i.model||'')}" placeholder="SaaS, אחוזים, מנוי…"></div></div>
+    <div class="f3"><div class="f"><label>פוטנציאל חודשי ₪</label><input type="number" id="f_potentialMonthly" value="${i.potentialMonthly||0}"></div>
+      <div class="f"><label>פוטנציאל חד-פעמי ₪</label><input type="number" id="f_potentialOneTime" value="${i.potentialOneTime||0}"></div>
+      <div class="f"><label>סבירות %</label><input type="number" id="f_confidence" min="0" max="100" value="${i.confidence??50}"></div></div>
+    <div class="f2"><div class="f"><label>מאמץ</label><select id="f_effort">${opts(EFFORT,i.effort||'medium')}</select></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(IDEA_STATUS),i.status||'idea')}</select></div></div>
+    <div class="f"><label>תיאור</label><textarea id="f_description" rows="3">${esc(i.description||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveIdea('${i.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${i.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delIdea('${i.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveIdea(id){
+  const body={title:val('f_title'),clientId:val('f_clientId')||null,model:val('f_model'),potentialMonthly:valN('f_potentialMonthly'),
+    potentialOneTime:valN('f_potentialOneTime'),confidence:valN('f_confidence'),effort:val('f_effort'),status:val('f_status'),description:val('f_description')};
+  if(!body.title){toast('חסרה כותרת','bad');return;}
+  try{ id?await apiPatch('/ideas/'+id,body):await apiPost('/ideas',body); closeModal(); toast('נשמר'); go('ideas'); }catch(e){toast('שגיאה','bad');}
+}
+async function delIdea(id){ if(!confirm('למחוק?'))return; await apiDel('/ideas/'+id); closeModal(); toast('נמחק'); go('ideas'); }
+async function seedIdeas(){ try{ const r=await apiPost('/ideas/seed'); toast(r.added?`נוספו ${r.added} רעיונות מוכנים`:'כל הרעיונות כבר קיימים'); go('ideas'); }catch(e){toast('שגיאה','bad');} }
+
+// ---------- תהליכים ----------
+RENDER.processes=async()=>{
+  await loadRefs(); const list=await apiGet('/processes');
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>תהליכים ומסעות לקוח</h2><div class="sub">תהליכי עבודה, מסעות לקוח ונהלים שאתה בונה</div></div>
+      <button class="btn primary" onclick="processForm()">+ תהליך</button></div>
+    <div class="grid2">
+      ${list.length?list.map(p=>{const steps=JSON.parse(p.steps||'[]');const done=steps.filter(s=>s.done).length;return `
+        <div class="card" onclick='processForm(${j(p)})' style="cursor:pointer">
+          <div class="spread" style="margin-bottom:4px"><h3 style="margin:0">${esc(p.name)}</h3>${pill({process:['תהליך','p-blue'],journey:['מסע לקוח','p-purple'],sop:['נוהל','p-teal']},p.kind)}</div>
+          <div class="hint">${p.clientName?esc(p.clientName):'כללי'} · ${steps.length} שלבים${steps.length?` · ${done}/${steps.length} הושלמו`:''}</div>
+          ${steps.length?`<div class="bar" style="margin-top:8px"><span style="width:${Math.round(done/steps.length*100)}%"></span></div>`:''}
+        </div>`;}).join(''):'<div class="empty">התחל למפות תהליך עבודה או מסע לקוח</div>'}
+    </div>`;
+};
+let PSTEPS=[];
+function processForm(p={}){
+  PSTEPS=JSON.parse(p.steps||'[]');
+  openModal(`<h3>${p.id?'עריכת תהליך':'תהליך חדש'}</h3>
+    <div class="f2"><div class="f"><label>שם *</label><input id="f_name" value="${esc(p.name||'')}"></div>
+      <div class="f"><label>סוג</label><select id="f_kind">${opts({process:'תהליך עבודה',journey:'מסע לקוח',sop:'נוהל (SOP)'},p.kind||'process')}</select></div></div>
+    <div class="f2"><div class="f"><label>לקוח</label><select id="f_clientId">${clientOptions(p.clientId)}</select></div>
+      <div class="f"><label>סטטוס</label><select id="f_status">${opts({draft:'טיוטה',active:'פעיל',archived:'ארכיון'},p.status||'draft')}</select></div></div>
+    <div class="f"><label>תיאור</label><textarea id="f_description" rows="2">${esc(p.description||'')}</textarea></div>
+    <div class="f"><label>שלבים</label><div id="stepsList"></div>
+      <button class="btn ghost small" onclick="addStep()" type="button">+ שלב</button></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveProcess('${p.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${p.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delProcess('${p.id}')">מחיקה</button>`:''}</div>`, true);
+  renderSteps();
+}
+function renderSteps(){
+  $('stepsList').innerHTML=PSTEPS.map((s,idx)=>`<div class="pstep">
+    <div class="row" style="gap:6px">
+      <input type="checkbox" style="width:auto" ${s.done?'checked':''} onchange="PSTEPS[${idx}].done=this.checked">
+      <input value="${esc(s.title||'')}" placeholder="שם השלב" oninput="PSTEPS[${idx}].title=this.value" class="grow">
+      <input value="${esc(s.owner||'')}" placeholder="אחראי" style="max-width:120px" oninput="PSTEPS[${idx}].owner=this.value">
+      <button class="btn danger small" type="button" onclick="PSTEPS.splice(${idx},1);renderSteps()">✕</button></div>
+    <div class="row" style="gap:6px;margin-top:4px">
+      <input value="${esc(s.trigger||'')}" placeholder="⚡ אירוע מפעיל" style="max-width:210px" oninput="PSTEPS[${idx}].trigger=this.value">
+      <input value="${esc(s.notes||'')}" placeholder="📤 תוצר / מערכת / מדד" oninput="PSTEPS[${idx}].notes=this.value" class="grow"></div>
+  </div>`).join('')||'<div class="hint">אין שלבים עדיין</div>';
+}
+function addStep(){ PSTEPS.push({title:'',owner:'',trigger:'',notes:'',done:false}); renderSteps(); }
+async function saveProcess(id){
+  const body={name:val('f_name'),kind:val('f_kind'),clientId:val('f_clientId')||null,status:val('f_status'),description:val('f_description'),steps:PSTEPS.filter(s=>s.title)};
+  if(!body.name){toast('חסר שם','bad');return;}
+  try{ id?await apiPatch('/processes/'+id,body):await apiPost('/processes',body); closeModal(); toast('נשמר'); go('processes'); }catch(e){toast('שגיאה','bad');}
+}
+async function delProcess(id){ if(!confirm('למחוק?'))return; await apiDel('/processes/'+id); closeModal(); toast('נמחק'); go('processes'); }
+
+// ---------- מודולים (קטלוג + מטריצה) ----------
+RENDER.modules=async()=>{
+  const list=await apiGet('/modules');
+  if(!list.length){ $('view').innerHTML='<h2>מודולים</h2><div class="empty">אין עדיין מודולים. הוסף מודולים מכרטיס לקוח.</div>'; return; }
+  const shortName=(n)=>String(n).split(/ — | \(|,/)[0].slice(0,20);
+  const clients=[...new Map(list.filter(m=>m.clientId).map(m=>[m.clientId,m.clientName||'—'])).entries()].map(([id,name])=>({id,name,short:shortName(name)}));
+  const names=[...new Set(list.map(m=>m.name))];
+  const nameClients={}; list.forEach(m=>{(nameClients[m.name]=nameClients[m.name]||new Set()).add(m.clientId);});
+  names.sort((a,b)=>(nameClients[b].size-nameClients[a].size)||a.localeCompare(b,'he'));
+  const shared=names.filter(n=>nameClients[n].size>1);
+  $('view').innerHTML=`
+    <h2>מודולים</h2><div class="sub">${list.length} מופעים · ${names.length} מודולים ייחודיים · ${clients.length} פרויקטים</div>
+    <div class="kpis">
+      <div class="kpi accent"><b>${list.length}</b><small>סה"כ מודולים מוטמעים</small></div>
+      <div class="kpi"><b>${names.length}</b><small>מודולים ייחודיים</small></div>
+      <div class="kpi"><b>${clients.length}</b><small>פרויקטים</small></div>
+      <div class="kpi amber"><b>${shared.length}</b><small>משותפים (2+ פרויקטים)</small></div>
+    </div>
+    ${shared.length?`<div class="card"><h3>מודולים משותפים — נכסים לשכפול</h3>
+      ${shared.map(n=>`<div class="list-item"><div class="li-main"><b>${esc(n)}</b><small>${[...nameClients[n]].map(id=>esc(clients.find(c=>c.id===id)?.short||'—')).join(' · ')}</small></div><b class="li-val" style="color:var(--accent-2)">${nameClients[n].size}</b></div>`).join('')}
+    </div>`:''}
+    <div class="card"><h3>מטריצה: מודול × פרויקט</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th style="text-align:right">מודול</th>${clients.map(c=>`<th title="${esc(c.name)}" style="writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;font-size:.72rem;height:120px;vertical-align:bottom">${esc(c.short)}</th>`).join('')}<th class="num">סה"כ</th></tr>
+        ${names.map(n=>`<tr><td style="white-space:nowrap">${esc(n)}</td>${clients.map(c=>`<td style="text-align:center">${nameClients[n].has(c.id)?'<span style="color:var(--accent-2);font-weight:800">✓</span>':'<span style="color:var(--line)">·</span>'}</td>`).join('')}<td class="num"><b>${nameClients[n].size}</b></td></tr>`).join('')}
+      </table></div>
+      <div class="hint">✓ = הפרויקט מממש את המודול · העמודות (אנכי) = הפרויקטים.</div>
+    </div>`;
+};
+
+// ---------- מסמכים ותוצרים ----------
+RENDER.documents=async()=>{
+  await loadRefs();
+  const list=await apiGet('/documents');
+  const groups={};
+  for(const dc of list){ const k=dc.clientId||'__agency'; (groups[k]=groups[k]||[]).push(dc); }
+  const gName=(id)=>id==='__agency'?'בית התוכנה · חוצה-פרויקטים':(CACHE.clients.find(c=>c.id===id)?.name||'—');
+  const keys=Object.keys(groups).sort((a,b)=>(a==='__agency'?1:0)-(b==='__agency'?1:0));
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מסמכים ותוצרים</h2><div class="sub">${list.length} תוצרים · מרכז אחד לכל הקישורים, המסמכים והתשתיות</div></div>
+      <button class="btn primary" onclick="docForm()">+ מסמך</button></div>
+    ${keys.length?keys.map(k=>`
+      <div class="card"><h3>${esc(gName(k))} <span class="muted" style="font-weight:400">(${groups[k].length})</span></h3>
+        ${groups[k].map(dc=>`<div class="list-item" onclick='docForm(${j(dc)})'>
+          <div class="li-main"><b>${dc.pinned?'📌 ':''}${docIcon(dc.category)} ${esc(dc.title)}</b>
+            <small>${docCatLabel(dc.category)}${dc.source?' · '+esc(dc.source):''}${dc.url?' · '+esc(dc.url.replace(/^https?:\/\//,'').slice(0,46)):''}</small></div>
+          ${dc.url?`<a href="${esc(dc.url)}" target="_blank" onclick="event.stopPropagation()" class="btn small ghost">פתח ↗</a>`:''}
+        </div>`).join('')}
+      </div>`).join(''):'<div class="empty">אין עדיין מסמכים. הוסף את הראשון!</div>'}`;
+};
+function docForm(dc={}){
+  openModal(`<h3>${dc.id?'עריכת מסמך':'מסמך / תוצר חדש'}</h3>
+    <div class="f"><label>כותרת *</label><input id="f_title" value="${esc(dc.title||'')}"></div>
+    <div class="f"><label>קישור (URL)</label><input id="f_url" value="${esc(dc.url||'')}" placeholder="https://…"></div>
+    <div class="f2"><div class="f"><label>קטגוריה</label><select id="f_category">${catOptions(dc.category||'doc')}</select></div>
+      <div class="f"><label>מקור</label><select id="f_source">${opts({artifact:'Artifact',github:'GitHub',supabase:'Supabase',netlify:'Netlify',vercel:'Vercel',cloudflare:'Cloudflare',firebase:'Firebase',expo:'Expo',drive:'Google Drive',other:'אחר'},dc.source||'artifact')}</select></div></div>
+    <div class="f"><label>לקוח (ריק = חוצה-פרויקטים)</label><select id="f_clientId">${clientOptions(dc.clientId)}</select></div>
+    <div class="f"><label>הערות</label><textarea id="f_notes" rows="2">${esc(dc.notes||'')}</textarea></div>
+    <label class="row" style="gap:7px;cursor:pointer;margin-bottom:4px"><input type="checkbox" id="f_pinned" style="width:auto" ${dc.pinned?'checked':''}> 📌 נעוץ למעלה</label>
+    <div class="modal-actions"><button class="btn primary" onclick="saveDoc('${dc.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${dc.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delDoc('${dc.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveDoc(id){
+  const body={title:val('f_title'),url:val('f_url'),category:val('f_category'),source:val('f_source'),clientId:val('f_clientId')||null,notes:val('f_notes'),pinned:$('f_pinned').checked?1:0};
+  if(!body.title){toast('חסרה כותרת','bad');return;}
+  try{ id?await apiPatch('/documents/'+id,body):await apiPost('/documents',body); closeModal(); toast('נשמר'); go('documents'); }
+  catch(e){toast('שגיאה','bad');}
+}
+async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await apiDel('/documents/'+id); closeModal(); toast('נמחק'); go('documents'); }
+
+// ---------- מתודולוגיה (פלייבוק) ----------
+let PB_CACHE=[], PBSECS=[], RUN=null;
+RENDER.playbooks=async()=>{
+  const [list,runs]=await Promise.all([apiGet('/playbooks'),apiGet('/playbooks/runs')]);
+  PB_CACHE=list;
+  const activeRuns=runs.filter(r=>r.status==='active');
+  const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
+  const stages=STAGE_ORDER.filter(s=>byStage[s]);
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>מתודולוגיה — מרעיון לפרודקשן</h2>
+      <div class="sub">ספריית הפורמטים המקצועיים שלך למסע המוצר. ערוך כל פורמט, והחל אותו על לקוח כדי שיהפוך למהלך חי עם מעקב.</div></div>
+      <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
+        <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
+    ${activeRuns.length?`<div class="card">
+      <h3>מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
+      ${activeRuns.map(r=>`<div class="list-item" onclick="openRun('${r.id}')">
+        <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+          <small>${r.clientName?esc(r.clientName):'כללי'}${r.systemName?' · '+esc(r.systemName):''} · ${STAGE_LABELS[r.stage]||''}</small>
+          <div class="bar" style="width:170px;margin-top:6px"><span style="width:${r.progress}%"></span></div></div>
+        <div class="li-val muted">${r.progress}%</div></div>`).join('')}
+    </div>`:''}
+    <div class="grid2">
+    ${stages.map(s=>`
+      <div class="card">
+        <h3 style="margin:0 0 8px">${STAGE_EMOJI[s]} ${STAGE_LABELS[s]||s}</h3>
+        ${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0)).map(p=>`
+          <div class="list-item" onclick="openPlaybook('${p.id}')">
+            <div class="li-main"><b>${esc(p.title)}</b><small>${esc(p.summary||'')}</small></div>
+            <div class="row" style="gap:6px">${pill(PB_KIND,p.kind)}${p.builtin?'':'<span class="pill p-gray">שלי</span>'}</div>
+          </div>`).join('')}
+      </div>`).join('')}
+    </div>`;
+};
+function openPlaybook(id){
+  const p=PB_CACHE.find(x=>x.id===id); if(!p)return;
+  const secs=JSON.parse(p.sections||'[]');
+  let inner;
+  if(p.kind==='checklist'){
+    inner=secs.map(sec=>`<div style="margin-bottom:12px"><b>${esc(sec.title||'')}</b>
+      <ul class="pb-list">${(sec.items||[]).map(it=>`<li>${esc(it.label||'')}${it.hint?`<div class="hint">${esc(it.hint)}</div>`:''}</li>`).join('')}</ul></div>`).join('')||'<div class="hint">אין סעיפים</div>';
+  } else {
+    inner=`<pre class="pb-doc" id="pbDoc">${esc(p.body||'')}</pre>
+      <button class="btn ghost small" type="button" onclick="copyPbDoc()">📋 העתקת המסמך</button>`;
+  }
+  openModal(`<div class="spread"><h3 style="margin:0">${STAGE_EMOJI[p.stage]||''} ${esc(p.title)}</h3>${pill(PB_KIND,p.kind)}</div>
+    ${p.summary?`<div class="sub" style="margin:4px 0 14px">${esc(p.summary)}</div>`:'<div style="height:8px"></div>'}
+    ${inner}
+    <div class="modal-actions">
+      <button class="btn primary" onclick="applyForm('${p.id}')">החל על עבודה →</button>
+      <button class="btn ghost" onclick='playbookForm(${j(p)})'>עריכה</button>
+      <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+function copyPbDoc(){ const t=$('pbDoc')?.textContent||''; (navigator.clipboard?.writeText(t)||Promise.reject()).then(()=>toast('הועתק ✓')).catch(()=>toast('בחר והעתק ידנית','bad')); }
+
+function playbookForm(p={}){
+  PBSECS=JSON.parse(p.sections||'[]');
+  const kind=p.kind||'checklist';
+  openModal(`<h3>${p.id?'עריכת פורמט':'פורמט חדש'}</h3>
+    <div class="f2"><div class="f"><label>כותרת *</label><input id="f_title" value="${esc(p.title||'')}"></div>
+      <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(STAGE_LABELS,p.stage||'discovery')}</select></div></div>
+    <div class="f2"><div class="f"><label>סוג</label><select id="f_kind" onchange="togglePbKind(this.value)">${opts({checklist:'צ׳ק־ליסט',template:'תבנית מסמך',canvas:'קנבס'},kind)}</select></div>
+      <div class="f"><label>תגיות</label><input id="f_tags" value="${esc(p.tags||'')}" placeholder="מופרד בפסיקים"></div></div>
+    <div class="f"><label>תקציר (שורה אחת)</label><input id="f_summary" value="${esc(p.summary||'')}"></div>
+    <div id="pbChecklistEd" class="f" style="display:${kind==='checklist'?'block':'none'}">
+      <label>סעיפים ופריטים</label><div id="pbSecs"></div>
+      <button class="btn ghost small" type="button" onclick="addPbSec()">+ סעיף</button></div>
+    <div id="pbBodyEd" class="f" style="display:${kind==='checklist'?'none':'block'}">
+      <label>גוף המסמך (Markdown)</label><textarea id="f_body" rows="10">${esc(p.body||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="savePlaybook('${p.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${p.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delPlaybook('${p.id}')">מחיקה</button>`:''}</div>`, true);
+  renderPbSecs();
+}
+function togglePbKind(k){ $('pbChecklistEd').style.display=k==='checklist'?'block':'none'; $('pbBodyEd').style.display=k==='checklist'?'none':'block'; }
+function renderPbSecs(){
+  $('pbSecs').innerHTML=PBSECS.map((s,si)=>`<div class="pb-sec">
+    <div class="row" style="gap:6px;margin-bottom:6px"><input value="${esc(s.title||'')}" placeholder="שם הסעיף" class="grow" oninput="PBSECS[${si}].title=this.value">
+      <button class="btn danger small" type="button" onclick="PBSECS.splice(${si},1);renderPbSecs()">✕ סעיף</button></div>
+    ${(s.items||[]).map((it,ii)=>`<div class="row" style="gap:6px;margin:0 14px 5px">
+      <input value="${esc(it.label||'')}" placeholder="פריט" class="grow" oninput="PBSECS[${si}].items[${ii}].label=this.value">
+      <input value="${esc(it.hint||'')}" placeholder="רמז" style="max-width:150px" oninput="PBSECS[${si}].items[${ii}].hint=this.value">
+      <button class="btn danger small" type="button" onclick="PBSECS[${si}].items.splice(${ii},1);renderPbSecs()">✕</button></div>`).join('')}
+    <button class="btn ghost small" type="button" onclick="addPbItem(${si})">+ פריט</button>
+  </div>`).join('')||'<div class="hint">אין סעיפים עדיין</div>';
+}
+function addPbSec(){ PBSECS.push({title:'',items:[{label:'',hint:''}]}); renderPbSecs(); }
+function addPbItem(si){ PBSECS[si].items=PBSECS[si].items||[]; PBSECS[si].items.push({label:'',hint:''}); renderPbSecs(); }
+async function savePlaybook(id){
+  const kind=val('f_kind');
+  const body={title:val('f_title'),stage:val('f_stage'),kind,summary:val('f_summary'),tags:val('f_tags')};
+  if(!body.title){toast('חסרה כותרת','bad');return;}
+  if(kind==='checklist') body.sections=PBSECS.map(s=>({title:s.title,items:(s.items||[]).filter(i=>i.label)})).filter(s=>s.title||s.items.length);
+  else body.body=val('f_body');
+  try{ id?await apiPatch('/playbooks/'+id,body):await apiPost('/playbooks',body); closeModal(); toast('נשמר ✓'); go('playbooks'); }catch(e){toast('שגיאה','bad');}
+}
+async function delPlaybook(id){ if(!confirm('למחוק פורמט זה? מהלכים שנוצרו ממנו יימחקו גם.'))return; await apiDel('/playbooks/'+id); closeModal(); toast('נמחק'); go('playbooks'); }
+async function reseedPlaybooks(){ try{ const r=await apiPost('/playbooks/reseed'); toast(r.added?`שוחזרו ${r.added} תבניות`:'כל התבניות קיימות'); go('playbooks'); }catch(e){toast('שגיאה','bad');} }
+
+async function applyForm(id){
+  await loadRefs();
+  const p=PB_CACHE.find(x=>x.id===id)||{};
+  openModal(`<h3>החלת פורמט: ${esc(p.title||'')}</h3>
+    <div class="sub" style="margin-bottom:12px">ייווצר מהלך חי — צ׳ק־ליסט שאפשר לסמן, לעקוב אחריו ולקשר ללקוח.</div>
+    <div class="f"><label>כותרת המהלך</label><input id="f_title" value="${esc(p.title||'')}"></div>
+    <div class="f2"><div class="f"><label>לקוח</label><select id="f_clientId" onchange="syncApplySys()">${clientOptions('')}</select></div>
+      <div class="f"><label>מערכת</label><select id="f_systemId">${systemOptions('','')}</select></div></div>
+    <div class="modal-actions"><button class="btn primary" onclick="doApply('${id}')">יצירת מהלך</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+}
+function syncApplySys(){ $('f_systemId').innerHTML=systemOptions('',val('f_clientId')); }
+/** פתיחת מהלך חדש ישירות מכרטיס הלקוח — בחירת הפורמט לפי שלב במסע */
+async function startRunForClient(clientId){
+  await loadRefs();
+  if(!PB_CACHE.length) PB_CACHE=await apiGet('/playbooks');
+  const list=PB_CACHE.slice();
+  if(!list.length){toast('אין פורמטים','bad');return;}
+  const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
+  const groups=STAGE_ORDER.filter(s=>byStage[s]).map(s=>
+    `<optgroup label="${STAGE_LABELS[s]||s}">${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0))
+      .map(p=>`<option value="${p.id}">${esc(p.title)}${p.kind==='checklist'?'':' (מסמך)'}</option>`).join('')}</optgroup>`).join('');
+  openModal(`<h3>פתיחת מהלך חדש ללקוח</h3>
+    <div class="sub" style="margin-bottom:12px">ייווצר טופס חי — שאלות + מקום לתשובות, מקושר לכרטיס הלקוח.</div>
+    <div class="f"><label>פורמט</label><select id="f_pbId">${groups}</select></div>
+    <div class="f"><label>מערכת (אופציונלי)</label><select id="f_systemId">${systemOptions('',clientId)}</select></div>
+    <div class="modal-actions"><button class="btn primary" onclick="doStartRunForClient('${clientId}')">יצירת מהלך</button>
+      <button class="btn ghost" onclick="openClient('${clientId}')">ביטול</button></div>`);
+}
+async function doStartRunForClient(clientId){
+  const pb=val('f_pbId'); if(!pb)return;
+  try{ const r=await apiPost('/playbooks/'+pb+'/apply',{clientId,systemId:val('f_systemId')||null});
+    closeModal(); toast('המהלך נוצר ✓'); openRun(r.id); }
+  catch(e){ toast('שגיאה','bad'); }
+}
+async function doApply(id){
+  const body={title:val('f_title'),clientId:val('f_clientId')||null,systemId:val('f_systemId')||null};
+  try{ const r=await apiPost('/playbooks/'+id+'/apply',body); closeModal(); toast('המהלך נוצר ✓'); openRun(r.id); }catch(e){toast('שגיאה','bad');}
+}
+async function openRun(id){
+  closeModal();
+  let r; try{ r=await apiGet('/playbooks/runs/'+id); }catch(e){ toast('המהלך לא נמצא','bad'); go('playbooks'); return; }
+  CURRENT='playbooks'; document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p==='playbooks'));
+  RUN={...r,_checked:JSON.parse(r.checked||'{}'),_answers:JSON.parse(r.answers||'{}')};
+  drawRun(); window.scrollTo(0,0);
+}
+function drawRun(){
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
+  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked, ans=RUN._answers;
+  let total=0,done=0,filled=0;
+  secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{total++; if(ck[si+'-'+ii])done++; if(String(ans[si+'-'+ii]||'').trim())filled++;}));
+  const prog=isDoc?(RUN.status==='done'?100:0):(total?Math.round(done/total*100):0);
+  const counter=isDoc?'מסמך למילוי':`${done}/${total} · ${prog}% · ${filled} תשובות`;
+  $('view').innerHTML=`
+    <div class="row" style="gap:8px">
+      <button class="btn ghost small" onclick="go('playbooks')">→ חזרה למתודולוגיה</button>
+      ${RUN.clientId?`<button class="btn ghost small" onclick="openClient('${RUN.clientId}')">👤 כרטיס הלקוח</button>`:''}
+    </div>
+    <div class="spread" style="margin-top:10px"><div><h2 style="margin:0">${STAGE_EMOJI[RUN.stage]||''} ${esc(RUN.title)}</h2>
+      <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${counter}</div></div>
+      <div class="row">${RUN.status==='done'?'<span class="pill p-green">הושלם ✓</span>':`<button class="btn teal" onclick="finishRun()">סימון כהושלם</button>`}
+        <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
+        <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
+    <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
+    <div class="hint" style="margin-bottom:12px">${isDoc
+      ? 'מלא את המסמך במקום ה-___ . נשמר אוטומטית ביציאה מהשדה. בסיום לחץ "טופס מלא" כדי לקבל אותו מוכן לשליחה.'
+      : 'כתוב את התשובה מתחת לכל שאלה — היא נשמרת אוטומטית ומסמנת את הסעיף. בסיום לחץ "טופס מלא" כדי לקבל את הכל כמסמך אחד.'}</div>
+    ${isDoc?`<div class="card"><h3>המסמך</h3>
+      <textarea id="runDoc" class="pb-answer" rows="24" style="font-size:.87rem" placeholder="גוף המסמך…" onchange="saveRunDoc()">${esc(RUN.doc||'')}</textarea></div>`
+    :(secs.map((s,si)=>`<div class="card">
+      <h3>${esc(s.title||'')}</h3>
+      ${(s.items||[]).map((it,ii)=>{const key=si+'-'+ii,on=!!ck[key],a=ans[key]||'';return `
+        <div class="pb-item${on?' on':''}">
+          <label class="pb-check${on?' on':''}">
+            <input type="checkbox" ${on?'checked':''} onchange="toggleRun('${key}',this.checked)">
+            <span><b>${esc(it.label||'')}</b>${it.hint?`<span class="hint">${esc(it.hint)}</span>`:''}</span></label>
+          <textarea class="pb-answer" id="ans_${key}" rows="${a?Math.min(8,a.split('\n').length+1):2}" placeholder="התשובה שלי…"
+            oninput="RUN._answers['${key}']=this.value" onchange="saveRunAnswer('${key}')">${esc(a)}</textarea>
+        </div>`;}).join('')}
+    </div>`).join('')||'<div class="empty">לפורמט הזה אין פריטים</div>')}
+    <div class="card"><h3>הערות כלליות</h3>
+      <textarea id="runNotes" rows="3" placeholder="הערות למהלך…" onchange="saveRunNotes()">${esc(RUN.notes||'')}</textarea></div>`;
+}
+/** קולט את מה שהוקלד למסך לפני רענון, כדי שלא ילך לאיבוד */
+function grabRunInputs(){
+  document.querySelectorAll('.pb-answer[id^="ans_"]').forEach(t=>{ RUN._answers[t.id.slice(4)]=t.value; });
+  const dc=$('runDoc'); if(dc) RUN.doc=dc.value;
+  const nt=$('runNotes'); if(nt) RUN.notes=nt.value;
+}
+/** שומר את כל מצב המהלך (תמיד הכל, כדי שכלום שהוקלד לא ילך לאיבוד) */
+async function saveRun(extra){
+  const payload={checked:RUN._checked,answers:RUN._answers,notes:RUN.notes||'',...(extra||{})};
+  if(RUN.doc!=null) payload.doc=RUN.doc;
+  try{ const r=await apiPatch('/playbooks/runs/'+RUN.id,payload); if(r.progress!==undefined) RUN.progress=r.progress; return true; }
+  catch(e){ toast('שגיאה בשמירה','bad'); return false; }
+}
+async function toggleRun(key,on){
+  grabRunInputs();
+  RUN._checked[key]=on; if(!on) delete RUN._checked[key];
+  drawRun();
+  await saveRun();
+}
+/** תשובה שנכתבה מסמנת אוטומטית את הסעיף כבוצע (ומחיקתה מבטלת) */
+async function saveRunAnswer(key){
+  grabRunInputs();
+  const has=!!String(RUN._answers[key]||'').trim();
+  const was=!!RUN._checked[key];
+  if(has&&!was) RUN._checked[key]=true;
+  if(!has&&was) delete RUN._checked[key];
+  const ok=await saveRun();
+  if(ok&&has!==was) drawRun();
+}
+async function saveRunDoc(){ grabRunInputs(); if(await saveRun()) toast('נשמר'); }
+async function saveRunNotes(){ grabRunInputs(); if(await saveRun()) toast('נשמר'); }
+async function finishRun(){ grabRunInputs(); if(await saveRun({status:'done'})){ RUN.status='done'; toast('הושלם ✓'); drawRun(); } }
+async function delRun(){ if(!confirm('למחוק מהלך זה?'))return; await apiDel('/playbooks/runs/'+RUN.id); toast('נמחק'); go('playbooks'); }
+
+// ---------- הטופס המלא: כל השאלות + התשובות כמסמך אחד ----------
+let RUN_FORM='';
+async function runFormDoc(){
+  grabRunInputs();
+  await saveRun();
+  let f; try{ f=await apiGet('/playbooks/runs/'+RUN.id+'/form'); }catch(e){ toast('שגיאה','bad'); return; }
+  RUN_FORM=f.markdown;
+  openModal(`<div class="spread"><h3 style="margin:0">📄 טופס מלא — ${esc(RUN.title)}</h3></div>
+    <div class="sub" style="margin:4px 0 12px">כל השאלות והתשובות במסמך אחד. אפשר לערוך כאן לפני העתקה/שליחה.</div>
+    <textarea id="runFormTxt" rows="16" style="font-size:.86rem;line-height:1.6">${esc(RUN_FORM)}</textarea>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="copyRunForm()">📋 העתקה</button>
+      <button class="btn teal" onclick="waRunForm()">💬 וואטסאפ</button>
+      <button class="btn ghost" onclick="saveRunFormDoc()">💾 שמירה במסמכים</button>
+      <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+const runFormText=()=> $('runFormTxt')?.value || RUN_FORM;
+function copyRunForm(){ const t=runFormText(); (navigator.clipboard?.writeText(t)||Promise.reject()).then(()=>toast('הועתק ✓')).catch(()=>toast('בחר והעתק ידנית','bad')); }
+function waRunForm(){
+  // מספר הלקוח רק אם הכרטיס הטעון הוא באמת של אותו לקוח — אחרת בוחרים נמען בוואטסאפ
+  const c=CLIENT360?.client;
+  const phone=(c&&RUN.clientId&&c.id===RUN.clientId)?c.phone:'';
+  window.open(waLink(phone)+'?text='+encodeURIComponent(runFormText()),'_blank');
+}
+async function saveRunFormDoc(){
+  try{
+    await apiPost('/documents',{title:RUN.title+' — '+todayISO(),clientId:RUN.clientId||null,systemId:RUN.systemId||null,
+      category:'spec',source:'other',notes:runFormText()});
+    toast('נשמר במרכז המסמכים ✓'); closeModal();
+  }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
+
+// ---------- בריאות מסירה ----------
+const HEALTH_GATES=[['discovery','אפיון'],['proposal','הצעה'],['build','פיתוח'],['quality','QA'],['security','אבטחה'],['launch','עלייה'],['handoff','מסירה']];
+const GATE_PB={discovery:'pb_discovery_call',proposal:'pb_proposal_sow',build:'pb_build_dod',quality:'pb_quality_qa',security:'pb_security_review',launch:'pb_launch_golive',handoff:'pb_handoff_kit'};
+const GATE_LABEL=Object.fromEntries(HEALTH_GATES);
+let HEALTH_CLIENTS=[];
+RENDER.health=async()=>{
+  const [clients,runs]=await Promise.all([apiGet('/clients'),apiGet('/playbooks/runs')]);
+  HEALTH_CLIENTS=clients;
+  const active=clients.filter(c=>c.status!=='churned').sort((a,b)=>String(a.name).localeCompare(String(b.name),'he'));
+  const byClient={}; runs.forEach(r=>{ if(!r.clientId)return; (byClient[r.clientId]=byClient[r.clientId]||{}); (byClient[r.clientId][r.stage]=byClient[r.clientId][r.stage]||[]).push(r); });
+  const cellFor=(cid,stage)=>{
+    const rs=(byClient[cid]||{})[stage]||[];
+    const done=rs.find(r=>r.status==='done'); if(done) return {kind:'done',run:done};
+    const act=rs.filter(r=>r.status==='active').sort((a,b)=>b.progress-a.progress)[0]; if(act) return {kind:'active',run:act};
+    return {kind:'none'};
+  };
+  const rows=active.map(c=>{ let passed=0; const cells=HEALTH_GATES.map(([st])=>{const x=cellFor(c.id,st); if(x.kind==='done')passed++; return {st,x};}); return {c,cells,passed}; });
+  $('view').innerHTML=`
+    <h2>בריאות מסירה</h2>
+    <div class="sub">לכל לקוח — אילו שערי מסע המוצר עבר (✓), מה בעבודה (%) ומה עוד לא נפתח. לחיצה על תא פותחת מהלך קיים או יוצרת חדש.</div>
+    ${active.length?`<div class="card tbl-wrap" style="margin-top:12px"><table>
+      <thead><tr><th>לקוח</th>${HEALTH_GATES.map(([,l])=>`<th style="text-align:center">${l}</th>`).join('')}<th class="num">מוכנות</th></tr></thead>
+      <tbody>${rows.map(row=>`<tr>
+        <td><b style="cursor:pointer" onclick="openClient('${row.c.id}')">${esc(row.c.name)}</b><div class="hint">${CLIENT_STAGE[row.c.stage]||''}</div></td>
+        ${row.cells.map(cl=>{const x=cl.x;
+          if(x.kind==='done') return `<td style="text-align:center;cursor:pointer" onclick="openRun('${x.run.id}')"><span class="pill p-green">✓</span></td>`;
+          if(x.kind==='active') return `<td style="text-align:center;cursor:pointer" onclick="openRun('${x.run.id}')"><span class="pill p-amber">${x.run.progress}%</span></td>`;
+          return `<td style="text-align:center;cursor:pointer" title="פתיחת מהלך" onclick="launchGate('${row.c.id}','${cl.st}')"><span class="muted" style="font-size:1.1rem">＋</span></td>`;
+        }).join('')}
+        <td class="num"><b>${row.passed}/${HEALTH_GATES.length}</b></td>
+      </tr>`).join('')}</tbody></table></div>`:'<div class="empty">אין לקוחות פעילים עדיין</div>'}
+    <div class="hint" style="margin-top:10px">✓ שער שהושלם · צהוב = מהלך פעיל (אחוז) · ＋ = פתיחת מהלך חדש · לחיצה על שם לקוח פותחת את הכרטיס</div>`;
+};
+async function launchGate(clientId,stage){
+  const pb=GATE_PB[stage]; if(!pb)return;
+  const name=HEALTH_CLIENTS.find(c=>c.id===clientId)?.name||'הלקוח';
+  if(!confirm('לפתוח מהלך "'+(GATE_LABEL[stage]||'')+'" עבור '+name+'?'))return;
+  try{ const r=await apiPost('/playbooks/'+pb+'/apply',{clientId}); toast('המהלך נוצר ✓'); openRun(r.id); }
+  catch(e){ toast('שגיאה — ודא שהתבנית קיימת','bad'); }
+}
+
+// ---------- משימות ----------
+RENDER.tasks=async()=>{
+  const list=await apiGet('/tasks');
+  const cols=[['todo','לביצוע'],['doing','בעבודה'],['done','הושלם']];
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>משימות</h2><div class="sub">${list.filter(t=>t.status!=='done').length} פתוחות</div></div>
+      <button class="btn primary" onclick="taskForm()">+ משימה</button></div>
+    <div class="grid3">
+      ${cols.map(([k,label])=>{const items=list.filter(t=>t.status===k);return `
+        <div class="card"><h3>${label} <span class="muted">(${items.length})</span></h3>
+          ${items.map(t=>`<div class="list-item" onclick='taskForm(${j(t)})'>
+            <div class="li-main"><b>${t.priority==='urgent'?'🔴 ':t.priority==='high'?'🟠 ':''}${esc(t.title)}</b><small>${t.dueDate?'יעד: '+t.dueDate:''}</small></div>
+            ${k!=='done'?`<button class="btn teal small" onclick="event.stopPropagation();advanceTask('${t.id}','${k==='todo'?'doing':'done'}')">${k==='todo'?'התחל':'סיים'}</button>`:'✓'}
+          </div>`).join('')||'<div class="empty">—</div>'}
+        </div>`;}).join('')}
+    </div>`;
+};
+async function advanceTask(id,status){ await apiPatch('/tasks/'+id,{status}); toast('עודכן'); go('tasks'); }
+function taskForm(t={}){
+  openModal(`<h3>${t.id?'עריכת משימה':'משימה חדשה'}</h3>
+    <div class="f"><label>כותרת *</label><input id="f_title" value="${esc(t.title||'')}"></div>
+    <div class="f3"><div class="f"><label>סטטוס</label><select id="f_status">${opts({todo:'לביצוע',doing:'בעבודה',done:'הושלם'},t.status||'todo')}</select></div>
+      <div class="f"><label>עדיפות</label><select id="f_priority">${opts({low:'נמוכה',normal:'רגילה',high:'גבוהה',urgent:'דחוף'},t.priority||'normal')}</select></div>
+      <div class="f"><label>יעד</label><input type="date" id="f_dueDate" value="${esc(t.dueDate||'')}"></div></div>
+    <div class="f"><label>פרטים</label><textarea id="f_details" rows="2">${esc(t.details||'')}</textarea></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveTask('${t.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${t.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delTask('${t.id}')">מחיקה</button>`:''}</div>`);
+}
+async function saveTask(id){
+  const body={title:val('f_title'),status:val('f_status'),priority:val('f_priority'),dueDate:val('f_dueDate'),details:val('f_details')};
+  if(!body.title){toast('חסרה כותרת','bad');return;}
+  try{ id?await apiPatch('/tasks/'+id,body):await apiPost('/tasks',body); closeModal(); toast('נשמר'); go('tasks'); }catch(e){toast('שגיאה','bad');}
+}
+async function delTask(id){ if(!confirm('למחוק?'))return; await apiDel('/tasks/'+id); closeModal(); toast('נמחק'); go('tasks'); }
+
+// ============ מאגר סקילז (ECC) ============
+const SK_CATS=[["backend","Backend, API ושרת","🔧"],["db","בסיסי נתונים","🗄️"],["testing","בדיקות ואיכות קוד","🧪"],["devops","העלאה לאוויר ותשתית","🚀"],["security","אבטחה","🛡️"],["frontend","מסכים, עיצוב ואנימציה","🎨"],["langs","שפות תכנות ותקני-קוד","💬"],["ai","בינה מלאכותית וסוכנים","🤖"],["orch","עבודה של כמה סוכנים יחד","🕸️"],["planning","תכנון, מוצר והתמצאות","🗺️"],["business","עסקי, פיננסי וגיוס","💼"],["content","תוכן, שיווק ורשתות","📣"],["video","וידאו ומדיה","🎬"],["research","מחקר, נתונים וידע","🔬"],["ecc","תשתית ECC והגדרות","⚙️"],["network","רשת ותקשורת","🌐"],["domains","תחומים ייעודיים","🧩"]];
+const SK_CMDG=[["cmd-build","תיקון שגיאות בנייה","🔨"],["cmd-review","ביקורת קוד","🔎"],["cmd-test","בדיקות","✅"],["cmd-plan","תכנון ופיתוח פיצ׳ר","📐"],["cmd-multi","עבודה רב-מודלית ולולאות","🧠"],["cmd-orch","ניהול תהליך מלא (orch)","🎛️"],["cmd-epic","תיאום משימות ב-GitHub","📋"],["cmd-learn","למידה ושיפור-עצמי","📚"],["cmd-hook","אוטומציות (hookify)","🪝"],["cmd-session","סשן, זיכרון ונקודות-שמירה","💾"],["cmd-ecc","תחזוקת ECC וכלים כלליים","🧰"]];
+const SKILLS_DATA=[
+["accessibility","frontend","בונה ובודק שהאתר נגיש לכולם — ניווט במקלדת, ניגודיות צבעים וקוראי-מסך",1],
+["agent-architecture-audit","ai","מאתר למה סוכן בינה-מלאכותית מתנהג לא כשורה ומצביע על מה שנשבר"],
+["agent-eval","ai","משווה כלֵי בינה-מלאכותית לכתיבת קוד לפי אחוז הצלחה, עלות וזמן"],
+["agent-harness-construction","ai","מעצב אילו כלים ופעולות לתת לסוכן כדי שיצליח יותר"],
+["agent-introspection-debugging","ai","כשסוכן נכשל — מפיק אבחון מסודר של הסיבה במקום לנסות שוב באקראי"],
+["agent-payment-x402","ai","מאפשר לסוכן לשלם בעצמו על שירותים, עם תקציב וארנק מוגבל"],
+["agent-self-evaluation","ai","הסוכן נותן ציון לעבודה של עצמו לפי חמישה מדדים, עם דוגמאות"],
+["agent-sort","ecc","מכין תוכנית התקנה של ECC שמתאימה בדיוק לצרכים של פרויקט מסוים"],
+["agentic-engineering","ai","שיטת עבודה של מהנדס שמפעיל סוכנים: פירוק משימות ובחירת מודל לכל שלב"],
+["agentic-os","ai","בונה מערכת של כמה סוכנים שעובדים יחד לאורך זמן"],
+["ai-first-engineering","ai","שיטת עבודה לצוות שרוב הקוד שלו נכתב בידי בינה-מלאכותית"],
+["ai-regression-testing","testing","בדיקות שמוודאות שקוד שכתבה בינה-מלאכותית לא שבר משהו שעבד"],
+["android-clean-architecture","langs","מבנה קוד מסודר לאפליקציות אנדרואיד ו-Kotlin"],
+["angular-developer","frontend","עוזר לפתח באמצעות Angular: רכיבים, טפסים, ניווט ועוד"],
+["api-connector-builder","backend","מוסיף חיבור לשירות חיצוני חדש, בדיוק לפי הסגנון שכבר קיים בפרויקט",1],
+["api-design","backend","איך לתכנן נכון ממשק-שרת: שמות, קודי-תגובה, חלוקה-לעמודים וגרסאות",1],
+["architecture-decision-records","planning","מתעד את ההחלטות התכנוניות החשובות, כדי שבעתיד יהיה ברור למה נבנה כך",1],
+["article-writing","content","כותב מאמרים, מדריכים ופוסטים בסגנון-כתיבה מותאם"],
+["automation-audit-ops","ecc","בודק אילו אוטומציות וחיבורים פעילים אצלך, ואילו שבורים או מיותרים"],
+["autonomous-agent-harness","ai","הופך את Claude Code לסוכן עצמאי עם זיכרון ומשימות מתוזמנות"],
+["autonomous-loops","ai","דפוסים ללולאות-עבודה עצמאיות (נשמר לתאימות בלבד)"],
+["backend-patterns","backend","דרך נכונה לבנות את צד-השרת: גישה לנתונים, זירוז, אימות וטיפול בשגיאות",1],
+["benchmark-methodology","testing","שיטה נכונה למדוד ביצועים בצורה אמינה"],
+["benchmark-optimization-loop","testing","מנסה הרבה גרסאות של קוד, מודד ובוחר את המהירה ביותר"],
+["benchmark","testing","מודד את ביצועי-הבסיס ומזהה האטות לפני ואחרי שינוי"],
+["blender-motion-state-inspection","domains","בודק דמויות ותנועות בתוכנת התלת-ממד Blender"],
+["blueprint","planning","כלי לשרטוט ראשוני של פתרון לפני שבונים"],
+["brand-discovery","content","עוזר לגלות ולגבש את זהות המותג"],
+["brand-voice","content","בונה פרופיל של סגנון-הכתיבה שלך מטקסטים אמיתיים, לשימוש חוזר"],
+["browser-qa","testing","בודק אוטומטית שהמסכים נראים ומתפקדים נכון אחרי כל שינוי",1],
+["bun-runtime","backend","שימוש ב-Bun כמנוע-הרצה, מנהל-חבילות וכלי-בדיקות מהיר"],
+["canary-watch","devops","בודק שכתובת האתר עובדת תקין מיד אחרי כל העלאה לאוויר",1],
+["carrier-relationship-management","business","ניהול קשרים עם חברות שילוח והובלה"],
+["cisco-ios-patterns","network","דפוסי-עבודה נכונים על ציוד-רשת של Cisco"],
+["ck","ecc","שומר את ההקשר של הפרויקט בין סשנים, כדי שלא תסביר מחדש כל פעם"],
+["claude-devfleet","orch","מריץ כמה סוכנים במקביל, כל אחד בעותק נפרד, ומרכז דוחות"],
+["click-path-audit","testing","עוקב אחרי כל כפתור במסך כדי לתפוס באגים שמשאירים מצב לא-תקין",1],
+["clickhouse-io","db","עבודה עם מסד-הנתונים ClickHouse לניתוח כמויות-מידע גדולות"],
+["code-tour","planning","יוצר סיור מודרך בקוד, שלב-אחר-שלב, להסבר או לקליטת עובד חדש",1],
+["codebase-onboarding","planning","מנתח פרויקט לא-מוכר ומכין מדריך-התמצאות ומפת-מבנה",1],
+["codehealth-mcp","testing","נותן ציון-בריאות לקוד בזמן-אמת ובודק אם שינוי הרע אותו"],
+["coding-standards","langs","כללי כתיבת-קוד בסיסיים לכל פרויקט: שמות, קריאוּת ובהירות",1],
+["competitive-platform-analysis","research","ניתוח של פלטפורמות מתחרות"],
+["competitive-report-structure","research","מבנה מסודר לדוח-השוואה מול מתחרים"],
+["compose-multiplatform-patterns","langs","בניית ממשק-משתמש ל-Kotlin באמצעות Compose"],
+["config-gc","ecc","מנקה את הגדרות Claude Code שלך מפריטים ישנים ומיותרים"],
+["configure-ecc","ecc","מלווה אותך בהתקנה, עדכון והגדרה של ECC"],
+["connections-optimizer","content","מסדר את רשת-הקשרים שלך ב-X וב-LinkedIn וכותב פניות"],
+["content-engine","content","מערכת ליצירת תוכן מותאם לכל רשת: X, לינקדאין, טיקטוק, ניוזלטר"],
+["content-hash-cache-pattern","backend","שומר תוצאות של עיבוד-קבצים כדי לא לחשב שוב את אותו הדבר"],
+["context-budget","ecc","בודק מה ׳אוכל׳ לך את זיכרון-ההקשר של הסוכן ואיפה מבזבזים"],
+["continuous-agent-loop","ai","לולאות-עבודה עצמאיות עם בקרות-איכות והתאוששות מכשל"],
+["continuous-learning-v2","ecc","לומד מכל סשן ומקדם את הלקחים לכדי סקילז וכלים חדשים"],
+["continuous-learning","ecc","[מיושן] גרסה ישנה של הלמידה המתמשכת — עדיף להשתמש ב-v2"],
+["contract-first","backend","מסכם מראש את ׳חוזה׳ הממשק, כדי ששני צדדים לא ׳יזוזו׳ בלי לתאם",1],
+["cost-aware-llm-pipeline","ai","מוריד עלויות בינה-מלאכותית: ניתוב לפי קושי, מעקב-תקציב ומטמון"],
+["cost-tracking","ecc","עוקב אחרי כמה טוקנים וכסף Claude Code צורך"],
+["council-multi-model","orch","מוסיף חוות-דעת חיצונית אחת על טיוטת-החלטה"],
+["council","orch","מזמן ׳מועצה׳ של ארבע דעות להחלטות מורכבות ולשאלות כן/לא"],
+["cpp-coding-standards","langs","כללי כתיבה נכונים לשפת C++ מודרנית"],
+["cpp-testing","testing","כתיבת בדיקות לקוד C++"],
+["crosspost","content","מפיץ תוכן מותאם לכל רשת — לעולם לא אותו טקסט בכולן"],
+["csharp-testing","testing","כתיבת בדיקות לקוד C#/.NET"],
+["customer-billing-ops","business","מטפל בחיובי-לקוחות: מנויים, זיכויים ונטישה (עם Stripe)",1],
+["customs-trade-compliance","domains","עמידה בכללי מכס וסחר בין-לאומי"],
+["dart-flutter-patterns","langs","דרך נכונה לבנות אפליקציות ב-Flutter: מסכים, ניווט ונתונים"],
+["dashboard-builder","devops","בונה לוח-מחוונים שעונה על ׳האם המערכת בריאה?׳ במקום גרפים מיותרים"],
+["data-scraper-agent","research","בונה סוכן שאוסף מידע אוטומטית מכל מקור-ציבורי, לפי לוח-זמנים"],
+["data-throughput-accelerator","backend","מאיץ העברות-מידע גדולות תוך שמירה על נכונות הנתונים"],
+["database-migrations","db","משנה את מבנה מסד-הנתונים בבטחה — כולל ביטול-שינוי ובלי להפיל את האתר. תומך ב-Drizzle",1],
+["deep-research","research","מחקר מעמיק מכמה מקורות ברשת, עם מקורות וציטוטים"],
+["defi-amm-security","security","רשימת-בדיקה לאבטחת חוזים-חכמים של מסחר-מבוזר (Solidity)"],
+["delivery-gate","ecc","חוסם את הסוכן מלהכריז ׳סיימתי׳ עד שבדיקות-האיכות באמת עברו"],
+["deployment-patterns","devops","איך להעלות אפליקציה לאוויר בבטחה: בדיקות-תקינות וחזרה-לאחור",1],
+["design-system","frontend","יוצר ובודק מערכת-עיצוב אחידה ועקבית באתר",1],
+["dev-team","orch","מדמה צוות שלם — מנהל-מוצר, ארכיטקט, מפתח ובודק — בסשן אחד"],
+["django-celery","backend","משימות-רקע ומתוזמנות באפליקציות Django"],
+["django-patterns","backend","דרך נכונה לבנות אפליקציות Django"],
+["django-security","security","אבטחת אפליקציות Django: אימות, הרשאות והגנה מהתקפות"],
+["django-tdd","testing","כתיבת בדיקות ל-Django בשיטת ׳בדיקה-קודם׳"],
+["django-verification","testing","רצף-בדיקות ל-Django לפני העלאה לאוויר"],
+["dmux-workflows","orch","מריץ כמה סוכנים במקביל בחלונות-טרמינל (dmux)"],
+["docker-patterns","devops","אריזת אפליקציה בקופסת-הרצה (Docker) בצורה נכונה ומאובטחת"],
+["documentation-lookup","research","שולף תיעוד עדכני של ספריות במקום להסתמך על ידע ישן"],
+["dotnet-patterns","langs","דרך נכונה לכתוב קוד C#/.NET"],
+["dynamic-workflow-mode","ai","בונה סביבת-עבודה זמנית למשימה, עם בדיקות-סף"],
+["e2e-testing","testing","בדיקות שמדמות משתמש-אמיתי שלוחץ במסכים, מקצה-לקצה (Playwright)",1],
+["ecc-guide","ecc","מדריך חי לכל הרכיבים של ECC — סוכנים, סקילז ופקודות"],
+["ecc-recipes","ecc","מתאים בין משימה שתיארת לבין קבוצת-הפקודות הנכונה ב-ECC"],
+["ecc-tools-cost-audit","ecc","בודק עלויות וחיובים של מאגר-הכלים של ECC"],
+["email-ops","ecc","מסדר, מנסח ושולח דוא״ל — עם הוכחה שהמייל באמת נשלח"],
+["energy-procurement","domains","רכש אנרגיה"],
+["enterprise-agent-ops","ai","הפעלת סוכנים לאורך זמן עם ניטור וגבולות-אבטחה"],
+["error-handling","backend","דרך נכונה לטפל בשגיאות: ניסיונות-חוזרים והודעות ברורות למשתמש",1],
+["eval-harness","ai","מסגרת-בדיקות מסודרת לתהליכי Claude Code, לפני שסומכים עליהם"],
+["evm-token-decimals","domains","מונע באגים בספירת-עשרוניות של מטבעות-קריפטו"],
+["exa-search","research","חיפוש חכם ברשת: אתרים, קוד, חברות ואנשים"],
+["fal-ai-media","video","יצירת תמונות, סרטונים וקול בעזרת בינה-מלאכותית (fal.ai)"],
+["fastapi-patterns","backend","דרך נכונה לבנות שרת ב-FastAPI (Python)"],
+["finance-billing-ops","business","מבט אמיתי על הכנסות, תמחור וזיכויים — מגובה בקוד, לא בהערכות",1],
+["flox-environments","devops","מכין סביבת-פיתוח זהה בכל מחשב (מבוסס Nix/Flox)"],
+["flutter-dart-code-review","testing","רשימת-בדיקה לביקורת-קוד Flutter/Dart"],
+["foundation-models-on-device","domains","הרצת מודל-שפה על המכשיר עצמו (אייפון, iOS 26)"],
+["frontend-a11y","frontend","נגישות בצד-הלקוח של האתר",1],
+["frontend-design-direction","frontend","קובע כיוון-עיצובי איכותי לממשק-המשתמש",1],
+["frontend-patterns","frontend","דרך נכונה לבנות מסכים ב-React/Next.js"],
+["frontend-slides","video","בונה מצגות-אינטרנט עשירות-אנימציה, גם מקובץ PowerPoint"],
+["fsharp-testing","testing","כתיבת בדיקות לשפת F#"],
+["gan-style-harness","ai","׳יוצר מול מבקר׳ — שני סוכנים שמשפרים תוצר עד שהוא עומד ברף-איכות"],
+["gateguard","ecc","עוצר את הסוכן ודורש חקירה עובדתית לפני שהוא משנה קבצים"],
+["generating-python-installer","domains","אריזת תוכנת Python לקובץ-התקנה קטן ומהיר ל-Windows"],
+["git-workflow","devops","עבודה נכונה עם Git: ענפים, הודעות-שמירה ופתרון התנגשויות",1],
+["github-ops","devops","ניהול GitHub: משימות, בקשות-מיזוג, בנייה אוטומטית וגרסאות",1],
+["golang-patterns","langs","דרך נכונה לכתוב קוד בשפת Go"],
+["golang-testing","testing","כתיבת בדיקות לשפת Go"],
+["google-workspace-ops","business","עבודה על Drive, Docs, Sheets ו-Slides כמשטח אחד"],
+["growth-log","ecc","כתיבת יומן-לקחים שמפיק דפוסים לשימוש חוזר"],
+["healthcare-cdss-patterns","domains","מערכות שעוזרות לרופא להחליט: אינטראקציות בין תרופות ומינונים"],
+["healthcare-emr-patterns","domains","פיתוח תיק-רפואי דיגיטלי (EMR) עם בטיחות קלינית"],
+["healthcare-eval-harness","domains","בדיקות בטיחות-מטופל שחוסמות עלייה-לאוויר של מערכת רפואית"],
+["healthcare-phi-compliance","security","הגנה על מידע רפואי ואישי של מטופלים לפי חוק"],
+["hermes-imports","ecc","ממיר תהליכי-עבודה מקומיים לסקילז נקיים של ECC"],
+["hexagonal-architecture","backend","מבנה-קוד שמפריד בין הלוגיקה העסקית לבין העולם החיצון",1],
+["hipaa-compliance","security","עמידה בתקן HIPAA לפרטיות רפואית בארה״ב"],
+["homelab-network-readiness","network","רשימת-בדיקה לפני שינוי רשת ביתית מתקדמת"],
+["homelab-network-setup","network","תכנון רשת ביתית: נתב, מתג, כתובות וחיווט"],
+["homelab-pihole-dns","network","התקנה והגדרה של Pi-hole לחסימת פרסומות ברשת הבית"],
+["homelab-vlan-segmentation","network","חלוקת הרשת הביתית לרשתות-משנה מבודדות"],
+["homelab-wireguard-vpn","network","הקמת חיבור מאובטח (VPN) לרשת הבית מרחוק"],
+["hookify-rules","ecc","יצירת חוקי-אוטומציה (hookify)"],
+["inherit-legacy-style","ecc","מיישר את הסוכן לסגנון של פרויקט-ותיק, כדי שלא ׳ישבש׳ אותו"],
+["intent-driven-development","planning","הופך בקשה מעורפלת לתנאי-הצלחה ברורים לפני שבונים",1],
+["inventory-demand-planning","domains","תכנון מלאי וחיזוי-ביקוש"],
+["investor-materials","business","מכין מצגות, מודלים-פיננסיים וחומרים למשקיעים"],
+["investor-outreach","business","כותב מיילים ופניות למשקיעים לצורך גיוס"],
+["ios-icon-gen","frontend","יוצר אייקונים לאפליקציות אייפון"],
+["iterative-retrieval","ai","משפר בהדרגה את המידע שסוכן-מִשנֶה מקבל, כדי לפתור משימה"],
+["ito-baskets","domains","נתוני ׳סלים׳ ושוקי-חיזוי של Itô (קריאה בלבד)"],
+["ito-compute","domains","מציאת כרטיסי-מסך (GPU) והזמנתם דרך Itô"],
+["ito-inference","domains","הרצת מודלים על תשתית-המחשוב של Itô"],
+["ito-training","domains","אימון מודלים על תשתית-המחשוב של Itô"],
+["java-coding-standards","langs","כללי כתיבה נכונים לשפת Java"],
+["jira-integration","business","עבודה עם כרטיסי Jira: שליפה, עדכון ותגובות"],
+["jpa-patterns","db","עבודה נכונה מול מסד-נתונים ב-Java (JPA/Hibernate)"],
+["knowledge-ops","research","ניהול מאגר-ידע: הכנסה, סנכרון וחיפוש"],
+["kotlin-coroutines-flows","langs","ריצה במקביל ב-Kotlin בצורה נכונה"],
+["kotlin-exposed-patterns","db","עבודה מול מסד-נתונים ב-Kotlin (Exposed)"],
+["kotlin-ktor-patterns","backend","בניית שרת ב-Kotlin (Ktor)"],
+["kotlin-patterns","langs","דרך נכונה לכתוב קוד ב-Kotlin"],
+["kotlin-testing","testing","כתיבת בדיקות ל-Kotlin"],
+["kubernetes-patterns","devops","הרצת אפליקציות בענן על Kubernetes בצורה נכונה"],
+["laravel-patterns","backend","דרך נכונה לבנות אפליקציות Laravel (PHP)"],
+["laravel-plugin-discovery","backend","מציאת חבילות מתאימות ל-Laravel"],
+["laravel-security","security","אבטחת אפליקציות Laravel"],
+["laravel-tdd","testing","כתיבת בדיקות ל-Laravel"],
+["laravel-verification","testing","רצף-בדיקות ל-Laravel לפני עלייה לאוויר"],
+["latency-critical-systems","backend","מערכות שחייבות להיות מהירות מאוד (זמן-אמת, מסחר, נתוני-שוק)"],
+["lead-intelligence","business","איתור וסינון לקוחות-פוטנציאליים ופנייה אליהם (חלופה ל-Apollo)"],
+["liquid-glass-design","frontend","עיצוב ׳זכוכית נוזלית׳ של אפל ל-iOS 26"],
+["living-docs-governance","ecc","מונע מהתיעוד של פרויקט-ותיק להתיישן ולהתפורר"],
+["llm-trading-agent-security","security","אבטחת סוכנים שמנהלים מסחר וכסף באופן עצמאי"],
+["logistics-exception-management","domains","טיפול בחריגות בשרשרת-האספקה"],
+["loop-design-check","ai","עוזר לתכנן לולאת-סוכן ובודק שהיא לא ׳מסתובבת לריק׳ או מרמה"],
+["mailtrap-email-integration","backend","שליחת מיילים אוטומטיים מהאפליקציה, כולל סביבת-בדיקות"],
+["make-interfaces-feel-better","frontend","פרטי-עיצוב קטנים שגורמים לממשק להרגיש מלוטש ואיכותי",1],
+["manim-video","video","יוצר סרטוני-הסבר מונפשים למושגים טכניים"],
+["market-research","research","מחקר-שוק, ניתוח-מתחרים ובדיקת-נאותות, עם מקורות"],
+["marketing-campaign","content","מתכנן קמפיין-שיווקי שלם: מסרים, דף-נחיתה, מיילים ומודעות"],
+["mcp-server-patterns","backend","בניית שרת שמחבר כלים לסוכנים (MCP)"],
+["messages-ops","ecc","קריאת הודעות/SMS, שחזור קוד חד-פעמי והוכחת-מקור"],
+["ml-adoption-playbook","ai","הוספת יכולת למידת-מכונה לקוד קיים שאין בו כזו"],
+["mle-workflow","ai","תהליך הנדסי מלא לבניית מערכת למידת-מכונה, עד העלאה לאוויר"],
+["motion-advanced","frontend","אנימציות מתקדמות במסכים: גרירה, מחוות ותנועת-ציור"],
+["motion-foundations","frontend","יסודות התנועה והאנימציה במסכים, כולל כיבוד ׳הפחתת-תנועה׳"],
+["motion-patterns","frontend","אנימציות מוכנות לרכיבי-מסך: חלוניות, הודעות ומעברים"],
+["motion-ui","frontend","מערכת-אנימציות מלאה למסכי React/Next.js"],
+["mysql-patterns","db","עבודה נכונה עם מסד-הנתונים MySQL/MariaDB"],
+["nanoclaw-repl","ecc","הפעלה והרחבה של NanoClaw — כלי-שורה של ECC"],
+["nasiko-control-plane","ecc","לוח-בקרה אופציונלי לניהול סוכנים (Nasiko)"],
+["nestjs-patterns","backend","דרך נכונה לבנות שרת ב-NestJS"],
+["netmiko-ssh-automation","network","אוטומציה של ציוד-רשת דרך Python, בבטחה"],
+["network-bgp-diagnostics","network","אבחון תקלות-ניתוב מסוג BGP ברשתות"],
+["network-config-validation","network","בדיקת הגדרות נתב/מתג לפני החלה, למניעת תקלות"],
+["network-interface-health","network","אבחון תקלות בחיבורי-רשת: שגיאות, נפילות ומהירויות"],
+["nextjs-turbopack","frontend","בנייה מהירה של אתרי Next.js עם Turbopack"],
+["nodejs-keccak256","domains","מונע באג-הצפנה נפוץ בעבודה עם Ethereum ב-JavaScript"],
+["nutrient-document-processing","domains","עיבוד-מסמכים: המרה, זיהוי-טקסט, השחרה, חתימה ומילוי"],
+["nuxt4-patterns","frontend","דרך נכונה לבנות אתרים ב-Nuxt 4"],
+["openclaw-persona-forge","domains","יצירת דמות לסוכן OpenClaw (בסינית)"],
+["opensource-pipeline","devops","מכין פרויקט-פרטי לשחרור-פומבי — כולל ניקוי סודות"],
+["orch-add-feature","orch","מנהל בניית יכולת חדשה מקצה-לקצה: מחקר, תכנון, בדיקות ושמירה",1],
+["orch-build-mvp","orch","הופך מסמך-אפיון למוצר-ראשוני עובד, פרוסה-אחר-פרוסה"],
+["orch-change-feature","orch","מנהל שינוי של יכולת קיימת להתנהגות חדשה"],
+["orch-fix-defect","orch","מנהל תיקון-באג: קודם בדיקה שנכשלת, ואז תיקון עד שהיא עוברת",1],
+["orch-pipeline","orch","המנוע המשותף שמפעיל את כל שלבי ה-orch (בד״כ לא מריצים ישירות)"],
+["orch-refine-code","orch","מנהל שיפור-מבנה של קוד בלי לשנות את ההתנהגות שלו"],
+["parallel-execution-optimizer","orch","מזרז משימה דרך עבודה מקבילה של כמה סוכנים בבת-אחת"],
+["perl-patterns","langs","דרך נכונה לכתוב קוד ב-Perl מודרני"],
+["perl-security","security","אבטחת קוד Perl"],
+["perl-testing","testing","כתיבת בדיקות ל-Perl"],
+["plan-canvas","planning","פותח תוכנית על ׳לוח׳ בדפדפן, שם אפשר להעיר ולאשר בלחיצה",1],
+["plan-orchestrate","orch","מפרק תוכנית לשרשרת-סוכנים ומכין פקודות מוכנות-להדבקה"],
+["plankton-code-quality","testing","מיישר ומנקה את הקוד אוטומטית בכל שמירת-קובץ"],
+["postgres-patterns","db","עבודה נכונה עם מסד-הנתונים PostgreSQL"],
+["prediction-market-oracle-research","research","שימוש בשוקי-חיזוי כמקור-נתונים למוצרים ולדשבורדים"],
+["prediction-market-risk-review","security","בדיקת-סיכונים בתהליכים שנוגעים לשוקי-חיזוי ומסחר"],
+["prisma-patterns","db","עבודה מול מסד-נתונים ב-TypeScript (Prisma) והמלכודות שלו"],
+["product-capability","planning","הופך אפיון-מוצר לתוכנית-יישום שחושפת אילוצים והחלטות פתוחות",1],
+["product-lens","planning","בודק את ה׳למה׳ של פיצ׳ר לפני שמתחילים לבנות אותו",1],
+["production-audit","devops","בודק אם האפליקציה מוכנה לאוויר — מקומית, בלי לשלוח קוד החוצה",1],
+["production-scheduling","domains","תזמון ייצור"],
+["project-flow-ops","business","מתאם בין GitHub ל-Linear ומסדר את זרימת-העבודה"],
+["prompt-optimizer","ecc","משפר ומשכתב טיוטות של הנחיות (prompts)"],
+["python-patterns","langs","דרך נכונה לכתוב קוד ב-Python"],
+["python-testing","testing","כתיבת בדיקות ל-Python (pytest)"],
+["pytorch-patterns","ai","בניית אימון של רשתות-נוירונים ב-PyTorch"],
+["quality-nonconformance","domains","טיפול באי-התאמות בתחום האיכות"],
+["quarkus-patterns","backend","דרך נכונה לבנות שרת ב-Quarkus (Java)"],
+["quarkus-security","security","אבטחת שרת Quarkus"],
+["quarkus-tdd","testing","כתיבת בדיקות ל-Quarkus"],
+["quarkus-verification","testing","רצף-בדיקות ל-Quarkus לפני עלייה לאוויר"],
+["ralphinho-rfc-pipeline","orch","מערכת רב-סוכנית מסודרת עם שערי-איכות ותור-מיזוג"],
+["react-native-patterns","frontend","בניית אפליקציות-מובייל ב-React Native/Expo"],
+["react-patterns","frontend","דרך נכונה לבנות מסכים ב-React"],
+["react-performance","frontend","האצת מסכי React/Next — יותר מ-70 כללי-שיפור"],
+["react-testing","testing","כתיבת בדיקות לרכיבי React"],
+["recsys-pipeline-architect","ai","בניית מנוע-המלצות (כמו ׳עבורך׳) שבוחר את הפריטים המתאימים"],
+["recursive-decision-ledger","ai","תהליך-החלטה חוזר, עם תיעוד-ראיות גלוי לכל שלב"],
+["redis-patterns","db","עבודה נכונה עם Redis: מטמון, נעילות והגבלת-קצב"],
+["regex-vs-llm-structured-text","ai","מתי להשתמש בכלל-טקסט פשוט ומתי בבינה-מלאכותית לפענוח טקסט"],
+["remotion-video-creation","video","יצירת סרטוני-וידאו בעזרת קוד React (Remotion)"],
+["repo-scan","ecc","מתקין את סקיל repo-scan מגרסה קבועה ובדוקה"],
+["research-ops","research","תהליך-מחקר מבוסס-ראיות על המצב העדכני"],
+["returns-reverse-logistics","domains","ניהול החזרות ולוגיסטיקה-הפוכה"],
+["rules-distill","ecc","מזהה עקרונות שחוזרים בכמה סקילז ומרכז אותם לכללים"],
+["rust-patterns","langs","דרך נכונה לכתוב קוד ב-Rust"],
+["rust-testing","testing","כתיבת בדיקות ל-Rust"],
+["safety-guard","ecc","מונע פעולות-הרס במערכות-ייצור ובריצה עצמאית",1],
+["santa-method","orch","שני מבקרים עצמאיים חייבים לאשר לפני שהתוצר יוצא החוצה"],
+["scientific-db-pubmed-database","research","חיפוש ספרות-רפואית במאגר PubMed"],
+["scientific-db-uspto-database","research","שליפת נתוני-פטנטים וסימני-מסחר רשמיים (USPTO)"],
+["scientific-pkg-gget","research","שאילתות מהירות למאגרי-גנום במחקר ביולוגי"],
+["scientific-thinking-literature-review","research","סקירת-ספרות מדעית שיטתית: חיפוש, סינון וסיכום"],
+["scientific-thinking-scholar-evaluation","research","הערכת עבודה אקדמית לפי אמות-מידה קבועות"],
+["search-first","ecc","מחפש כלים וספריות קיימים לפני שכותבים קוד מאפס",1],
+["security-bounty-hunter","security","מחפש פרצות-אבטחה אמיתיות הניתנות-לניצול בפרויקט"],
+["security-review","security","רשימת-בדיקה לאבטחה: אימות, קלט-משתמש, סודות ונקודות-קצה",1],
+["security-scan","security","סורק את הגדרות Claude Code שלך לפרצות ולהזרקות",1],
+["seo","content","שיפור הופעת האתר בגוגל: צד-טכני, תוכן ומהירות-טעינה",1],
+["skill-comply","ecc","בודק אם הסוכן באמת מציית לסקילז ולכללים שנתת לו"],
+["skill-scout","ecc","מחפש סקיל קיים (מקומי או ברשת) לפני שיוצרים חדש"],
+["skill-stocktake","ecc","בודק את איכות הסקילז והפקודות שלך"],
+["social-graph-ranker","content","מדרג את רשת-הקשרים למציאת היכרות ׳חמה׳ אל מישהו"],
+["social-publisher","content","מתזמן ומפרסם פוסטים ל-13 רשתות חברתיות"],
+["springboot-patterns","backend","דרך נכונה לבנות שרת ב-Spring Boot (Java)"],
+["springboot-security","security","אבטחת שרת Spring Boot"],
+["springboot-tdd","testing","כתיבת בדיקות ל-Spring Boot"],
+["springboot-verification","testing","רצף-בדיקות ל-Spring Boot לפני עלייה לאוויר"],
+["strategic-compact","ecc","מציע לכווץ את ההקשר בנקודות הגיוניות בין שלבי-משימה"],
+["swift-actor-persistence","langs","שמירת-נתונים בטוחה ב-Swift, בלי התנגשויות"],
+["swift-concurrency-6-2","langs","ריצה במקביל ב-Swift 6.2 בצורה נכונה"],
+["swift-protocol-di-testing","testing","כתיבת קוד Swift שקל לבדוק אותו"],
+["swiftui-patterns","frontend","בניית מסכים ב-SwiftUI (אפל)"],
+["taste","video","נותן כיוון-אמנותי לקליפים ולעריכות-וידאו"],
+["tdd-workflow","testing","פיתוח בשיטת ׳בדיקה-קודם׳, עם כיסוי-בדיקות של 80%+",1],
+["team-agent-orchestration","orch","מנהל ׳כיתת׳ סוכנים עם משימות, בעלוּת ושערי-מיזוג"],
+["team-builder","orch","בורר סוכנים להרכבת צוות ושיגורו במקביל"],
+["terminal-opener","ecc","פותח כלי-שורה בחלון-טרמינל גלוי"],
+["terminal-ops","ecc","מריץ פקודות בפרויקט עם הוכחה מדויקת של מה שבוצע ואומת",1],
+["tinystruct-patterns","backend","פיתוח עם הסביבה tinystruct (Java)"],
+["token-budget-advisor","ecc","ייעוץ לגבי תקציב-הטוקנים"],
+["ui-demo","video","מקליט סרטון-הדגמה מלוטש של האתר"],
+["ui-to-vue","frontend","הופך צילומי-מסך של עיצוב לרכיבי Vue"],
+["uncloud","devops","ניהול שרתים ופריסת-שירותים באשכול Uncloud"],
+["unified-memory","ecc","מאפשר לכמה סוכנים לחלוק זיכרון והקשר משותף"],
+["unified-notifications-ops","ecc","מרכז ומסדר את כל ההתראות ממקורות שונים למקום אחד"],
+["verification-loop","testing","מערכת-בדיקה מקיפה של העבודה, לפני שמכריזים ׳הושלם׳",1],
+["video-editing","video","עריכת-וידאו בעזרת בינה-מלאכותית"],
+["videodb","video","לראות, להבין ולפעול על וידאו ואודיו: אינדוקס, חיפוש ועריכה"],
+["visa-doc-translate","domains","תרגום מסמכי-ויזה לאנגלית לקובץ דו-לשוני"],
+["vite-patterns","frontend","הגדרה ובנייה נכונה של פרויקטים עם Vite",1],
+["vue-patterns","frontend","דרך נכונה לבנות אתרים ב-Vue 3"],
+["windows-desktop-e2e","testing","בדיקות לאפליקציות-שולחניות של Windows"],
+["workspace-surface-audit","ecc","בודק את הסביבה שלך וממליץ אילו סקילז וכלים באמת שווים לך",1],
+["x-api","content","חיבור ל-X/Twitter: פרסום, קריאת ציר-זמן וחיפוש"],
+];
+const CMDS_DATA=[
+["build-fix","cmd-build","מזהה את מערכת-הבנייה ומתקן שגיאות-בנייה בשינויים קטנים ובטוחים",""],
+["cpp-build","cmd-build","מתקן שגיאות-בנייה של C++ (CMake, linker) בצורה מדויקת","cpp-coding-standards,verification-loop"],
+["flutter-build","cmd-build","מתקן שגיאות-בנייה של Flutter/Dart","flutter-dart-code-review,verification-loop"],
+["go-build","cmd-build","מתקן שגיאות-בנייה ובדיקות-תקינות של Go","golang-patterns,verification-loop"],
+["gradle-build","cmd-build","מתקן שגיאות-בנייה של Gradle (אנדרואיד/KMP)",""],
+["kotlin-build","cmd-build","מתקן שגיאות-בנייה של Kotlin/Gradle","kotlin-patterns,verification-loop"],
+["react-build","cmd-build","מתקן שגיאות-בנייה של React (Vite, webpack, Next.js)","frontend-patterns,react-patterns,verification-loop"],
+["rust-build","cmd-build","מתקן שגיאות-בנייה של Rust (כולל בעיות ׳בעלוּת׳)","rust-patterns,verification-loop"],
+["code-review","cmd-review","ביקורת-קוד — על שינויים מקומיים או על בקשת-מיזוג ב-GitHub",""],
+["cpp-review","cmd-review","ביקורת-קוד C++: בטיחות-זיכרון, מקביליות ואבטחה","cpp-coding-standards,cpp-testing"],
+["fastapi-review","cmd-review","ביקורת של אפליקציית FastAPI",""],
+["flutter-review","cmd-review","ביקורת-קוד Flutter/Dart","flutter-dart-code-review"],
+["go-review","cmd-review","ביקורת-קוד Go","golang-patterns,golang-testing"],
+["kotlin-review","cmd-review","ביקורת-קוד Kotlin","kotlin-patterns,kotlin-testing"],
+["python-review","cmd-review","ביקורת-קוד Python: תקן PEP 8, טיפוסים ואבטחה","python-patterns,python-testing,tdd-workflow"],
+["react-review","cmd-review","ביקורת-קוד React/JSX","accessibility,react-patterns,react-testing"],
+["rust-review","cmd-review","ביקורת-קוד Rust","rust-patterns,rust-testing"],
+["vue-review","cmd-review","ביקורת-קוד Vue","vue-patterns"],
+["review-pr","cmd-review","ביקורת מקיפה של בקשת-מיזוג בעזרת סוכנים מתמחים",""],
+["orch-review","cmd-review","מריץ ביקורת מאורגנת על שינויים ומדווח מה חוסם ומה רק המלצה",""],
+["cpp-test","cmd-test","בדיקה-קודם ל-C++ (GoogleTest), עם בדיקת-כיסוי","cpp-testing,tdd-workflow,verification-loop"],
+["flutter-test","cmd-test","הרצה ותיקון של בדיקות Flutter/Dart","flutter-dart-code-review,tdd-workflow"],
+["go-test","cmd-test","בדיקה-קודם ל-Go, עם כיסוי 80%+","golang-testing,tdd-workflow,verification-loop"],
+["kotlin-test","cmd-test","בדיקה-קודם ל-Kotlin (Kotest), עם כיסוי","kotlin-testing,tdd-workflow,verification-loop"],
+["react-test","cmd-test","בדיקה-קודם ל-React (ממוקד-נגישות)","accessibility,e2e-testing,react-testing,tdd-workflow,verification-loop"],
+["rust-test","cmd-test","בדיקה-קודם ל-Rust, עם כיסוי","rust-patterns,rust-testing,verification-loop"],
+["test-coverage","cmd-test","מנתח כיסוי-בדיקות, מזהה חוסרים ומייצר בדיקות חסרות",""],
+["feature-dev","cmd-plan","פיתוח פיצ׳ר מודרך, עם הבנת-הקוד והתמקדות בארכיטקטורה",""],
+["plan","cmd-plan","מנסח דרישות, מעריך סיכונים ובונה תוכנית שלב-אחר-שלב (מחכה לאישורך)","plan-canvas,tdd-workflow"],
+["plan-prd","cmd-plan","מייצר מסמך-אפיון רזה, ממוקד-בעיה, ומעביר ל-/plan","tdd-workflow"],
+["plan-canvas","cmd-plan","פותח תוכנית או עמוד על ׳לוח׳ בדפדפן, לביקורת ואישור בלחיצה","plan-canvas"],
+["prp-plan","cmd-plan","בונה תוכנית-יישום מקיפה, עם ניתוח-קוד וחילוץ-דפוסים",""],
+["prp-implement","cmd-plan","מבצע תוכנית-יישום עם לולאות-אימות קפדניות",""],
+["prp-prd","cmd-plan","מחולל אפיון-מוצר אינטראקטיבי, בעיה-קודם, עם שאלות הדדיות",""],
+["prp-commit","cmd-plan","שמירה מהירה עם תיאור בשפה חופשית של מה לשמור",""],
+["prp-pr","cmd-plan","יוצר בקשת-מיזוג ב-GitHub מהענף הנוכחי",""],
+["pr","cmd-plan","יוצר בקשת-מיזוג ב-GitHub — מזהה תבנית, מנתח שינויים ודוחף",""],
+["multi-backend","cmd-multi","עבודה של כמה מודלים יחד, ממוקדת-שרת (ממשקים, אלגוריתמים, לוגיקה)",""],
+["multi-frontend","cmd-multi","עבודה של כמה מודלים יחד, ממוקדת-מסכים (רכיבים, פריסה, אנימציה)",""],
+["multi-plan","cmd-multi","בונה תוכנית-יישום רב-מודלית בלי לגעת בקוד",""],
+["multi-execute","cmd-multi","מבצע תוכנית רב-מודלית, כש-Claude הוא היחיד שכותב לקבצים",""],
+["multi-workflow","cmd-multi","תהליך-פיתוח רב-מודלי מלא: מחקר, תכנון, ביצוע וביקורת",""],
+["gan-build","cmd-multi","לולאת ׳יוצר/מבקר׳ למשימות-מימוש, עם ניקוד",""],
+["gan-design","cmd-multi","לולאת ׳יוצר/מבקר׳ לעבודת-עיצוב חזותית, עם ניקוד",""],
+["santa-loop","cmd-multi","לולאה ששני מבקרים עצמאיים חייבים לאשר בה לפני שילוח",""],
+["model-route","cmd-multi","ממליץ על דרגת-המודל המתאימה למשימה לפי קושי, סיכון ותקציב",""],
+["loop-start","cmd-multi","מתחיל לולאה עצמאית מנוהלת, עם ברירות-מחדל בטוחות ותנאי-עצירה",""],
+["loop-status","cmd-multi","מציג מצב-לולאה פעילה: התקדמות, סימני-כשל והמלצת-התערבות",""],
+["orch-add-feature","cmd-orch","מנהל בניית יכולת חדשה מקצה-לקצה","orch-add-feature"],
+["orch-build-mvp","cmd-orch","מנהל הפיכת אפיון למוצר-ראשוני עובד","orch-build-mvp"],
+["orch-change-feature","cmd-orch","מנהל שינוי של יכולת קיימת להתנהגות חדשה","orch-change-feature"],
+["orch-fix-defect","cmd-orch","מנהל תיקון-באג (בדיקה-שנכשלת ואז תיקון)","orch-fix-defect"],
+["orch-refine-code","cmd-orch","מנהל שיפור-מבנה בלי לשנות התנהגות","orch-refine-code"],
+["epic-claim","cmd-epic","׳תופס׳ משימת-אב, מסמן בעלוּת ומסנכרן מקומית",""],
+["epic-decompose","cmd-epic","מפרק משימת-אב למשימות-ילד, בלי ליצור ענפים",""],
+["epic-publish","cmd-epic","מפרסם עדכון של משימת-אב מאומתת בחזרה למשימה",""],
+["epic-review","cmd-epic","מסמן בקשת-ביקורת, אישור או בקשת-שינויים על משימת-אב",""],
+["epic-sync","cmd-epic","מסנכרן גופי-משימה, תוויות ומצב-תיאום מ-GitHub",""],
+["epic-unblock","cmd-epic","סורק משימות-אב חסומות ופותח מחדש כשהתלויות נסגרו",""],
+["epic-validate","cmd-epic","בודק מוכנות של משימת-אב, תלויות ומדיניות-תיאום",""],
+["quality-gate","cmd-epic","מריץ שער-איכות של פורמט על קובץ בודד ומדווח תיקונים",""],
+["learn","cmd-learn","מחלץ דפוסים לשימוש-חוזר מהסשן ושומר אותם כמועמדים לסקילז",""],
+["learn-eval","cmd-learn","כמו learn, אבל שופט את האיכות לפני שמירה ובוחר את מקום-השמירה",""],
+["evolve","cmd-learn","מנתח את הלקחים שנלמדו ומציע מבנים משופרים","continuous-learning-v2"],
+["instinct-export","cmd-learn","מייצא את הלקחים שנלמדו לקובץ",""],
+["instinct-import","cmd-learn","מייבא לקחים מקובץ או מכתובת","continuous-learning-v2"],
+["instinct-status","cmd-learn","מציג את הלקחים שנלמדו, עם רמת-ביטחון לכל אחד","continuous-learning-v2"],
+["projects","cmd-learn","מציג פרויקטים ידועים וסטטיסטיקת-הלמידה שלהם","continuous-learning-v2"],
+["promote","cmd-learn","מקדם לקחים מרמת-פרויקט לרמה כללית","continuous-learning-v2"],
+["prune","cmd-learn","מוחק לקחים ממתינים מעל 30 יום שלא קודמו","continuous-learning-v2"],
+["skill-create","cmd-learn","מנתח היסטוריית-Git ומחלץ דפוסים לקובצי SKILL.md",""],
+["skill-health","cmd-learn","מציג לוח-מחוונים של בריאות מאגר-הסקילז שלך",""],
+["hookify","cmd-hook","יוצר אוטומציות שמונעות התנהגויות לא-רצויות",""],
+["hookify-configure","cmd-hook","מפעיל או מכבה חוקי-אוטומציה באופן אינטראקטיבי",""],
+["hookify-help","cmd-hook","עזרה על מערכת האוטומציות (hookify)",""],
+["hookify-list","cmd-hook","מציג את כל חוקי-האוטומציה המוגדרים",""],
+["aside","cmd-session","עונה על שאלת-צד מהירה בלי לאבד את ההקשר, וממשיך אוטומטית",""],
+["checkpoint","cmd-session","יוצר, בודק או מציג נקודות-שמירה אחרי בדיקות-אימות",""],
+["save-session","cmd-session","שומר את מצב-הסשן לקובץ מתוארך, להמשך בעתיד",""],
+["resume-session","cmd-session","טוען את הסשן האחרון וממשיך מאיפה שהופסק",""],
+["sessions","cmd-session","ניהול היסטוריית-סשנים, כינויים ומטא-דאטה",""],
+["ecc-guide","cmd-ecc","ניווט בכל רכיבי ECC הנוכחיים, מתוך המאגר החי",""],
+["auto-update","cmd-ecc","מושך את עדכוני ECC האחרונים ומתקין מחדש",""],
+["harness-audit","cmd-ecc","מריץ ביקורת-מאגר ומחזיר כרטיס-ניקוד מדורג",""],
+["project-init","cmd-ecc","מזהה את הטכנולוגיות ומכין תוכנית-קליטה של ECC (הרצה-יבשה)",""],
+["cost-report","cmd-ecc","מפיק דוח-עלויות מקומי של Claude Code",""],
+["security-scan","cmd-ecc","מריץ סריקת-אבטחה על סוכנים, אוטומציות, הרשאות וסודות","security-scan"],
+["update-codemaps","cmd-ecc","סורק את מבנה-הפרויקט ומייצר מפות-ארכיטקטורה חסכוניות",""],
+["update-docs","cmd-ecc","מסנכרן תיעוד ממקורות-האמת (סקריפטים, סכמות, נתיבים)",""],
+["refactor-clean","cmd-ecc","מזהה ומסיר קוד-מת בבטחה, עם אימות אחרי כל שינוי",""],
+["setup-pm","cmd-ecc","מגדיר את מנהל-החבילות המועדף (npm / pnpm / yarn / bun)",""],
+["pm2","cmd-ecc","מנתח פרויקט ומייצר פקודות-שירות של PM2",""],
+["marketing-campaign","cmd-ecc","מתכנן ומריץ קמפיין-שיווקי שלם מתוך תקציר-מוצר",""],
+["jira","cmd-ecc","שליפה או עדכון של כרטיס Jira וניתוח דרישות","jira-integration,tdd-workflow"],
+];
+let SK_VIEW='all', SK_STAR=false, SK_CAT='', SK_USED=false;
+let SK_WITHINSTR=(function(){try{return localStorage.getItem('skInstr')!=='0';}catch(e){return true;}})();
+function skSetInstr(v){ SK_WITHINSTR=v; try{localStorage.setItem('skInstr',v?'1':'0');}catch(e){} }
+const SK_SEL=new Set(); // בחירה מרובה: 'skill:<name>' / 'cmd:<name>'
+function skCopy(name,type){
+  const t=(type==='cmd'?'/':'')+name; let ok=false;
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;} }catch(e){}
+  if(!ok){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); }
+  toast('הועתק: '+t);
+}
+// מפת התקנות: אילו סקילז כבר יושמו/הותקנו ובאילו פרויקטים (לשימור ידע)
+// שימוש בסקילז לפי מערכת — נתונים חיים מה-DB (נטענים ב-RENDER.skills)
+let SK_USAGE={};   // { skillName: [{id, systemId, systemName}] }
+let SK_SYS=[];     // רשימת המערכות לבורר
+function skItemHtml(it,type){
+  const name=it[0], desc=it[2];
+  const star=type==='skill'&&it[3]===1;
+  const rel=type==='cmd'?it[3]:'';
+  const uses=SK_USAGE[name]||null;
+  const label=(type==='cmd'?'/':'')+name;
+  const useNames=uses?uses.map(u=>u.systemName).join(' '):'';
+  const s=esc((name+' '+desc+' '+(rel||'')+' '+useNames).toLowerCase());
+  let relHtml='';
+  if(rel){ relHtml='<div class="sk-rel"><span class="t" style="border-color:transparent;background:none;padding-inline:0">שייך ל:</span>'+rel.split(',').map(x=>'<span class="t">'+esc(x)+'</span>').join('')+'</div>'; }
+  const chips=(uses||[]).map(u=>'<span class="sk-use" onclick="event.stopPropagation();skUsageDel(\''+u.id+'\')" title="הסר סימון">'+esc(u.systemName)+' ✕</span>').join('');
+  const instHtml='<div class="sk-inst-row">'+((uses&&uses.length)?'<span class="sk-inst-lbl">✅ בשימוש:</span>'+chips:'')+'<button class="sk-use-add" onclick="event.stopPropagation();skUsageAdd(\''+esc(name)+'\')">+ סמן מערכת</button></div>';
+  const id=type+':'+name;
+  return '<div class="sk-item '+type+(star?' star':'')+((uses&&uses.length)?' inst':'')+(SK_SEL.has(id)?' sel':'')+'" data-id="'+id+'" data-type="'+type+'" data-star="'+(star?1:0)+'" data-inst="'+((uses&&uses.length)?1:0)+'" data-s="'+s+'" onclick="skToggleSel(\''+esc(name)+'\',\''+type+'\',this)">'
+    +'<span class="sk-cb"></span>'
+    +(star?'<span class="sk-star-tag">⭐</span>':'')
+    +'<div class="sk-name">'+esc(label)+'</div><div class="sk-desc">'+esc(desc)+'</div>'+relHtml+instHtml+'</div>';
+}
+RENDER.skills=async()=>{
+  try{ SK_USAGE=await apiGet('/skills/usage'); }catch(e){ SK_USAGE={}; }
+  try{ SK_SYS=await apiGet('/systems'); }catch(e){ SK_SYS=[]; }
+  const nSk=SKILLS_DATA.length, nCmd=CMDS_DATA.length, nStar=SKILLS_DATA.filter(s=>s[3]===1).length;
+  const nInst=Object.keys(SK_USAGE).length;
+  const sg={}; SKILLS_DATA.forEach(s=>{(sg[s[1]]=sg[s[1]]||[]).push(s);});
+  const cg={}; CMDS_DATA.forEach(c=>{(cg[c[1]]=cg[c[1]]||[]).push(c);});
+  let h='<div class="spread"><div><h2>🧩 מאגר סקילז ופקודות</h2><div class="sub">קטלוג ידע מ-ECC — לחיצה על פריט בוחרת אותו, והבחירות נאספות למטה להעתקה</div></div></div>';
+  h+='<div class="kpis"><div class="kpi accent"><b>'+nSk+'</b><small>סקילז</small></div><div class="kpi amber"><b>'+nCmd+'</b><small>פקודות</small></div><div class="kpi green"><b>'+nStar+'</b><small>מומלצים ⭐</small></div><div class="kpi"><b>'+nInst+'</b><small>מסומנים בשימוש ✅</small></div></div>';
+  h+='<div class="row" style="margin-bottom:14px"><input id="skq" class="search" placeholder="חיפוש לפי שם או תיאור…" oninput="skApply()">'
+    +'<div class="seg" style="flex:0 0 auto">'+[['all','הכל'],['skill','סקילז'],['cmd','פקודות']].map(v=>'<button class="'+(SK_VIEW===v[0]?'on':'')+'" onclick="skView(\''+v[0]+'\',this)">'+v[1]+'</button>').join('')+'</div>'
+    +'<select id="skCat" class="search" style="max-width:190px;flex:0 0 auto" onchange="skSetCat(this.value)"><option value="">כל הקטגוריות</option>'+SK_CATS.map(c=>'<option value="'+c[0]+'"'+(SK_CAT===c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')+'<option value="" disabled>──── פקודות ────</option>'+SK_CMDG.map(c=>'<option value="'+c[0]+'"'+(SK_CAT===c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')+'</select>'
+    +'<button class="btn small'+(SK_STAR?' teal':'')+'" onclick="skStarToggle(this)">⭐ רלוונטי לי</button>'
+    +'<button class="btn small'+(SK_USED?' teal':'')+'" onclick="skUsedToggle(this)">✅ בשימוש</button></div>';
+  h+='<div class="card"><h3>💾 איפה זה שמור</h3><div class="muted" style="font-size:.85rem;line-height:1.75">סקילז מותקנים יושבים בנתיב <span class="tag" style="direction:ltr">.claude/skills/&lt;שם&gt;/SKILL.md</span> בתוך הריפו. פקודה יושבת ב-<span class="tag" style="direction:ltr">.claude/commands/&lt;שם&gt;.md</span> ומורצת עם <span class="tag" style="direction:ltr">/שם</span>. להתקנה בפרויקט עתידי — מעתיקים את התיקייה מהמאגר <span class="tag" style="direction:ltr">affaan-m/ecc</span> לאותו נתיב.</div></div>';
+  SK_CATS.forEach(c=>{ const items=sg[c[0]]; if(!items)return; items.sort((a,b)=>(b[3]===1?1:0)-(a[3]===1?1:0));
+    h+='<div class="card sk-sec" data-cat="'+c[0]+'" data-kind="skill"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'skill')).join('')+'</div></div>'; });
+  h+='<div class="card sk-sec" data-kind="cmdhead"><h3>⌘ פקודות מוכנות (Slash Commands)</h3><div class="muted" style="font-size:.84rem">94 קיצורים שמריצים עם /שם. אצל כל פקודה מצוין לאילו סקילז היא קשורה.</div></div>';
+  SK_CMDG.forEach(c=>{ const items=cg[c[0]]; if(!items)return;
+    h+='<div class="card sk-sec" data-cat="'+c[0]+'" data-kind="cmd"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'cmd')).join('')+'</div></div>'; });
+  h+='<div class="empty" id="sk-empty" style="display:none">לא נמצאו פריטים תואמים</div>';
+  h+='<div style="height:64px"></div><div id="skTray" class="sk-tray"></div>';
+  $('view').innerHTML=h; skApply(); skTray();
+};
+function skView(v,el){ SK_VIEW=v; el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); skApply(); }
+function skSetCat(v){ SK_CAT=v; skApply(); }
+function skUsageAdd(name){
+  const opts=SK_SYS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(s.clientName&&s.clientName!=='—'?' — '+esc(s.clientName):'')+'</option>').join('');
+  openModal('<h3>סימון שימוש · '+esc(name)+'</h3>'
+    +'<div class="f"><label>מערכת מהרשימה</label><select id="su_sys"><option value="">— בחר מערכת —</option>'+opts+'</select></div>'
+    +'<div class="f"><label>או שם חופשי (אם לא ברשימה)</label><input id="su_name" placeholder="למשל agency-hq / kravmaga-app"></div>'
+    +'<div class="modal-actions"><button class="btn primary" onclick="skUsageSave(\''+esc(name)+'\')">שמירה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>');
+}
+async function skUsageSave(name){
+  const sysId=val('su_sys'), freeName=val('su_name');
+  const sys=SK_SYS.find(s=>s.id===sysId);
+  const systemName=freeName||(sys?sys.name:'');
+  if(!systemName){ toast('בחר מערכת או הקלד שם','bad'); return; }
+  try{ await apiPost('/skills/usage',{skillName:name,systemId:sysId||null,systemName}); closeModal(); toast('סומן ✓'); go('skills'); }
+  catch(e){ toast('שגיאה','bad'); }
+}
+async function skUsageDel(id){
+  if(!confirm('להסיר את סימון השימוש?'))return;
+  try{ await apiDel('/skills/usage/'+id); toast('הוסר'); go('skills'); }
+  catch(e){ toast('שגיאה','bad'); }
+}
+function skStarToggle(el){ SK_STAR=!SK_STAR; el.classList.toggle('teal',SK_STAR); skApply(); }
+function skUsedToggle(el){ SK_USED=!SK_USED; el.classList.toggle('teal',SK_USED); skApply(); }
+function skApply(){
+  const term=($('skq')?.value||'').trim().toLowerCase(); let any=false;
+  document.querySelectorAll('#view .sk-sec').forEach(sec=>{
+    if(sec.dataset.kind==='cmdhead'){ sec.style.display=(SK_VIEW==='skill'||SK_STAR||SK_USED||SK_CAT)?'none':''; return; }
+    if(SK_CAT && sec.dataset.cat!==SK_CAT){ sec.style.display='none'; return; }
+    let shown=0;
+    sec.querySelectorAll('.sk-item').forEach(c=>{
+      const ok=(!term||c.dataset.s.includes(term))&&(!SK_STAR||c.dataset.star==='1')&&(!SK_USED||c.dataset.inst==='1')&&(SK_VIEW==='all'||c.dataset.type===SK_VIEW);
+      c.style.display=ok?'':'none'; if(ok)shown++;
+    });
+    sec.style.display=shown?'':'none';
+    const cnt=sec.querySelector('[data-count]'); if(cnt)cnt.textContent=shown; if(shown)any=true;
+  });
+  const em=$('sk-empty'); if(em)em.style.display=any?'none':'';
+}
+
+// ---------- בחירה מרובה + מגירת בחירה ----------
+function skToggleSel(name,type,el){
+  const id=type+':'+name;
+  if(SK_SEL.has(id)){ SK_SEL.delete(id); el.classList.remove('sel'); }
+  else{ SK_SEL.add(id); el.classList.add('sel'); }
+  skTray();
+}
+function skDeSel(id){
+  SK_SEL.delete(id);
+  const c=document.querySelector('.sk-item[data-id="'+id+'"]'); if(c)c.classList.remove('sel');
+  skTray();
+}
+function skClearSel(){
+  SK_SEL.clear();
+  document.querySelectorAll('.sk-item.sel').forEach(c=>c.classList.remove('sel'));
+  skTray();
+}
+function skTray(){
+  const box=$('skTray'); if(!box)return;
+  if(!SK_SEL.size){ box.className='sk-tray'; box.innerHTML=''; return; }
+  const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
+  const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
+  const grp=(lbl,arr,pre,prefix)=>arr.length?'<div class="sk-tray-grp"><span class="sk-tray-lbl">'+lbl+' ('+arr.length+')</span>'+
+    arr.map(n=>'<span class="sk-chip"'+(pre?' style="direction:ltr"':'')+' onclick="skDeSel(\''+prefix+n+'\')">'+(pre||'')+esc(n)+' ✕</span>').join('')+'</div>':'';
+  box.className='sk-tray open';
+  box.innerHTML='<div class="sk-tray-in"><div class="sk-tray-chips">'+grp('סקילז',skills,'','skill:')+grp('פקודות',cmds,'/','cmd:')+'</div>'
+    +'<div class="sk-tray-act"><b>'+SK_SEL.size+' נבחרו</b>'
+    +'<label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);font-weight:600" title="לכלול הוראות התקנה מלאות (כבה בשימוש חוזר באותו סשן)"><input type="checkbox" id="skInstr" '+(SK_WITHINSTR?'checked':'')+' onchange="skSetInstr(this.checked)" style="width:16px;height:16px;accent-color:var(--accent)"> הוראות</label>'
+    +'<button class="btn small primary" onclick="skCopySel()">📋 העתק</button>'
+    +'<button class="btn small ghost" onclick="skClearSel()">נקה</button></div></div>';
+}
+function skBuildCopy(){
+  const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
+  const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
+  let out=[];
+  if((skills.length||cmds.length) && SK_WITHINSTR){
+    out.push('התקן לי את הסקילז/פקודות הבאים מהמאגר הציבורי affaan-m/ecc לפרויקט הנוכחי:');
+    out.push('1) שכפל: GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/affaan-m/ecc /tmp/ecc');
+    out.push('2) לכל סקיל: קרא /tmp/ecc/skills/<שם>/SKILL.md (ודא שאין hooks מפוקפקים), והעתק את התיקייה כולה ל-.claude/skills/<שם>/');
+    out.push('3) לכל פקודה: העתק /tmp/ecc/commands/<שם>.md ל-.claude/commands/<שם>.md');
+    out.push('4) קמט ודחוף לענף שאני עובד עליו. הסקילז זמינים מיד באותו סשן (הסביבה מזהה אותם בתור הבא).');
+    out.push('');
+  }
+  if(skills.length){ out.push('== סקילז להתקנה =='); out.push(...skills); }
+  if(cmds.length){ if(out.length)out.push(''); out.push('== פקודות להרצה =='); out.push(...cmds.map(c=>'/'+c)); }
+  return { text: out.join('\n'), skills, cmds };
+}
+function skDoCopy(text){
+  let ok=false;
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text);ok=true;} }catch(e){}
+  if(!ok){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); }
+}
+function skCopySel(){
+  if(!SK_SEL.size) return;
+  const {skills,cmds}=skBuildCopy();
+  const opts=SK_SYS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(s.clientName&&s.clientName!=='—'?' — '+esc(s.clientName):'')+'</option>').join('');
+  openModal('<h3>📋 העתק + סימון התקנה</h3>'
+    +'<div class="hint" style="margin-bottom:10px">'+skills.length+' סקילז · '+cmds.length+' פקודות ייכללו בהעתקה</div>'
+    +'<div class="f"><label>לאיזה פרויקט מדביקים? (לסימון "מותקן ב…")</label><select id="sk_copy_sys"><option value="">— בחר מערכת —</option>'+opts+'</select></div>'
+    +'<div class="f"><label>או שם חופשי (אם לא ברשימה)</label><input id="sk_copy_free" placeholder="למשל agency-hq / kravmaga-app"></div>'
+    +'<div class="modal-actions"><button class="btn primary" onclick="skCopyConfirm(true)">📋 העתק וסמן</button>'
+    +'<button class="btn ghost" onclick="skCopyConfirm(false)">העתק בלבד</button>'
+    +'<button class="btn ghost" onclick="closeModal()">ביטול</button></div>');
+}
+async function skCopyConfirm(mark){
+  const {text,skills,cmds}=skBuildCopy();
+  const n=SK_SEL.size;
+  skDoCopy(text);
+  if(!mark){ closeModal(); toast('הועתקו '+n+' פריטים'); return; }
+  const sysId=val('sk_copy_sys'), freeName=(val('sk_copy_free')||'').trim();
+  const sys=SK_SYS.find(s=>s.id===sysId);
+  const systemName=freeName||(sys?sys.name:'');
+  if(!systemName){ toast('בחר מערכת לסימון, או "העתק בלבד"','bad'); return; }
+  let marked=0, skipped=0;
+  for(const name of [...skills,...cmds]){
+    const uses=SK_USAGE[name]||[];
+    const dup=uses.some(u=> sysId ? u.systemId===sysId : (u.systemName===systemName && !u.systemId));
+    if(dup){ skipped++; continue; }
+    try{ await apiPost('/skills/usage',{skillName:name,systemId:sysId||null,systemName}); marked++; }catch(e){}
+  }
+  closeModal();
+  toast('הועתקו '+n+' · סומנו '+marked+' ב'+systemName+(skipped?' ('+skipped+' כבר היו)':''));
+  go('skills');
+}
+
+// ============ הפעלה ============
+boot();
+</script>
+<script src="/idea-bubble.js"></script>
+</body>
+</html>
+
