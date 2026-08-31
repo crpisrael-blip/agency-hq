@@ -40,14 +40,17 @@ export const num = (v: any, d = 0): number => {
 };
 
 /**
- * שולח הודעת טקסט לטלגרם לכל צ'אט מוגדר (TELEGRAM_CHAT_ID, מופרד בפסיק).
+ * שולח הודעת טקסט לטלגרם לכל צ'אט (chatIds מופרד בפסיק).
  * לא זורק לעולם — אם אין טוקן/צ'אט או שהקריאה נכשלה, מחזיר בשקט.
  * מיועד לעטיפה ב-executionCtx.waitUntil כדי לא לעכב את התגובה.
  */
-export async function notifyTelegram(env: Bindings, text: string): Promise<void> {
+export async function notifyTelegram(
+  token: string | undefined,
+  chatIds: string | undefined,
+  text: string
+): Promise<void> {
   try {
-    const token = env.TELEGRAM_BOT_TOKEN;
-    const chats = (env.TELEGRAM_CHAT_ID || '')
+    const chats = (chatIds || '')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
