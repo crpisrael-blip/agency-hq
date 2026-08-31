@@ -199,6 +199,8 @@ export const leads = sqliteTable('leads', {
   source: text('source'),        // website | form | whatsapp | phone | other
   name: text('name'),
   note: text('note'),
+  status: text('status').default('new'), // new | contacted | qualified | won | lost
+  handledAt: integer('handled_at'),
   createdAt: integer('created_at').notNull(),
 });
 

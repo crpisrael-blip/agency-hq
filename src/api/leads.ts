@@ -28,6 +28,7 @@ export async function registerLeadPublic(c: Context<Env>) {
     source,
     name,
     note,
+    status: 'new',
     createdAt: now(),
   });
 
@@ -106,6 +107,25 @@ leadsApp.get('/summary', async (c) => {
     thisMonth: rows.filter((r) => inMonth(r.createdAt)).length,
     bySystem,
   });
+});
+
+// עדכון ליד (סטטוס / שם / הערה)
+const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'];
+leadsApp.patch('/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({} as any));
+  const patch: Record<string, unknown> = {};
+  if (body.status !== undefined) {
+    const st = String(body.status);
+    if (!LEAD_STATUSES.includes(st)) return c.json({ error: 'bad_status' }, 400);
+    patch.status = st;
+    patch.handledAt = now();
+  }
+  if (body.name !== undefined) patch.name = body.name ? String(body.name).slice(0, 120) : null;
+  if (body.note !== undefined) patch.note = body.note ? String(body.note).slice(0, 300) : null;
+  if (Object.keys(patch).length === 0) return c.json({ error: 'nothing_to_update' }, 400);
+  await db(c).update(leads).set(patch).where(eq(leads.id, id));
+  return c.json({ ok: true });
 });
 
 leadsApp.delete('/:id', async (c) => {
