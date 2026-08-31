@@ -5,7 +5,7 @@ import { ClientsPage } from '../pages/ClientsPage';
 test.describe('לקוחות', () => {
   test('יצירת לקוח חדש מופיעה ברשימה', async ({ page }) => {
     const app = new AppShell(page);
-    await page.goto('/');
+    await page.goto('/app');
     await app.waitReady();
 
     await app.openTab('לקוחות ומערכות');

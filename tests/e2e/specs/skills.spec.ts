@@ -3,7 +3,7 @@ import { AppShell } from '../pages/AppShell';
 
 async function openCatalog(page: import('@playwright/test').Page) {
   const app = new AppShell(page);
-  await page.goto('/');
+  await page.goto('/app');
   await app.waitReady();
   await app.skillsButton.click();
   await expect(page.getByRole('heading', { name: /מאגר סקילז/ })).toBeVisible();

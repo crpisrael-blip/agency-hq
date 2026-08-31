@@ -5,7 +5,7 @@ const OR_NAME = 'מערכת ניהול חדרי ניתוח — כללית אסת
 
 async function openProcesses(page: import('@playwright/test').Page) {
   const app = new AppShell(page);
-  await page.goto('/');
+  await page.goto('/app');
   await app.waitReady();
   await app.openTab('תהליכים');
   await expect(app.heading(/תהליכים ומסעות לקוח/)).toBeVisible();

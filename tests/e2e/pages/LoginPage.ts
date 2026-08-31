@@ -19,7 +19,7 @@ export class LoginPage {
   }
 
   async goto() {
-    await this.page.goto('/');
+    await this.page.goto('/app');
     await expect(this.card).toBeVisible();
   }
 
