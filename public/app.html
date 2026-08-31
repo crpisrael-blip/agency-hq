@@ -236,6 +236,7 @@
   .att-item.blue .att-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.42);color:#1741d6}
   .att-item.amber .att-ico{background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.42);color:#9a6a00}
   .att-item.teal .att-ico{background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.42);color:#0a7f6b}
+  .att-item.green .att-ico{background:rgba(15,185,129,.14);border:1px solid rgba(15,185,129,.42);color:#0a7f47}
   /* ===== תיק לקוחות ומערכות (אקורדיון) ===== */
   .pf-group{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow-sm)}
   .pf-head{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer;transition:background-color .14s ease-out}
@@ -421,6 +422,7 @@ function showApp(){
 // ============ ניווט ============
 const PAGES = [
   ['dashboard','לוח בקרה'],
+  ['leads','📥 לידים'],
   ['portfolio','לקוחות'],
   ['playbooks','מתודולוגיה'],
   ['health','צינור עסקאות'],
@@ -961,6 +963,86 @@ async function loadSysLeads(id){
         </div>`;}).join('')}
       <div class="hint" style="margin-top:7px">סה"כ ${rows.length} לידים${list.length>1&&!tie?` · המקור המוביל: <b>${esc(LEAD_SOURCES[top.k]||top.k)}</b>`:''}${tie?' · תיקו בין המקורות המובילים':''}</div>`;
   }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת לידים</div>'; }
+}
+
+// ---------- מסך לידים (CRM) ----------
+const LEAD_STATUS={new:['🆕 חדש','p-amber'],contacted:['📞 נוצר קשר','p-blue'],qualified:['⭐ רלוונטי','p-purple'],won:['✅ נסגר','p-green'],lost:['✕ לא רלוונטי','p-gray']};
+const LEAD_STATUS_ORDER=['new','contacted','qualified','won','lost'];
+let LEADS_ALL=[], LEADS_SYS={}, LEADS_FILTER='all';
+function leadPhone(note){ const m=(note||'').match(/0\d[\d\- ]{7,11}/); return m? m[0].replace(/\D/g,'') : ''; }
+function waNum(p){ p=(p||'').replace(/\D/g,''); if(p.startsWith('972'))return p; if(p.startsWith('0'))return '972'+p.slice(1); return p; }
+function timeAgo(ms){ const s=Math.floor((Date.now()-ms)/1000); if(s<60)return 'הרגע'; const m=Math.floor(s/60); if(m<60)return "לפני "+m+" דק'"; const h=Math.floor(m/60); if(h<24)return "לפני "+h+" ש'"; const d=Math.floor(h/24); if(d<30)return "לפני "+d+" ימים"; return new Date(ms).toLocaleDateString('he-IL'); }
+function leadStatusSelect(id,cur){ return '<select onchange="leadSetStatus(\''+id+'\',this.value)" style="padding:6px 10px;border:1px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.85rem;background:#fff;font-weight:700;cursor:pointer">'+LEAD_STATUS_ORDER.map(k=>'<option value="'+k+'" '+(k===cur?'selected':'')+'>'+LEAD_STATUS[k][0]+'</option>').join('')+'</select>'; }
+
+RENDER.leads=async()=>{
+  $('view').innerHTML='<h2>📥 לידים</h2><div class="sub">כל הפניות מהאתר במקום אחד — פרטים, יצירת קשר וסטטוס טיפול</div><div id="leadsBody"><div class="empty">טוען…</div></div>';
+  try{
+    const [rows,systems]=await Promise.all([apiGet('/leads'),apiGet('/systems')]);
+    LEADS_ALL=rows; LEADS_SYS=Object.fromEntries(systems.map(s=>[s.id,s.name]));
+    renderLeadsList();
+  }catch(e){ const b=$('leadsBody'); if(b)b.innerHTML='<div class="empty">שגיאה בטעינת לידים</div>'; }
+};
+
+function renderLeadsList(){
+  const body=$('leadsBody'); if(!body)return;
+  const all=LEADS_ALL.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const monthPrefix=new Date().toISOString().slice(0,7);
+  const cnt=k=> k==='all'? all.length : all.filter(l=>(l.status||'new')===k).length;
+  const thisMonth=all.filter(l=>new Date(l.createdAt).toISOString().slice(0,7)===monthPrefix).length;
+  const filtered= LEADS_FILTER==='all'? all : all.filter(l=>(l.status||'new')===LEADS_FILTER);
+  const chip=(k,label)=>'<button onclick="LEADS_FILTER=\''+k+'\';renderLeadsList()" class="btn small '+(LEADS_FILTER===k?'primary':'ghost')+'">'+label+' <b>'+cnt(k)+'</b></button>';
+  body.innerHTML=
+    '<div class="att" style="margin-bottom:14px">'+
+      '<div class="att-item teal"><div class="att-ico">📥</div><div class="att-txt"><span class="n">'+all.length+'</span><span class="l">סה"כ לידים</span></div></div>'+
+      '<div class="att-item amber"><div class="att-ico">🆕</div><div class="att-txt"><span class="n">'+cnt('new')+'</span><span class="l">חדשים לטיפול</span></div></div>'+
+      '<div class="att-item blue"><div class="att-ico">🗓️</div><div class="att-txt"><span class="n">'+thisMonth+'</span><span class="l">החודש</span></div></div>'+
+      '<div class="att-item green"><div class="att-ico">✅</div><div class="att-txt"><span class="n">'+cnt('won')+'</span><span class="l">נסגרו</span></div></div>'+
+    '</div>'+
+    '<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:14px">'+
+      chip('all','הכל')+LEAD_STATUS_ORDER.map(k=>chip(k,LEAD_STATUS[k][0])).join('')+
+    '</div>'+
+    (filtered.length? filtered.map(leadCard).join('') : '<div class="empty">אין לידים בסינון הזה</div>');
+}
+
+function leadCard(l){
+  const ph=leadPhone(l.note); const st=l.status||'new';
+  return '<div class="card" style="margin-bottom:10px">'+
+    '<div class="spread" style="align-items:flex-start">'+
+      '<div><b style="font-size:1.05rem">'+esc(l.name||'ליד ללא שם')+'</b> '+pill(LEAD_STATUS,st)+
+        '<div class="muted" style="font-size:.83rem;margin-top:2px">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+' · '+timeAgo(l.createdAt)+'</div></div>'+
+      '<div class="row" style="gap:6px;flex:none">'+
+        (ph?'<a class="btn teal small" href="tel:'+ph+'" title="חייג">📞</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank" title="וואטסאפ">💬</a>':'')+
+      '</div>'+
+    '</div>'+
+    (l.note?'<div class="muted" style="margin-top:8px;font-size:.9rem;white-space:pre-wrap;border-inline-start:3px solid #e3dccf;padding-inline-start:10px">'+esc(l.note)+'</div>':'')+
+    '<div class="spread" style="margin-top:10px">'+
+      leadStatusSelect(l.id,st)+
+      '<div class="row" style="gap:6px"><button class="btn ghost small" onclick="openLead(\''+l.id+'\')">פרטים</button><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑</button></div>'+
+    '</div>'+
+  '</div>';
+}
+
+function openLead(id){
+  const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  const ph=leadPhone(l.note);
+  openModal(
+    '<div class="spread"><h3 style="margin:0">'+esc(l.name||'ליד')+'</h3>'+pill(LEAD_STATUS,l.status||'new')+'</div>'+
+    '<div class="muted" style="margin:6px 0 14px;font-size:.88rem">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+'<br>נכנס: '+new Date(l.createdAt).toLocaleString('he-IL')+(l.handledAt?' · טופל: '+new Date(l.handledAt).toLocaleString('he-IL'):'')+'</div>'+
+    (ph?'<div class="row" style="gap:8px;margin-bottom:14px"><a class="btn teal small" href="tel:'+ph+'">📞 '+ph+'</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank">💬 וואטסאפ</a></div>':'')+
+    (l.note?'<div class="card" style="margin:0 0 14px;white-space:pre-wrap">'+esc(l.note)+'</div>':'')+
+    '<div class="f"><label>סטטוס טיפול</label>'+leadStatusSelect(l.id,l.status||'new')+'</div>'+
+    '<div class="spread" style="margin-top:18px"><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑 מחק ליד</button><button class="btn primary" onclick="closeModal()">סגור</button></div>'
+  );
+}
+
+async function leadSetStatus(id,status){
+  try{ await apiPatch('/leads/'+id,{status}); const l=LEADS_ALL.find(x=>x.id===id); if(l){l.status=status;l.handledAt=Date.now();} toast('סטטוס עודכן ✓'); renderLeadsList(); }
+  catch(e){ toast('שגיאה בעדכון הסטטוס','bad'); }
+}
+async function leadDelete(id){
+  if(!confirm('למחוק את הליד לצמיתות?'))return;
+  try{ await apiDel('/leads/'+id); LEADS_ALL=LEADS_ALL.filter(x=>x.id!==id); closeModal(); toast('הליד נמחק'); renderLeadsList(); }
+  catch(e){ toast('שגיאה במחיקה','bad'); }
 }
 async function advanceSysTask(taskId,status,systemId){ try{ await apiPatch('/tasks/'+taskId,{status}); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
 async function delSysTask(taskId,systemId){ if(!confirm('למחוק משימה?'))return; try{ await apiDel('/tasks/'+taskId); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
