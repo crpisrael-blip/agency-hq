@@ -272,7 +272,7 @@
     const stageOpts = [...L.oppStageOrder, 'won', 'lost'].map((s) => `<option value="${s}" ${s === o.stage ? 'selected' : ''}>${H('oppStage', s)}</option>`).join('');
     const painRows = d.pains.map((p) => `<div class="list-item"><div class="li-main"><b>${esc(p.title)}</b><small>${p.severity ? 'חומרה: ' + H('severity', p.severity) : ''}${p.estimatedCost ? ' · ' + money(p.estimatedCost) : ''}</small></div><button class="btn small ghost" onclick="BOS.delSub('opportunities/${id}/pains','${p.id}','opportunity','${id}')">✕</button></div>`).join('') || '<div class="empty">—</div>';
     const solRows = d.solutions.map((s) => `<div class="list-item"><div class="li-main"><b>${esc(s.title)}</b><small>${esc(s.expectedOutcome || '')}</small></div><button class="btn small ghost" onclick="BOS.delSub('opportunities/${id}/solutions','${s.id}','opportunity','${id}')">✕</button></div>`).join('') || '<div class="empty">—</div>';
-    const propRows = d.proposals.map((p) => `<div class="list-item"><div class="li-main"><b>גרסה ${p.version}</b><small>${money(p.oneTimeValue)} + ${money(p.monthlyValue)}/ח׳</small></div><div class="row" style="gap:6px">${hp('proposalStatus', p.status)}<button class="btn small" onclick="BOS.propStatus('${p.id}','${id}')">סטטוס</button>${p.status === 'accepted' ? `<button class="btn small" onclick="BOS.propToEngagement('${p.id}','${id}')">→ התקשרות</button>` : ''}</div></div>`).join('') || '<div class="empty">—</div>';
+    const propRows = d.proposals.map((p) => `<div class="list-item"><div class="li-main"><b>גרסה ${p.version}</b><small>${money(p.oneTimeValue)} + ${money(p.monthlyValue)}/ח׳</small></div><div class="row" style="gap:6px">${hp('proposalStatus', p.status)}<button class="btn small ghost" onclick="BOS.proposalPdf('${p.id}','${id}')" title="הפק הצעה + תיחום (SOW) ל-PDF">📄 PDF</button>${p.status === 'draft' ? `<button class="btn small ghost" onclick="BOS.editProposal('${p.id}','${id}')" title="עריכת תיחום וסכומים">✎</button>` : ''}<button class="btn small" onclick="BOS.propStatus('${p.id}','${id}')">סטטוס</button>${p.status === 'accepted' ? `<button class="btn small" onclick="BOS.propToEngagement('${p.id}','${id}')">→ התקשרות</button>` : ''}</div></div>`).join('') || '<div class="empty">—</div>';
     V().innerHTML = `
       <button class="backbtn" onclick="go('sales')">← חזרה למכירות</button>
       <div class="spread"><div><h2 style="margin:0 0 3px">${esc(o.title)}</h2><small style="color:var(--muted)">${esc(d.organization?.name || '')}</small></div>
@@ -371,6 +371,7 @@
 
   /* =========================== פעולות / טפסים =========================== */
   const fInput = (id, label, val = '', type = 'text') => `<div class="f"><label>${label}</label><input id="${id}" type="${type}" value="${esc(val)}"></div>`;
+  const fArea = (id, label, val = '', ph = '') => `<div class="f"><label>${label}</label><textarea id="${id}" rows="3" placeholder="${esc(ph)}" style="width:100%;font-family:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--txt);resize:vertical">${esc(val)}</textarea></div>`;
 
   async function newOrg() {
     openModal(`<h3>ארגון חדש</h3>${fInput('o_name', 'שם הארגון')}${fInput('o_ind', 'תחום')}
@@ -418,8 +419,85 @@
   async function addSolution(oppId) { openModal(`<h3>פתרון מוצע</h3>${fInput('sl_title', 'כותרת')}${fInput('sl_out', 'תוצאה צפויה')}<div class="modal-actions"><button class="btn primary" onclick="BOS._addSolution('${oppId}')">הוספה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>`); }
   async function _addSolution(oppId) { const title = val('sl_title'); if (!title) return toast('חסר', 'bad'); await apiPost(`/opportunities/${oppId}/solutions`, { title, expectedOutcome: val('sl_out') }); closeModal(); openOpp(oppId); }
 
-  async function newProposal(oppId) { openModal(`<h3>הצעה חדשה</h3>${fInput('pp_ot', 'סכום חד-פעמי', '', 'number')}${fInput('pp_mo', 'חודשי', '', 'number')}${fInput('pp_valid', 'בתוקף עד', '', 'date')}<div class="modal-actions"><button class="btn primary" onclick="BOS._newProposal('${oppId}')">יצירה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>`); }
-  async function _newProposal(oppId) { await apiPost('/proposals', { opportunityId: oppId, oneTimeValue: valN('pp_ot'), monthlyValue: valN('pp_mo'), validUntil: val('pp_valid') }); closeModal(); toast('נוצרה הצעה ✓'); openOpp(oppId); }
+  // טופס הצעה + תיחום עבודה (SOW). p = הצעה קיימת לעריכה, אחרת יצירה חדשה.
+  function proposalForm(oppId, p) {
+    const v = p || {};
+    return `<h3>${p ? 'עריכת הצעה — גרסה ' + p.version : 'הצעה ותיחום עבודה (SOW)'}</h3>
+      ${fArea('pp_notes', 'מה נבנה (תיאור קצר)', v.notes || '', 'תקציר 2–3 שורות + הפניה למסמך האפיון')}
+      ${fArea('pp_inc', 'תכולה — כלול', v.scopeIncluded || '', 'מה בדיוק מספקים')}
+      ${fArea('pp_exc', 'תכולה — לא כלול (יתומחר בנפרד)', v.scopeExcluded || '', 'אינטגרציות, מיגרציה, שינויים אחרי אישור…')}
+      <div class="grid2" style="gap:0 11px">${fInput('pp_ot', 'הקמה — חד-פעמי (₪)', v.oneTimeValue || '', 'number')}${fInput('pp_mo', 'חודשי (₪)', v.monthlyValue || '', 'number')}</div>
+      ${fArea('pp_assum', 'הנחות יסוד', v.assumptions || '')}
+      ${fArea('pp_dep', 'תלויות', v.dependencies || '', 'מה נדרש מהלקוח כדי להתקדם')}
+      ${fInput('pp_valid', 'בתוקף עד', v.validUntil || '', 'date')}
+      <div class="modal-actions"><button class="btn primary" onclick="BOS.${p ? '_editProposal' : '_newProposal'}('${p ? p.id : oppId}','${oppId}')">${p ? 'שמירה' : 'יצירה'}</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>`;
+  }
+  function proposalPayload() {
+    return {
+      oneTimeValue: valN('pp_ot'), monthlyValue: valN('pp_mo'), validUntil: val('pp_valid'),
+      scopeIncluded: val('pp_inc'), scopeExcluded: val('pp_exc'),
+      assumptions: val('pp_assum'), dependencies: val('pp_dep'), notes: val('pp_notes'),
+    };
+  }
+  async function newProposal(oppId) { openModal(proposalForm(oppId, null)); }
+  async function _newProposal(oppId) { await apiPost('/proposals', { opportunityId: oppId, ...proposalPayload() }); closeModal(); toast('נוצרה הצעה ✓'); openOpp(oppId); }
+  async function editProposal(propId, oppId) { const p = await apiGet('/proposals/' + propId); openModal(proposalForm(oppId, p)); }
+  async function _editProposal(propId, oppId) { try { await apiPatch('/proposals/' + propId, proposalPayload()); toast('נשמר ✓'); } catch (e) { toast(String(e && e.message) === 'locked_create_new_version' ? 'הצעה שנשלחה — צור גרסה חדשה' : 'שגיאה', 'bad'); } closeModal(); openOpp(oppId); }
+
+  // הפקת מסמך הצעה + תיחום עבודה (SOW) ל-PDF ממותג — מאחד תבנית, סכומים ותיחום למקום אחד
+  async function proposalPdf(propId, oppId) {
+    try {
+      const [p, od] = await Promise.all([apiGet('/proposals/' + propId), apiGet('/opportunities/' + oppId)]);
+      proposalRenderPrint(p, od.opportunity, od.organization);
+    } catch (e) { toast('שגיאה בהפקת המסמך', 'bad'); }
+  }
+  function proposalRenderPrint(p, opp, org) {
+    const f = (n) => '₪' + Number(n || 0).toLocaleString('he-IL', { maximumFractionDigits: 0 });
+    const created = new Date(p.createdAt || Date.now());
+    const client = (org && org.name) || '', subject = (opp && opp.title) || '';
+    const validStr = p.validUntil ? new Date(p.validUntil + 'T12:00:00').toLocaleDateString('he-IL') : '';
+    const logoUrl = location.origin + '/ort-tech-logo.png';
+    const nl = (s) => esc(s || '').replace(/\n/g, '<br>');
+    const bill = [];
+    if (Number(p.oneTimeValue)) bill.push(['הקמה (חד-פעמי)', f(p.oneTimeValue), '50% מקדמה']);
+    if (Number(p.monthlyValue)) bill.push(['חודשי / ריטיינר', f(p.monthlyValue) + ' /ח׳', 'לפי יום חיוב']);
+    const sec = (title, body) => body && String(body).trim() ? `<div class="sec"><b>${title}</b>${nl(body)}</div>` : '';
+    const html = '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>הצעה ותיחום עבודה — ' + esc(subject) + '</title><style>' +
+      '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
+      "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}" +
+      '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:24px}' +
+      '.logo-crop{width:264px;height:60px;overflow:hidden;position:relative}.logo-crop img{width:369px;position:absolute;left:-48px;top:-82px}' +
+      '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}' +
+      'h1{font-size:24px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:13px}' +
+      '.to{margin:18px 0 4px;font-size:15px}.subject{font-size:16px;font-weight:700;margin-bottom:4px}' +
+      'table{width:100%;border-collapse:collapse;margin:8px 0 2px}' +
+      'th{background:#f4efe6;text-align:right;padding:9px 12px;font-size:13px;border-bottom:2px solid #0f7a5c}' +
+      'td{padding:9px 12px;border-bottom:1px solid #e3dccf}td.amt,th.amt{text-align:left;white-space:nowrap;width:150px}' +
+      '.sec{margin-top:15px;font-size:13.5px}.sec b{display:block;margin-bottom:2px;color:#0f7a5c}' +
+      '.vatnote{font-size:12px;color:#6b7a8d;margin-top:4px}' +
+      '.sig{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:30px}' +
+      '.sig .line{width:210px;border-top:1.5px solid #16202e;padding-top:5px;text-align:center;font-size:12.5px;color:#3d4b5e}' +
+      '.foot{margin-top:30px;border-top:1px solid #e3dccf;padding-top:9px;font-size:11.5px;color:#6b7a8d;display:flex;justify-content:space-between}' +
+      '@media print{body{padding:20px 26px}}</style></head><body>' +
+      '<div class="hdr"><div><h1>הצעה ותיחום עבודה</h1><div class="meta">גרסה ' + (p.version || 1) + ' · תאריך: ' + created.toLocaleDateString('he-IL') + (validStr ? ' · בתוקף עד ' + validStr : '') + '</div></div>' +
+      '<div><div class="logo-crop"><img src="' + logoUrl + '" alt="ORT-TECH"></div><div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div></div>' +
+      '<div class="to">לכבוד: <b>' + esc(client) + '</b></div>' +
+      (subject ? '<div class="subject">הנדון: ' + esc(subject) + '</div>' : '') +
+      sec('מה נבנה', p.notes) +
+      sec('תכולת העבודה — כלול', p.scopeIncluded) +
+      sec('לא כלול (יתומחר בנפרד)', p.scopeExcluded) +
+      (bill.length ? '<div class="sec"><b>מודל חיוב</b></div><table><thead><tr><th>רכיב</th><th class="amt">סכום</th><th style="width:120px">מועד</th></tr></thead><tbody>' +
+        bill.map((r) => '<tr><td>' + r[0] + '</td><td class="amt">' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') +
+        '</tbody></table><div class="vatnote">המחירים אינם כוללים מע״מ.</div>' : '') +
+      sec('הנחות יסוד', p.assumptions) +
+      sec('תלויות', p.dependencies) +
+      '<div class="sec"><b>תנאים</b>שינויי היקף מתומחרים בנפרד ומאושרים בכתב. בעלות על הקוד/הנתונים עוברת ללקוח עם השלמת התשלום. תמיכה לפי מסמך SLA נפרד.</div>' +
+      '<div class="sig"><div><div style="font-weight:700">בברכה,</div><div>ORT-TECH · פתרונות תפעול חכמים לעסק שלך</div></div><div class="line">חתימת הלקוח ואישור ההצעה</div></div>' +
+      '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>' +
+      '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print()},400)}</scr' + 'ipt></body></html>';
+    const w = window.open(URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' })), '_blank');
+    if (!w) toast('המסמך מוכן אך הדפדפן חסם חלון קופץ', 'bad');
+  }
 
   async function propStatus(propId, oppId) {
     const opts = Object.entries(L.proposalStatus).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
@@ -459,7 +537,7 @@
     tab, openOpp, openProject, openOrg,
     newOrg, _newOrg, newOpp, _newOpp, newProject, _newProject,
     addContact, _addContact, addPain, _addPain, addSolution, _addSolution,
-    newProposal, _newProposal, propStatus, _propStatus, propToEngagement,
+    newProposal, _newProposal, editProposal, _editProposal, proposalPdf, propStatus, _propStatus, propToEngagement,
     setOppStage, saveOppNA, convertToProject,
     setProjStatus, setProjHealth, saveProj, addMilestone, _addMilestone, msToggle,
     addChange, _addChange, convertPC, delSub,
