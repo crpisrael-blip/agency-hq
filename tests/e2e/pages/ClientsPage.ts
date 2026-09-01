@@ -13,8 +13,8 @@ export class ClientsPage {
 
   constructor(page: Page) {
     this.page = page;
-    // המסך המאוחד "לקוחות ומערכות" (אקורדיון)
-    this.heading = page.getByRole('heading', { name: 'לקוחות ומערכות', exact: true });
+    // מסך "לקוחות ומערכות" המלא (אקורדיון) — הכותרת היא "לקוחות"
+    this.heading = page.getByRole('heading', { name: 'לקוחות', exact: true });
     this.addButton = page.getByRole('button', { name: '+ לקוח' });
     this.search = page.locator('#pfS');
     this.nameInput = page.locator('#f_name');

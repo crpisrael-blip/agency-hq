@@ -22,8 +22,8 @@ test.describe('לוח בקרה', () => {
   test('רצועת "טעון טיפול" מציגה 4 אותות וקליק מנווט למסך', async ({ page }) => {
     const items = page.locator('.att-item');
     await expect(items).toHaveCount(4);
-    // האות הראשון (מערכות בפיתוח) מנווט למסך המאוחד "לקוחות ומערכות"
+    // האות הראשון ("לקוחות פעילים") מנווט למסך "לקוחות ומערכות" המלא (כותרת: "לקוחות")
     await items.first().click();
-    await expect(page.getByRole('heading', { name: /לקוחות ומערכות/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'לקוחות', exact: true })).toBeVisible();
   });
 });

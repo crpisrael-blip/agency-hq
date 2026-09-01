@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /app
+
+Sitemap: https://ort-tech.co.il/sitemap.xml

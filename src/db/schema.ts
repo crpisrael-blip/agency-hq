@@ -41,6 +41,7 @@ export const clients = sqliteTable('clients', {
   website: text('website'),                              // אתר הארגון (BOS)
   tags: text('tags'),
   notes: text('notes'),
+  isSelf: integer('is_self').default(0),      // 1 = העסק שלי (ORT-TECH) — לידים שלו מנוהלים כ-CRM מלא
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at'),
 });
@@ -120,7 +121,7 @@ export const cashflow = sqliteTable('cashflow', {
   clientId: text('client_id').references(() => clients.id),
   engagementId: text('engagement_id').references(() => engagements.id),
   category: text('category'),
-  recurring: text('recurring').notNull().default('once'), // once | monthly
+  recurring: text('recurring').notNull().default('once'), // once | monthly | yearly
   billingDay: integer('billing_day'),                     // יום חיוב בחודש (למנויים חוזרים)
   startDate: text('start_date').notNull(),                // YYYY-MM-DD
   endDate: text('end_date'),                              // חודשי: עד מתי (ריק = פתוח)
@@ -207,6 +208,19 @@ export const leads = sqliteTable('leads', {
   source: text('source'),        // website | form | whatsapp | phone | other
   name: text('name'),
   note: text('note'),
+  status: text('status').default('new'), // new | contacted | qualified | won | lost
+  handledAt: integer('handled_at'),
+  followUpAt: integer('follow_up_at'),   // תאריך חזרה ללקוח (follow-up)
+  convertedClientId: text('converted_client_id'), // הלקוח שנוצר מהליד — מונע המרה כפולה
+  createdAt: integer('created_at').notNull(),
+});
+
+// יומן פעילות לליד — תיעוד שיחות, הודעות, פגישות והערות (CRM)
+export const leadActivities = sqliteTable('lead_activities', {
+  id: text('id').primaryKey(),
+  leadId: text('lead_id').notNull(),
+  kind: text('kind').notNull(), // call | whatsapp | meeting | note | status
+  text: text('text'),
   createdAt: integer('created_at').notNull(),
 });
 
