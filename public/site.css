@@ -257,8 +257,10 @@ section{padding:92px 0;position:relative}
   .method-track{grid-template-columns:1fr;gap:0}
   .method::before{inset:26px auto 26px 26px;width:2px;height:auto;inset-inline-start:26px;top:0;bottom:0}
   .method .progress{width:2px!important;height:0;inset:0 auto auto 26px;inset-inline-start:26px;transition:height 1.1s var(--ease)}
-  .mstep{display:grid;grid-template-columns:54px 1fr;gap:16px;text-align:right;align-items:start;padding:14px 0}
-  .mnode{margin:0}
+  .mstep{display:grid;grid-template-columns:54px 1fr;column-gap:16px;row-gap:4px;text-align:right;align-items:start;padding:16px 0}
+  .mstep .mnode{grid-column:1;grid-row:1 / span 2;margin:0}
+  .mstep h4{grid-column:2;align-self:center}
+  .mstep p{grid-column:2;margin-top:0}
 }
 
 /* ---------- business flow ---------- */
