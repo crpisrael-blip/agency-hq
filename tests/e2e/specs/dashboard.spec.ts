@@ -4,7 +4,11 @@ import { AppShell } from '../pages/AppShell';
 test.describe('לוח בקרה', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/app');
-    await new AppShell(page).waitReady();
+    const app = new AppShell(page);
+    await app.waitReady();
+    // לוח הבקרה הישן נגיש כעת דרך תפריט "עוד"
+    await app.openTab('לוח בקרה (ישן)');
+    await expect(page.getByRole('heading', { name: /לוח בקרה/ })).toBeVisible();
   });
 
   test('רצועת ההכנסה מציגה MRR כמדד-על', async ({ page }) => {

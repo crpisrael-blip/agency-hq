@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
-import { clients, systems, engagements, profitCenters, tasks, leads } from '../db/schema';
+import { clients, systems, engagements, profitCenters, tasks, leads, opportunities, projects } from '../db/schema';
 import { Env, db, num, todayIL } from './util';
 import { engagementMonthly } from './engagements';
 
@@ -8,14 +8,18 @@ export const dashboardApp = new Hono<Env>();
 
 dashboardApp.get('/', async (c) => {
   const d = db(c);
-  const [cls, sys, engs, ideas, tks, lds] = await Promise.all([
+  const [cls, sys, engs, ideas, tks, lds, opps, projs] = await Promise.all([
     d.select().from(clients).all(),
     d.select().from(systems).all(),
     d.select().from(engagements).all(),
     d.select().from(profitCenters).all(),
     d.select().from(tasks).all(),
     d.select().from(leads).all(),
+    d.select().from(opportunities).all(),
+    d.select().from(projects).all(),
   ]);
+  const ACTIVE_STAGES = ['discovery', 'diagnosis', 'solution', 'proposal', 'negotiation', 'decision'];
+  const activeOpps = opps.filter((o) => ACTIVE_STAGES.includes(o.stage));
 
   const monthPrefix = todayIL().slice(0, 7);
   const leadsMonth = lds.filter((l) => new Date(l.createdAt).toISOString().slice(0, 7) === monthPrefix).length;
@@ -25,9 +29,10 @@ dashboardApp.get('/', async (c) => {
     .sort((a, b) => b.count - a.count);
 
   const activeEng = engs.filter((e) => e.status === 'active');
-  const proposedEng = engs.filter((e) => e.status === 'proposed');
   const mrr = activeEng.reduce((a, e) => a + engagementMonthly(e), 0);
-  const pipeline = proposedEng.reduce((a, e) => a + engagementMonthly(e) + num(e.setupFee), 0);
+  // BOS: הצינור מחושב מהזדמנויות פעילות — לא מהתקשרויות
+  const pipeline = activeOpps.reduce((a, o) => a + num(o.estimatedValue), 0);
+  const pipelineWeighted = activeOpps.reduce((a, o) => a + num(o.estimatedValue) * (num(o.probability) / 100), 0);
   const openTasks = tks.filter((t) => t.status !== 'done');
 
   const kpis = {
@@ -39,6 +44,9 @@ dashboardApp.get('/', async (c) => {
     mrr,
     arr: mrr * 12,
     pipeline,
+    pipelineWeighted,
+    oppsActive: activeOpps.length,
+    projectsActive: projs.filter((p) => !['completed', 'paused'].includes(p.status)).length,
     openTasks: openTasks.length,
     ideasActive: ideas.filter((i) => i.status !== 'dropped').length,
     ideasWeighted: ideas

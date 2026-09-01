@@ -7,7 +7,9 @@ async function openProcesses(page: import('@playwright/test').Page) {
   const app = new AppShell(page);
   await page.goto('/app');
   await app.waitReady();
-  await app.openTab('תהליכים');
+  // תהליכים נגישים כעת דרך מסך "עבודה" → לשונית "תהליכים"
+  await app.openTab('עבודה');
+  await app.openSubTab('תהליכים');
   await expect(app.heading(/תהליכים ומסעות לקוח/)).toBeVisible();
 }
 
