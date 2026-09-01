@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="120" viewBox="0 0 420 120" role="img" aria-labelledby="title desc">
+  <title id="title">ORT Tech</title>
+  <desc id="desc">A geometric ORT Tech logo with a connected forward-moving symbol.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M67 17 26 40v40l41 23 41-23V40L67 17Z" fill="#16202E" stroke="#16202E" stroke-width="6"/>
+    <circle cx="58" cy="60" r="18" stroke="#FBF8F3" stroke-width="9"/>
+    <path d="m75 60 23-13v26L75 60Z" fill="#39D09E" stroke="#39D09E" stroke-width="4"/>
+    <path d="M38 88h59" stroke="#39D09E" stroke-width="6"/>
+  </g>
+  <g fill="#16202E" font-family="Arial, Helvetica, sans-serif" font-weight="800">
+    <text x="132" y="69" font-size="52" letter-spacing="-2">ORT</text>
+    <text x="244" y="69" fill="#0F7A5C" font-size="52" letter-spacing="-2">TECH</text>
+    <text x="135" y="94" fill="#6B7A8D" font-size="13" font-weight="700" letter-spacing="3.5">BUILD · CONNECT · GROW</text>
+  </g>
+</svg>

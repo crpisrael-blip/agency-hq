@@ -1,7 +1,7 @@
 import { Context, Next } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
-import { adminSessions } from '../db/schema';
+import { adminSessions, activities } from '../db/schema';
 
 export type Bindings = {
   DB: D1Database;
@@ -38,6 +38,59 @@ export const num = (v: any, d = 0): number => {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
 };
+
+/**
+ * רישום פעילות (Timeline + Audit Trail). מקבל את מופע ה-drizzle כדי לרוץ בתוך אותה בקשה.
+ * שימוש עיקרי: תיעוד שינויי סטטוס (previous → new) על הזדמנות/פרויקט/הצעה/התקשרות.
+ */
+export async function logActivity(
+  d: ReturnType<typeof db>,
+  a: {
+    entityType: string;
+    entityId: string;
+    organizationId?: string | null;
+    type?: string;
+    title: string;
+    content?: string | null;
+    metadata?: Record<string, any> | null;
+    occurredAt?: number;
+  },
+) {
+  const ts = now();
+  await d.insert(activities).values({
+    id: uid(),
+    entityType: a.entityType,
+    entityId: a.entityId,
+    organizationId: a.organizationId ?? null,
+    type: a.type || 'note',
+    title: a.title,
+    content: a.content ?? null,
+    metadata: a.metadata ? JSON.stringify(a.metadata) : null,
+    occurredAt: a.occurredAt ?? ts,
+    createdAt: ts,
+  } as any);
+}
+
+/** רישום שינוי סטטוס — קיצור נפוץ ל-logActivity מסוג status_change */
+export async function logStatusChange(
+  d: ReturnType<typeof db>,
+  entityType: string,
+  entityId: string,
+  organizationId: string | null,
+  label: string,
+  previous: string,
+  next: string,
+) {
+  if (previous === next) return;
+  await logActivity(d, {
+    entityType,
+    entityId,
+    organizationId,
+    type: 'status_change',
+    title: `${label}: ${previous} → ${next}`,
+    metadata: { previous, new: next },
+  });
+}
 
 /**
  * שולח הודעת טקסט לטלגרם לכל צ'אט (chatIds מופרד בפסיק).

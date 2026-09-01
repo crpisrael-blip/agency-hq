@@ -17,6 +17,12 @@ import { leadsApp, registerLeadPublic } from '../../src/api/leads';
 import { modulesApp } from '../../src/api/modules';
 import { dashboardApp } from '../../src/api/dashboard';
 import { skillsApp } from '../../src/api/skills';
+import { organizationsApp } from '../../src/api/organizations';
+import { opportunitiesApp } from '../../src/api/opportunities';
+import { proposalsApp } from '../../src/api/proposals';
+import { projectsApp } from '../../src/api/projects';
+import { activitiesApp } from '../../src/api/activities';
+import { todayApp } from '../../src/api/today';
 
 const app = new Hono<Env>().basePath('/api');
 
@@ -52,6 +58,14 @@ app.route('/leads', leadsApp);
 app.route('/modules', modulesApp);
 app.route('/dashboard', dashboardApp);
 app.route('/skills', skillsApp);
+
+// --- BOS: מחזור עסקי ---
+app.route('/organizations', organizationsApp);
+app.route('/opportunities', opportunitiesApp);
+app.route('/proposals', proposalsApp);
+app.route('/projects', projectsApp);
+app.route('/activities', activitiesApp);
+app.route('/today', todayApp);
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 

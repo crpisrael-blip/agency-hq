@@ -4,7 +4,11 @@ import { AppShell } from '../pages/AppShell';
 test.describe('לוח בקרה', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/app');
-    await new AppShell(page).waitReady();
+    const app = new AppShell(page);
+    await app.waitReady();
+    // לוח הבקרה הישן נגיש כעת דרך תפריט "עוד"
+    await app.openTab('לוח בקרה (ישן)');
+    await expect(page.getByRole('heading', { name: /לוח בקרה/ })).toBeVisible();
   });
 
   test('רצועת ההכנסה מציגה MRR כמדד-על', async ({ page }) => {
@@ -18,8 +22,8 @@ test.describe('לוח בקרה', () => {
   test('רצועת "טעון טיפול" מציגה 4 אותות וקליק מנווט למסך', async ({ page }) => {
     const items = page.locator('.att-item');
     await expect(items).toHaveCount(4);
-    // האות הראשון (מערכות בפיתוח) מנווט למסך המאוחד "לקוחות ומערכות"
+    // האות הראשון ("לקוחות פעילים") מנווט למסך "לקוחות ומערכות" המלא (כותרת: "לקוחות")
     await items.first().click();
-    await expect(page.getByRole('heading', { name: /לקוחות ומערכות/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'לקוחות', exact: true })).toBeVisible();
   });
 });

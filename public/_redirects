@@ -1,5 +1,7 @@
-# דף הנחיתה הישן (/lp2) — שמירה על קישורים ישנים
+# דף הנחיתה (לשעבר /lp2) הוא כעת העמוד הראשי — שומרים על קישורים ישנים
 /lp2       /       301
 /lp2.html  /       301
-# הערה: הדשבורד ב-/app מוגש אוטומטית מ-app.html ע"י Cloudflare Pages (clean URLs) —
-# אין להוסיף כלל /app -> /app.html כי הוא מתנגש עם ההפניה האוטומטית ויוצר לולאה.
+# הדשבורד הפנימי (Agency HQ) יושב ב-/app (מוגש מ-public/app/index.html).
+# אין כלל rewrite ל-/app.html — כדי למנוע לולאת redirect עם ה-pretty-URL של Pages.
+# קישור ישן ל-/app.html מפנה ל-/app.
+/app.html  /app    301

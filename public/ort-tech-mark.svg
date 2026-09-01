@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 120 120" role="img" aria-labelledby="title desc">
+  <title id="title">ORT Tech symbol</title>
+  <desc id="desc">A dark hexagon containing a circular path and green forward arrow.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 9 14 35v50l46 26 46-26V35L60 9Z" fill="#16202E" stroke="#16202E" stroke-width="6"/>
+    <circle cx="50" cy="60" r="20" stroke="#FBF8F3" stroke-width="10"/>
+    <path d="m69 60 26-15v30L69 60Z" fill="#39D09E" stroke="#39D09E" stroke-width="4"/>
+    <path d="M27 92h66" stroke="#39D09E" stroke-width="7"/>
+  </g>
+</svg>
