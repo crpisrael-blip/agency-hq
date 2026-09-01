@@ -144,7 +144,26 @@
           <h3>תכנון תהליכי עבודה</h3>
           <p>מיפוי הדרך שבה העבודה באמת מתבצעת, זיהוי כפילויות, צווארי בקבוק ונקודות שבהן מידע הולך לאיבוד.</p>
         </div>
-        <div class="lines"><span class="ln"></span><span class="ln"></span><span class="ln"></span></div>
+        <!-- viz: תהליך עבודה — נקודת אור מתחילה מימין, נעה על הקו, כל שלב נדלק, הקו שמאחוריה נצבע, ובסוף המסלול כולו זוהר -->
+        <div class="viz viz-workflow" aria-hidden="true">
+          <svg viewBox="0 0 300 84" preserveAspectRatio="xMidYMid meet">
+            <!-- base rail -->
+            <line class="w-rail" x1="280" y1="42" x2="20" y2="42"/>
+            <!-- progress rail (נצבע טורקיז מאחורי נקודת האור) -->
+            <line class="w-fill" x1="280" y1="42" x2="20" y2="42"/>
+            <!-- end-of-cycle full-path flash -->
+            <line class="w-flash" x1="280" y1="42" x2="20" y2="42"/>
+            <!-- stages: התחלה → 3 שלבים → תוצאה -->
+            <circle class="w-node w-start" style="--p:0"   cx="280" cy="42" r="7"/>
+            <rect   class="w-node w-step"  style="--p:.25" x="206" y="34" width="16" height="16" rx="4"/>
+            <rect   class="w-node w-step"  style="--p:.5"  x="142" y="34" width="16" height="16" rx="4"/>
+            <rect   class="w-node w-step"  style="--p:.75" x="78"  y="34" width="16" height="16" rx="4"/>
+            <circle class="w-node w-end"   style="--p:1"   cx="20"  cy="42" r="9"/>
+            <path class="w-check" d="M15 42l3.4 3.4L26 38" fill="none"/>
+            <!-- traveling light -->
+            <circle class="w-light" r="3.6"/>
+          </svg>
+        </div>
       </div>
       <div class="mod reveal" data-d="1">
         <div class="ix">02</div>
@@ -164,21 +183,29 @@
         <div class="ix">03</div>
         <h3>מערכות מותאמות</h3>
         <p>פיתוח מערכת כאשר מוצר מדף לא מתאים לתהליך האמיתי של העסק.</p>
-        <!-- viz: מודולים מתאספים למערכת אחת סביב Core -->
+        <!-- viz: מערכת מודולרית — ה-Core פועם ושולח אות אחד בכל פעם ל-Node אחר (ברצף, לא בו-זמנית) -->
         <div class="viz viz-modular" aria-hidden="true">
           <svg viewBox="0 0 320 108" preserveAspectRatio="xMidYMid meet">
-            <g class="m-links" fill="none" stroke="var(--cyan)" stroke-width="1">
+            <g class="m-links" fill="none" stroke="var(--line)" stroke-width="1">
               <line x1="160" y1="54" x2="258" y2="54"/><line x1="160" y1="54" x2="209" y2="85"/>
               <line x1="160" y1="54" x2="111" y2="85"/><line x1="160" y1="54" x2="62" y2="54"/>
               <line x1="160" y1="54" x2="111" y2="23"/><line x1="160" y1="54" x2="209" y2="23"/>
             </g>
             <g class="m-mods">
-              <rect class="m-mod" style="--tx:14px;--ty:0" x="236" y="43" width="44" height="22" rx="6"/>
-              <rect class="m-mod" style="--tx:8px;--ty:9px" x="187" y="74" width="44" height="22" rx="6"/>
-              <rect class="m-mod" style="--tx:-8px;--ty:9px" x="89" y="74" width="44" height="22" rx="6"/>
-              <rect class="m-mod" style="--tx:-14px;--ty:0" x="40" y="43" width="44" height="22" rx="6"/>
-              <rect class="m-mod" style="--tx:-8px;--ty:-9px" x="89" y="12" width="44" height="22" rx="6"/>
-              <rect class="m-mod" style="--tx:8px;--ty:-9px" x="187" y="12" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--k:0" x="236" y="43" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--k:1" x="187" y="74" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--k:2" x="89"  y="74" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--k:3" x="40"  y="43" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--k:4" x="89"  y="12" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--k:5" x="187" y="12" width="44" height="22" rx="6"/>
+            </g>
+            <g class="m-sigs" fill="var(--cyan-2)">
+              <circle class="m-sig" style="--k:0;--dx:98px;--dy:0px"    cx="160" cy="54" r="3.2"/>
+              <circle class="m-sig" style="--k:1;--dx:49px;--dy:31px"   cx="160" cy="54" r="3.2"/>
+              <circle class="m-sig" style="--k:2;--dx:-49px;--dy:31px"  cx="160" cy="54" r="3.2"/>
+              <circle class="m-sig" style="--k:3;--dx:-98px;--dy:0px"   cx="160" cy="54" r="3.2"/>
+              <circle class="m-sig" style="--k:4;--dx:-49px;--dy:-31px" cx="160" cy="54" r="3.2"/>
+              <circle class="m-sig" style="--k:5;--dx:49px;--dy:-31px"  cx="160" cy="54" r="3.2"/>
             </g>
             <rect class="m-core" x="137" y="40" width="46" height="28" rx="8"/>
           </svg>
@@ -197,18 +224,26 @@
                 <line x1="160" y1="59" x2="100" y2="97"/><line x1="160" y1="59" x2="40" y2="59"/>
                 <line x1="160" y1="59" x2="100" y2="21"/><line x1="160" y1="59" x2="220" y2="21"/>
               </g>
+              <!-- טבעות תגובה: מופיעות כשה-packet מגיע ל-service -->
+              <g class="n-rings" fill="none" stroke="var(--cyan-2)" stroke-width="1.4">
+                <circle class="n-ring" style="--k:0" cx="280" cy="59" r="11"/><circle class="n-ring" style="--k:1" cx="220" cy="97" r="11"/>
+                <circle class="n-ring" style="--k:2" cx="100" cy="97" r="11"/><circle class="n-ring" style="--k:3" cx="40" cy="59" r="11"/>
+                <circle class="n-ring" style="--k:4" cx="100" cy="21" r="11"/><circle class="n-ring" style="--k:5" cx="220" cy="21" r="11"/>
+              </g>
               <g class="n-sats" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="1.2">
-                <circle cx="280" cy="59" r="11"/><circle cx="220" cy="97" r="11"/><circle cx="100" cy="97" r="11"/>
-                <circle cx="40" cy="59" r="11"/><circle cx="100" cy="21" r="11"/><circle cx="220" cy="21" r="11"/>
+                <circle class="n-sat" style="--k:0" cx="280" cy="59" r="11"/><circle class="n-sat" style="--k:1" cx="220" cy="97" r="11"/>
+                <circle class="n-sat" style="--k:2" cx="100" cy="97" r="11"/><circle class="n-sat" style="--k:3" cx="40" cy="59" r="11"/>
+                <circle class="n-sat" style="--k:4" cx="100" cy="21" r="11"/><circle class="n-sat" style="--k:5" cx="220" cy="21" r="11"/>
               </g>
               <circle class="n-core" cx="160" cy="59" r="16"/>
+              <!-- packet יחיד פעיל בכל שלב — יוצא מהמרכז, מגיע ל-service וחוזר. בכל מחזור connection אחר -->
               <g class="n-pulses" fill="var(--cyan-2)">
-                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:120px;--dy:0px;--dur:2.4s;--delay:0s"/>
-                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:60px;--dy:38px;--dur:2.8s;--delay:.7s"/>
-                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:-60px;--dy:38px;--dur:2.6s;--delay:1.4s"/>
-                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:-120px;--dy:0px;--dur:2.5s;--delay:.4s"/>
-                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:-60px;--dy:-38px;--dur:2.7s;--delay:1.9s"/>
-                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:60px;--dy:-38px;--dur:2.9s;--delay:1.1s"/>
+                <circle class="n-pulse" style="--k:0;--dx:120px;--dy:0px"   cx="160" cy="59" r="3.6"/>
+                <circle class="n-pulse" style="--k:1;--dx:60px;--dy:38px"   cx="160" cy="59" r="3.6"/>
+                <circle class="n-pulse" style="--k:2;--dx:-60px;--dy:38px"  cx="160" cy="59" r="3.6"/>
+                <circle class="n-pulse" style="--k:3;--dx:-120px;--dy:0px"  cx="160" cy="59" r="3.6"/>
+                <circle class="n-pulse" style="--k:4;--dx:-60px;--dy:-38px" cx="160" cy="59" r="3.6"/>
+                <circle class="n-pulse" style="--k:5;--dx:60px;--dy:-38px"  cx="160" cy="59" r="3.6"/>
               </g>
             </svg>
           </div>
