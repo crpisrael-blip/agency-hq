@@ -38,6 +38,15 @@
   const healthPill = (h) => `<span class="pill ${L.healthColor[h] === 'ok' ? 'p-green' : L.healthColor[h] === 'warn' ? 'p-amber' : 'p-red'}">${H('health', h)}</span>`;
   const overdue = (d) => d && d < todayISO();
 
+  // כרטיס מתודולוגיה — מהלכי הפלייבוק שנפתחו (כולל autolaunch). קליק פותח את המהלך.
+  function methodologyCard(runs) {
+    const rows = (runs || []).map((r) => {
+      const st = r.status === 'done' ? 'p-green' : 'p-amber';
+      return `<div class="list-item" onclick="openRun('${r.id}')"><div class="li-main"><b>${esc(r.title)}</b><small>${r.status === 'done' ? 'הושלם' : 'פעיל'}</small></div><span class="pill ${st}">${r.progress || 0}%</span></div>`;
+    }).join('') || '<div class="empty">אין מהלכים — ייפתחו אוטומטית עם התקדמות השלבים</div>';
+    return `<div class="card"><h3>מתודולוגיה</h3>${rows}</div>`;
+  }
+
   // גישה ל-state ניווט משני (טאב פעיל לכל קבוצה)
   const TAB = {};
   function tabBar(group, tabs, active) {
@@ -211,7 +220,8 @@
         <div class="card"><h3>בעיות (כאבים)</h3>${painRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.addPain('${id}')">+ בעיה</button></div>
         <div class="card"><h3>פתרונות</h3>${solRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.addSolution('${id}')">+ פתרון</button></div>
       </div>
-      <div class="card"><h3>הצעות</h3>${propRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.newProposal('${id}')">+ הצעה (גרסה חדשה)</button></div>`;
+      <div class="card"><h3>הצעות</h3>${propRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.newProposal('${id}')">+ הצעה (גרסה חדשה)</button></div>
+      ${methodologyCard(d.playbookRuns)}`;
   }
 
   /* =========================== כרטיס פרויקט =========================== */
@@ -250,6 +260,7 @@
         <div class="card"><h3>אבני דרך</h3>${msRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.addMilestone('${id}')">+ אבן דרך</button></div>
         <div class="card"><h3>בקשות שינוי Scope</h3>${crRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.addChange('${id}')">+ בקשת שינוי</button></div>
       </div>
+      ${methodologyCard(d.playbookRuns)}
       <div class="card"><h3>מערכות ותהליכים מקושרים</h3>
         <small style="color:var(--muted)">מערכות: ${d.systems.length} · תהליכים: ${d.processes.length}</small></div>
       <div class="card"><h3>פעילות</h3><ul class="tl">${acts}</ul></div>`;

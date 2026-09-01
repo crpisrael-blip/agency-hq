@@ -2,12 +2,19 @@ import { Hono } from 'hono';
 import { desc, eq, and } from 'drizzle-orm';
 import {
   projects, milestones, changeRequests, clients, opportunities,
-  systems, processes, engagements, documents, activities, tasks,
+  systems, processes, engagements, documents, activities, tasks, playbookRuns,
 } from '../db/schema';
 import { Env, db, uid, now, pick, num, logActivity, logStatusChange } from './util';
 import { autolaunchForProjectStatus } from './autolaunch';
 
 export const projectsApp = new Hono<Env>();
+
+/** YYYY-MM-DD בעוד N ימים (שעון ישראל) */
+function ymdPlus(days: number): string {
+  const base = new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date()) + 'T00:00:00Z');
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString().slice(0, 10);
+}
 
 const PROJ_FIELDS = [
   'organizationId', 'opportunityId', 'title', 'type', 'status', 'health', 'progress',
@@ -74,7 +81,9 @@ projectsApp.get('/:id', async (c) => {
     d.select().from(tasks).where(and(eq(tasks.entityType, 'project'), eq(tasks.entityId, id))).orderBy(desc(tasks.createdAt)).all(),
   ]);
   const opp = p.opportunityId ? (await d.select().from(opportunities).where(eq(opportunities.id, p.opportunityId)).limit(1))[0] : null;
-  return c.json({ project: p, organization: org || null, opportunity: opp || null, milestones: ms, changeRequests: crs, systems: sys, processes: procs, engagements: eng, documents: docs, activities: acts, tasks: linkedTasks });
+  // מהלכי מתודולוגיה שנפתחו לארגון (כולל autolaunch)
+  const runs = await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, p.organizationId)).orderBy(desc(playbookRuns.createdAt)).all();
+  return c.json({ project: p, organization: org || null, opportunity: opp || null, milestones: ms, changeRequests: crs, systems: sys, processes: procs, engagements: eng, documents: docs, activities: acts, tasks: linkedTasks, playbookRuns: runs });
 });
 
 projectsApp.patch('/:id', async (c) => {
@@ -85,13 +94,28 @@ projectsApp.patch('/:id', async (c) => {
   const data: any = pick(await c.req.json().catch(() => ({})), PROJ_FIELDS);
   if (Object.keys(data).length === 0) return c.json({ ok: true });
   data.updatedAt = now();
-  if (data.status === 'completed' && cur.status !== 'completed' && !cur.completedDate) {
+  const nowCompleted = data.status === 'completed' && cur.status !== 'completed';
+  if (nowCompleted && !cur.completedDate) {
     data.completedDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
   }
   await d.update(projects).set(data).where(eq(projects.id, id));
   if (data.status && data.status !== cur.status) {
     await logStatusChange(d, 'project', id, cur.organizationId, 'סטטוס פרויקט', cur.status, data.status);
     await autolaunchForProjectStatus(d, data.status, cur.organizationId);
+  }
+  // סיום פרויקט → משימת מעקב + תזכורת QBR ל-30 יום (אידמפוטנטי לפי מזהה נגזר)
+  if (nowCompleted) {
+    const followId = `followup-${id}`;
+    const qbrId = `qbr-${id}`;
+    const existing = await d.select({ id: tasks.id }).from(tasks).all();
+    const have = new Set(existing.map((t) => t.id));
+    if (!have.has(followId)) {
+      await d.insert(tasks).values({ id: followId, title: `מעקב סגירת פרויקט: ${cur.title}`, details: 'לוודא מסירה מלאה, תיעוד וגבייה סופית', status: 'todo', priority: 'high', dueDate: ymdPlus(3), entityType: 'project', entityId: id, createdAt: now() } as any);
+    }
+    if (!have.has(qbrId)) {
+      await d.insert(tasks).values({ id: qbrId, title: `QBR — סקירה רבעונית עם הלקוח`, details: 'סקירת ערך, בריאות, והזדמנויות צמיחה חדשות', status: 'todo', priority: 'normal', dueDate: ymdPlus(30), entityType: 'project', entityId: id, createdAt: now() } as any);
+    }
+    await logActivity(d, { entityType: 'project', entityId: id, organizationId: cur.organizationId, type: 'automation', title: 'נפתחו משימות מעקב ו-QBR לאחר סיום הפרויקט' });
   }
   return c.json({ ok: true });
 });

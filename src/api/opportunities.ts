@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { desc, eq, and } from 'drizzle-orm';
 import {
   opportunities, opportunityPains, opportunitySolutions, proposals,
-  projects, clients, profitCenters,
+  projects, clients, profitCenters, playbookRuns,
 } from '../db/schema';
 import { Env, db, uid, now, pick, num, logActivity, logStatusChange } from './util';
 import { autolaunchForOpportunityStage } from './autolaunch';
@@ -65,7 +65,8 @@ opportunitiesApp.get('/:id', async (c) => {
     d.select().from(proposals).where(eq(proposals.opportunityId, id)).orderBy(desc(proposals.version)).all(),
     d.select().from(projects).where(eq(projects.opportunityId, id)).all(),
   ]);
-  return c.json({ opportunity: opp, organization: org || null, pains, solutions: sols, proposals: props, projects: projs });
+  const runs = await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, opp.organizationId)).orderBy(desc(playbookRuns.createdAt)).all();
+  return c.json({ opportunity: opp, organization: org || null, pains, solutions: sols, proposals: props, projects: projs, playbookRuns: runs });
 });
 
 opportunitiesApp.patch('/:id', async (c) => {

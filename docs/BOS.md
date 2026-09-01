@@ -65,13 +65,17 @@ Organization (ארגון)
 | כל שינוי סטטוס מהותי | רישום `activity` מסוג `status_change` |
 | Opportunity → Discovery/Diagnosis/Proposal | Autolaunch פלייבוק (שיחת גילוי / אפיון / SOW) |
 | Project → Specification/Build/Internal Test/Live/Completed | Autolaunch פלייבוק (מודל נתונים / DoD / QA / Go-Live / מסירה) |
+| Project → Completed | משימת מעקב (+3 ימים) + משימת QBR (+30 יום), אידמפוטנטי לפי מזהה נגזר |
 
 **Autolaunch** (`src/api/autolaunch.ts`) רץ בצד השרת בתוך ה-PATCH של הזדמנות/פרויקט, אידמפוטנטי
 (לא פותח שוב מהלך פעיל מאותה תבנית), זורע את התבנית מ-DEFAULT_PLAYBOOKS אם חסרה, ורושם `activity`
 מסוג `automation`. כך הפלייבוק הופך למנוע העבודה של המערכת.
 
+מהלכי הפלייבוק שנפתחו מוצגים בכרטיס ההזדמנות ובכרטיס הפרויקט (קטע "מתודולוגיה"), וקליק פותח את המהלך.
+
 ### להוספה הדרגתית (follow-up)
-אוטומציות מבוססות-זמן שדורשות מתזמן: "30 יום אחרי סיום → QBR", "Project Completed → Follow-up task".
+מתזמן אמיתי (Cron/Scheduled Worker) שיפעיל תזכורות באופן יזום. כרגע משימת ה-QBR נוצרת בסיום
+ומופיעה במסך "היום" בזמן; אין דחיפה יזומה ללא מתזמן.
 
 ## Frontend
 
