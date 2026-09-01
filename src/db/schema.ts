@@ -215,6 +215,23 @@ export const leads = sqliteTable('leads', {
   createdAt: integer('created_at').notNull(),
 });
 
+// הצעות מחיר שנוצרו — לצפייה והדפסה חוזרת
+export const quotes = sqliteTable('quotes', {
+  id: text('id').primaryKey(),
+  quoteNo: text('quote_no'),
+  clientId: text('client_id'),
+  clientName: text('client_name'),
+  title: text('title'),
+  items: text('items'),
+  subtotal: real('subtotal'),
+  vatPct: real('vat_pct'),
+  total: real('total'),
+  terms: text('terms'),
+  notes: text('notes'),
+  validUntil: text('valid_until'),
+  createdAt: integer('created_at').notNull(),
+});
+
 // יומן פעילות לליד — תיעוד שיחות, הודעות, פגישות והערות (CRM)
 export const leadActivities = sqliteTable('lead_activities', {
   id: text('id').primaryKey(),

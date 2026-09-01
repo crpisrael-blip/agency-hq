@@ -1919,7 +1919,8 @@ function quoteAddRow(){
     '<button class="btn ghost small" onclick="this.parentElement.remove()" title="הסר שורה">✕</button>';
   box.appendChild(d);
 }
-function quoteBuild(){
+// אוסף את נתוני הטופס, שומר ל-DB, ומפיק את דף ההדפסה
+async function quoteBuild(){
   const client=val('q_client_free')||val('q_client');
   if(!client){ toast('חסר שם לקוח','bad'); return; }
   const items=[...document.querySelectorAll('#qItems .q-item')].map(r=>({
@@ -1927,15 +1928,33 @@ function quoteBuild(){
     amt:Number((r.querySelector('.qi-amt')||{}).value||0)
   })).filter(x=>x.desc&&x.amt>0);
   if(!items.length){ toast('הוסף לפחות פריט אחד עם תיאור וסכום','bad'); return; }
-  const title=val('q_title'), terms=val('q_terms'), notes=val('q_notes');
   const vatPct=Math.max(0,Number(val('q_vat')||0));
-  const sub=items.reduce((a,x)=>a+x.amt,0);
-  const vatAmt=sub*vatPct/100;
-  const total=sub+vatAmt;
-  const fmt=n=>'₪'+Number(n).toLocaleString('he-IL',{maximumFractionDigits:0});
+  const subtotal=items.reduce((a,x)=>a+x.amt,0);
+  const total=subtotal+subtotal*vatPct/100;
   const now=new Date();
-  const qnum='ORT-'+now.toISOString().slice(2,10).replace(/-/g,'')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
-  const validStr=val('q_valid')? new Date(val('q_valid')+'T12:00:00').toLocaleDateString('he-IL') : '';
+  const q={
+    quoteNo:'ORT-'+now.toISOString().slice(2,10).replace(/-/g,'')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0'),
+    clientName:client, title:val('q_title'), items, vatPct, subtotal, total,
+    terms:val('q_terms'), notes:val('q_notes'), validUntil:val('q_valid')||null, createdAt:now.getTime()
+  };
+  closeModal();
+  quoteRenderPrint(q);
+  try{ await apiPost('/quotes',q); toast('ההצעה נשמרה ✓'); if(CURRENT==='playbooks') loadQuotesList(); }
+  catch(e){ toast('הדף הופק אך השמירה נכשלה','bad'); }
+}
+
+// מפיק ומדפיס דף הצעה מתוך אובייקט הצעה (חדש או שמור)
+function quoteRenderPrint(q){
+  const items=typeof q.items==='string'?JSON.parse(q.items||'[]'):(q.items||[]);
+  const vatPct=Number(q.vatPct)||0;
+  const sub=Number(q.subtotal)|| items.reduce((a,x)=>a+Number(x.amt||0),0);
+  const vatAmt=sub*vatPct/100;
+  const total=Number(q.total)||sub+vatAmt;
+  const fmt=n=>'₪'+Number(n).toLocaleString('he-IL',{maximumFractionDigits:0});
+  const created=new Date(q.createdAt||Date.now());
+  const qnum=q.quoteNo||'';
+  const client=q.clientName||'', title=q.title||'', terms=q.terms||'', notes=q.notes||'';
+  const validStr=q.validUntil? new Date(q.validUntil+'T12:00:00').toLocaleDateString('he-IL') : '';
   const logoUrl=location.origin+'/ort-tech-logo.png';
   const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>הצעת מחיר '+qnum+'</title><style>'+
     '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
@@ -1960,7 +1979,7 @@ function quoteBuild(){
     '@media print{body{padding:20px 26px}}'+
     '</style></head><body>'+
     '<div class="hdr">'+
-      '<div><h1>הצעת מחיר</h1><div class="meta">מס\' '+qnum+' · תאריך: '+now.toLocaleDateString('he-IL')+'</div></div>'+
+      '<div><h1>הצעת מחיר</h1><div class="meta">מס\' '+qnum+' · תאריך: '+created.toLocaleDateString('he-IL')+'</div></div>'+
       '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="ORT-TECH"></div>'+
       '<div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div>'+
     '</div>'+
@@ -1986,8 +2005,31 @@ function quoteBuild(){
     '</body></html>';
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const w=window.open(URL.createObjectURL(blob),'_blank');
-  if(!w){ toast('הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); return; }
-  closeModal();
+  if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
+}
+
+// רשימת ההצעות שנשמרו (מוצגת במסך המתודולוגיה)
+let QUOTES_CACHE=[];
+async function loadQuotesList(){
+  const box=$('quotesList'); if(!box)return;
+  try{
+    QUOTES_CACHE=await apiGet('/quotes');
+    if(!QUOTES_CACHE.length){ box.innerHTML='<div class="muted hint">עדיין לא נוצרו הצעות מחיר. לחץ "📄 הצעת מחיר" ליצירת הראשונה.</div>'; return; }
+    const fmt=n=>'₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:0});
+    box.innerHTML=QUOTES_CACHE.map(q=>
+      '<div class="list-item"><div class="li-main"><b>'+esc(q.clientName||'—')+'</b>'+
+        '<small>'+(q.title?esc(q.title)+' · ':'')+esc(q.quoteNo||'')+' · '+new Date(q.createdAt).toLocaleDateString('he-IL')+'</small></div>'+
+        '<div class="row" style="gap:6px;align-items:center"><b>'+fmt(q.total)+'</b>'+
+          '<button class="btn ghost small" onclick="event.stopPropagation();quoteReopen(\''+q.id+'\')" title="פתח והדפס שוב">🖨️</button>'+
+          '<button class="btn danger small" onclick="event.stopPropagation();quoteDelete(\''+q.id+'\')" title="מחק">🗑</button></div></div>'
+    ).join('');
+  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת ההצעות</div>'; }
+}
+function quoteReopen(id){ const q=QUOTES_CACHE.find(x=>x.id===id); if(q) quoteRenderPrint(q); }
+async function quoteDelete(id){
+  if(!confirm('למחוק את הצעת המחיר?'))return;
+  try{ await apiDel('/quotes/'+id); toast('נמחקה'); loadQuotesList(); }
+  catch(e){ toast('שגיאה במחיקה','bad'); }
 }
 
 RENDER.playbooks=async()=>{
@@ -2002,6 +2044,9 @@ RENDER.playbooks=async()=>{
       <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
         <button class="btn teal" onclick="quoteForm()">📄 הצעת מחיר</button>
         <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
+    <div class="card"><div class="spread" style="margin-bottom:8px"><h3 style="margin:0">📄 הצעות מחיר</h3>
+      <button class="btn ghost small" onclick="quoteForm()">+ הצעה חדשה</button></div>
+      <div id="quotesList"><div class="muted hint">טוען…</div></div></div>
     ${activeRuns.length?`<div class="card">
       <h3>מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
       ${activeRuns.map(r=>`<div class="list-item" onclick="openRun('${r.id}')">
@@ -2021,6 +2066,7 @@ RENDER.playbooks=async()=>{
           </div>`).join('')}
       </div>`).join('')}
     </div>`;
+  loadQuotesList();
 };
 function openPlaybook(id){
   const p=PB_CACHE.find(x=>x.id===id); if(!p)return;
