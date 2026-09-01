@@ -305,7 +305,7 @@
 <!-- מסך כניסה -->
 <div id="login">
   <div class="login-card">
-    <img src="/ort-tech-logo.jpg" alt="ORT-TECH" class="logo-img">
+    <img src="/ort-tech-logo.png" alt="ORT-TECH" class="logo-img">
     <p id="loginSub" style="margin-top:4px">מרכז הבקרה</p>
     <div class="err" id="loginErr"></div>
     <input type="password" id="pin" inputmode="numeric" placeholder="••••" autocomplete="current-password" />
@@ -317,7 +317,7 @@
 <div id="app" style="display:none">
   <div class="topbar">
     <div class="topbar-in">
-      <div class="brand"><img src="/ort-tech-logo.jpg" alt="ORT-TECH" class="logo-img">HQ</div>
+      <div class="brand"><img src="/ort-tech-logo.png" alt="ORT-TECH" class="logo-img">HQ</div>
       <div class="row" style="gap:6px"><button class="btn small ghost" onclick="go('skills')" title="מאגר הסקילז והפקודות">🧩 סקילז</button><button class="btn small ghost" onclick="changePinForm()">🔒 קוד</button><button class="btn small ghost" onclick="logout()">יציאה</button></div>
     </div>
     <div class="nav" id="nav"></div>
@@ -1936,7 +1936,7 @@ function quoteBuild(){
   const now=new Date();
   const qnum='ORT-'+now.toISOString().slice(2,10).replace(/-/g,'')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
   const validStr=val('q_valid')? new Date(val('q_valid')+'T12:00:00').toLocaleDateString('he-IL') : '';
-  const logoUrl=location.origin+'/ort-tech-logo.jpg';
+  const logoUrl=location.origin+'/ort-tech-logo.png';
   const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>הצעת מחיר '+qnum+'</title><style>'+
     '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
     "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}"+
