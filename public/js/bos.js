@@ -61,7 +61,7 @@
     const kpi = (v, lbl, cls = '') => `<div class="kpi ${cls}"><b>${v}</b><small>${lbl}</small></div>`;
     const attn = [];
     const sec = (title, items, render) => { if (items && items.length) attn.push(`<div class="attn-sec"><h4>${title} <span class="cnt">${items.length}</span></h4>${items.map(render).join('')}</div>`); };
-    sec('לידים חדשים', n.newLeads, (l) => `<div class="list-item" onclick="go('sales')"><div class="li-main"><b>${esc(l.name || 'ליד')}</b><small>${esc(l.source || '')}</small></div></div>`);
+    sec('לידים חדשים', n.newLeads, (l) => `<div class="list-item" onclick="BOS.handleLead('${l.id}')"><div class="li-main"><b>${esc(l.name || 'ליד')}</b><small>${esc(l.source || '')}</small></div><span class="pill p-amber">טיפול מהיר ›</span></div>`);
     sec('הזדמנויות ללא פעולה הבאה', n.oppsNoNextAction, (o) => `<div class="list-item warn-row" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${esc(o.organizationName)} · ${H('oppStage', o.stage)}</small></div><span class="pill p-red">חסר Next Action</span></div>`);
     sec('Follow-ups באיחור', n.overdueFollowups, (o) => `<div class="list-item" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${esc(o.organizationName)} · ${esc(o.nextAction || '')}</small></div><span class="pill p-red">${fmt(o.nextActionDate)}</span></div>`);
     sec('הצעות ממתינות', n.waitingProposals, (p) => `<div class="list-item" onclick="BOS.openOpp('${p.opportunityId}')"><div class="li-main"><b>${esc(p.opportunityTitle)} · v${p.version}</b><small>${esc(p.organizationName)}</small></div>${hp('proposalStatus', p.status)}</div>`);
@@ -97,10 +97,11 @@
   /* =========================== מכירות =========================== */
   RENDER.sales = async () => {
     const active = TAB.sales || 'opportunities';
-    V().innerHTML = tabBar('sales', [['opportunities', 'הזדמנויות'], ['proposals', 'הצעות'], ['leads', 'לידים ממערכות']], active) + '<div id="salesBody"><div class="empty">טוען…</div></div>';
+    V().innerHTML = tabBar('sales', [['opportunities', 'הזדמנויות'], ['proposals', 'הצעות'], ['quotes', 'הצעות מחיר'], ['leads', 'לידים ממערכות']], active) + '<div id="salesBody"><div class="empty">טוען…</div></div>';
     const body = document.getElementById('salesBody');
     if (active === 'opportunities') return salesOpps(body);
     if (active === 'proposals') return salesProposals(body);
+    if (active === 'quotes') return salesQuotes(body);
     if (active === 'leads') return salesLeads(body);
   };
   async function salesOpps(body) {
@@ -125,21 +126,94 @@
     const rows = await apiGet('/proposals');
     body.innerHTML = rows.length ? `<div class="card">${rows.map((p) => `<div class="list-item" onclick="BOS.openOpp('${p.opportunityId}')"><div class="li-main"><b>${esc(p.opportunityTitle)} · v${p.version}</b><small>${esc(p.organizationName || '')} · ${money(p.oneTimeValue)} + ${money(p.monthlyValue)}/ח׳</small></div>${hp('proposalStatus', p.status)}</div>`).join('')}</div>` : '<div class="empty">אין הצעות עדיין</div>';
   }
+  // הצעות מחיר שהופקו — צפייה/הדפסה חוזרת ל-PDF (מסתמך על מנוע ה-quotes הקיים ב-app)
+  async function salesQuotes(body) {
+    let rows = []; try { rows = await apiGet('/quotes'); } catch (e) {}
+    try { if (typeof QUOTES_CACHE !== 'undefined') QUOTES_CACHE = rows; } catch (e) {}
+    const m0 = (n) => '₪' + Number(n || 0).toLocaleString('he-IL', { maximumFractionDigits: 0 });
+    body.innerHTML = `<div class="spread" style="margin-bottom:10px"><p class="hint" style="color:var(--muted);margin:0">הצעות המחיר שהפקת — צפייה, הדפסה חוזרת ל-PDF ומחיקה.</p>${typeof quoteForm === 'function' ? '<button class="btn small" onclick="quoteForm()">+ הצעת מחיר</button>' : ''}</div>` +
+      (rows.length ? `<div class="card">${rows.map((q) => `<div class="list-item">
+        <div class="li-main"><b>${esc(q.clientName || '—')}</b><small>${q.title ? esc(q.title) + ' · ' : ''}${esc(q.quoteNo || '')} · ${new Date(q.createdAt).toLocaleDateString('he-IL')}</small></div>
+        <div class="row" style="gap:6px;align-items:center"><b class="li-val" style="color:var(--accent-2)">${m0(q.total)}</b>
+          <button class="btn small ghost" onclick="quoteReopen('${q.id}')" title="פתח והדפס PDF">🖨️</button>
+          <button class="btn small ghost" onclick="BOS.delQuote('${q.id}')" title="מחק">🗑</button></div></div>`).join('')}</div>`
+        : '<div class="empty">עדיין לא הפקת הצעות מחיר.' + (typeof quoteForm === 'function' ? ' לחצו “+ הצעת מחיר” כדי להפיק את הראשונה.' : '') + '</div>');
+  }
+  async function delQuote(id) { if (!confirm('למחוק את הצעת המחיר?')) return; try { await apiDel('/quotes/' + id); toast('נמחקה ✓'); } catch (e) { toast('שגיאה במחיקה', 'bad'); } TAB.sales = 'quotes'; go('sales'); }
+
+  // לידים ממערכות — CRM מלא לטיפול מהיר (מנצל את מנוע הלידים הקיים ב-app)
   async function salesLeads(body) {
-    let rows = []; try { rows = await apiGet('/leads'); } catch (e) {}
-    body.innerHTML = `<p class="hint" style="color:var(--muted);margin:0 0 10px">לידים שנאספו במערכות שבנית ללקוחות (webhook ציבורי) — לא CRM המכירות שלך.</p>` +
-      (rows.length ? `<div class="card">${rows.map((l) => `<div class="list-item"><div class="li-main"><b>${esc(l.name || 'ליד')}</b><small>${esc(l.source || '')} · ${esc(l.note || '')}</small></div></div>`).join('')}</div>` : '<div class="empty">אין לידים ממערכות</div>');
+    await ensureLeads(true);
+    const rows = (LEADS_ALL || []).slice().sort((a, b) => b.createdAt - a.createdAt);
+    const useCard = typeof leadCard === 'function';
+    body.innerHTML = `<p class="hint" style="color:var(--muted);margin:0 0 10px">לידים שנכנסו מהמערכות שלך — חייגו, שלחו וואטסאפ, עדכנו סטטוס או המירו ללקוח.</p>` +
+      (rows.length ? (useCard ? rows.map((l) => leadCard(l)).join('')
+        : `<div class="card">${rows.map((l) => `<div class="list-item" onclick="BOS.handleLead('${l.id}')"><div class="li-main"><b>${esc(l.name || 'ליד')}</b><small>${esc(l.source || '')} · ${esc(l.note || '')}</small></div><span class="pill p-amber">טיפול</span></div>`).join('')}</div>`)
+        : '<div class="empty">אין לידים עדיין</div>');
+  }
+
+  // מוודא שמטמון הלידים הגלובלי (LEADS_ALL/LEADS_SYS) טעון עבור openLead/leadCard מה-app
+  async function ensureLeads(force) {
+    try {
+      const have = typeof LEADS_ALL !== 'undefined' && Array.isArray(LEADS_ALL);
+      if (!force && have && LEADS_ALL.length) return;
+      const [lr, sys, cls] = await Promise.all([
+        apiGet('/leads'), apiGet('/systems').catch(() => []), apiGet('/clients').catch(() => []),
+      ]);
+      LEADS_ALL = lr;
+      LEADS_SYS = Object.fromEntries((sys || []).map((s) => [s.id, s.name]));
+      LEADS_CLIENTS = Object.fromEntries((cls || []).map((x) => [x.id, x.name]));
+    } catch (e) { try { if (typeof LEADS_ALL === 'undefined' || !Array.isArray(LEADS_ALL)) LEADS_ALL = []; } catch (e2) {} }
+  }
+
+  // טיפול מהיר בליד ממסך "היום" — פותח את כרטיס הליד המלא (חיוג/וואטסאפ/סטטוס/יומן/המרה)
+  async function handleLead(id) {
+    await ensureLeads();
+    if (!(LEADS_ALL || []).find((x) => x.id === id)) await ensureLeads(true);
+    if (typeof openLead === 'function' && (LEADS_ALL || []).find((x) => x.id === id)) { openLead(id); return; }
+    TAB.sales = 'leads'; go('sales');
   }
 
   /* =========================== לקוחות (Organizations) =========================== */
   RENDER.customers = async () => {
-    const rows = await apiGet('/organizations');
+    const view = TAB.customers || 'active';
+    const [rows, arch] = await Promise.all([
+      apiGet('/organizations'),
+      apiGet('/organizations?view=archived').catch(() => []),
+    ]);
+    const list = view === 'archived' ? arch : rows;
     const stPill = (st) => { const c = st === 'customer' ? 'p-green' : st === 'former_customer' ? 'p-red' : st === 'paused' ? 'p-gray' : 'p-amber'; return `<span class="pill ${c}">${H('orgStatus', st)}</span>`; };
-    V().innerHTML = `<div class="spread"><h2 style="margin:0">לקוחות</h2><button class="btn small" onclick="BOS.newOrg()">+ ארגון</button></div>
-      ${rows.length ? `<div class="card">${rows.map((o) => `<div class="list-item" onclick="BOS.openOrg('${o.id}')">
+    const rowActions = (o) => view === 'archived'
+      ? `<button class="btn small ghost" onclick="event.stopPropagation();BOS.restoreOrg('${o.id}')" title="שחזר מהארכיון">♻︎</button><button class="btn small ghost" onclick="event.stopPropagation();BOS.deleteOrg('${o.id}','${esc(o.name).replace(/'/g, '')}')" title="מחיקה לצמיתות">🗑</button>`
+      : `<button class="btn small ghost" onclick="event.stopPropagation();BOS.archiveOrg('${o.id}')" title="העבר לארכיון">🗄</button>`;
+    const item = (o) => `<div class="list-item" onclick="BOS.openOrg('${o.id}')">
         <div class="li-main"><b>${esc(o.name)}</b><small>${esc(o.industry || '')}${o.openOpportunities ? ` · ${o.openOpportunities} הזדמנויות` : ''}${o.activeProjects ? ` · ${o.activeProjects} פרויקטים` : ''}</small></div>
-        <div class="row" style="gap:7px">${o.mrr ? `<b class="li-val" style="color:var(--accent-2)">${money(o.mrr)}</b>` : ''}${stPill(o.status)}</div></div>`).join('')}</div>` : '<div class="empty">אין ארגונים עדיין</div>'}`;
+        <div class="row" style="gap:7px;align-items:center">${o.mrr ? `<b class="li-val" style="color:var(--accent-2)">${money(o.mrr)}</b>` : ''}${stPill(o.status)}${rowActions(o)}</div></div>`;
+    const toggle = `<div class="tabs2" style="margin-bottom:12px">
+        <button class="${view === 'active' ? 'on' : ''}" onclick="BOS.tab('customers','active')">פעילים <span class="cnt">${rows.length}</span></button>
+        <button class="${view === 'archived' ? 'on' : ''}" onclick="BOS.tab('customers','archived')">ארכיון <span class="cnt">${arch.length}</span></button>
+      </div>`;
+    V().innerHTML = `<div class="spread"><h2 style="margin:0">לקוחות</h2><button class="btn small" onclick="BOS.newOrg()">+ ארגון</button></div>
+      ${toggle}
+      ${list.length ? `<div class="card">${list.map(item).join('')}</div>`
+        : `<div class="empty">${view === 'archived' ? 'הארכיון ריק' : 'אין ארגונים עדיין'}</div>`}`;
   };
+
+  async function archiveOrg(id) { try { await apiPatch('/organizations/' + id, { archived: 1 }); toast('הועבר לארכיון ✓'); } catch (e) { toast('שגיאה', 'bad'); } go('customers'); }
+  async function restoreOrg(id) { try { await apiPatch('/organizations/' + id, { archived: 0 }); toast('שוחזר ✓'); } catch (e) { toast('שגיאה', 'bad'); } go('customers'); }
+  async function deleteOrg(id, name) {
+    if (!confirm(`למחוק לצמיתות את "${name || 'הארגון'}"?\nפעולה זו בלתי הפיכה. אם יש נתונים מקושרים — עדיף להשאיר בארכיון.`)) return;
+    try {
+      await apiDel('/organizations/' + id);
+      toast('נמחק לצמיתות ✓');
+    } catch (e) {
+      const m = String(e && e.message || '');
+      const why = m === 'has_systems' ? 'יש מערכות מקושרות' : m === 'has_engagements' ? 'יש התקשרויות מקושרות' : m === 'has_opportunities' ? 'יש הזדמנויות מקושרות' : '';
+      toast(why ? `לא ניתן למחוק — ${why}. השאירו בארכיון.` : 'שגיאה במחיקה', 'bad');
+      return;
+    }
+    go('customers');
+  }
 
   /* =========================== עבודה =========================== */
   RENDER.work = async () => {
@@ -389,6 +463,8 @@
     setOppStage, saveOppNA, convertToProject,
     setProjStatus, setProjHealth, saveProj, addMilestone, _addMilestone, msToggle,
     addChange, _addChange, convertPC, delSub,
+    handleLead, delQuote,
+    archiveOrg, restoreOrg, deleteOrg,
   };
 
   // אם האפליקציה כבר מוצגת ועומדים על מסך BOS — רענון לאחר טעינת המודול

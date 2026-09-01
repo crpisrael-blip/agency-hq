@@ -42,6 +42,7 @@ export const clients = sqliteTable('clients', {
   tags: text('tags'),
   notes: text('notes'),
   isSelf: integer('is_self').default(0),      // 1 = העסק שלי (ORT-TECH) — לידים שלו מנוהלים כ-CRM מלא
+  archived: integer('archived').default(0),   // 1 = בארכיון (מוסתר ממסך הלקוחות, ניתן לשחזור/מחיקה)
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at'),
 });
