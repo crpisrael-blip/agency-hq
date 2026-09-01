@@ -5,6 +5,7 @@ import {
   systems, processes, engagements, documents, activities, tasks,
 } from '../db/schema';
 import { Env, db, uid, now, pick, num, logActivity, logStatusChange } from './util';
+import { autolaunchForProjectStatus } from './autolaunch';
 
 export const projectsApp = new Hono<Env>();
 
@@ -90,6 +91,7 @@ projectsApp.patch('/:id', async (c) => {
   await d.update(projects).set(data).where(eq(projects.id, id));
   if (data.status && data.status !== cur.status) {
     await logStatusChange(d, 'project', id, cur.organizationId, 'סטטוס פרויקט', cur.status, data.status);
+    await autolaunchForProjectStatus(d, data.status, cur.organizationId);
   }
   return c.json({ ok: true });
 });

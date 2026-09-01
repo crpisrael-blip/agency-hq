@@ -5,6 +5,7 @@ import {
   projects, clients, profitCenters,
 } from '../db/schema';
 import { Env, db, uid, now, pick, num, logActivity, logStatusChange } from './util';
+import { autolaunchForOpportunityStage } from './autolaunch';
 
 export const opportunitiesApp = new Hono<Env>();
 
@@ -46,6 +47,8 @@ opportunitiesApp.post('/', async (c) => {
     entityType: 'opportunity', entityId: id, organizationId: String(body.organizationId),
     type: 'note', title: 'נוצרה הזדמנות חדשה', content: String(body.title),
   });
+  // Autolaunch פלייבוק לפי השלב ההתחלתי (ברירת מחדל: גילוי → שיחת גילוי)
+  await autolaunchForOpportunityStage(d, String(body.stage || 'discovery'), String(body.organizationId));
   return c.json({ ok: true, id });
 });
 
@@ -82,6 +85,7 @@ opportunitiesApp.patch('/:id', async (c) => {
   await d.update(opportunities).set(data).where(eq(opportunities.id, id));
   if (data.stage && data.stage !== cur.stage) {
     await logStatusChange(d, 'opportunity', id, cur.organizationId, 'שלב הזדמנות', cur.stage, data.stage);
+    await autolaunchForOpportunityStage(d, data.stage, cur.organizationId);
   }
   return c.json({ ok: true });
 });

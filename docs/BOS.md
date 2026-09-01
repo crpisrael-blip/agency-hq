@@ -63,10 +63,15 @@ Organization (ארגון)
 | Proposal → Accepted | כפתור "→ התקשרות" (`create-engagement`) |
 | Profit Center (מקושר לארגון) | "המר להזדמנות" (`from-profit-center`) |
 | כל שינוי סטטוס מהותי | רישום `activity` מסוג `status_change` |
+| Opportunity → Discovery/Diagnosis/Proposal | Autolaunch פלייבוק (שיחת גילוי / אפיון / SOW) |
+| Project → Specification/Build/Internal Test/Live/Completed | Autolaunch פלייבוק (מודל נתונים / DoD / QA / Go-Live / מסירה) |
+
+**Autolaunch** (`src/api/autolaunch.ts`) רץ בצד השרת בתוך ה-PATCH של הזדמנות/פרויקט, אידמפוטנטי
+(לא פותח שוב מהלך פעיל מאותה תבנית), זורע את התבנית מ-DEFAULT_PLAYBOOKS אם חסרה, ורושם `activity`
+מסוג `automation`. כך הפלייבוק הופך למנוע העבודה של המערכת.
 
 ### להוספה הדרגתית (follow-up)
-Autolaunch של Playbook לפי שינוי Stage (Discovery→"שיחת גילוי", Build→"DoD", Live→"Go-Live", וכו׳).
-התשתית קיימת (`playbookRuns` + `activities` מסוג `automation`).
+אוטומציות מבוססות-זמן שדורשות מתזמן: "30 יום אחרי סיום → QBR", "Project Completed → Follow-up task".
 
 ## Frontend
 
