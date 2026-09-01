@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Agency HQ — מרכז הבקרה של בית התוכנה</title>
+<title>ORT-TECH — ניהול לקוחות ותהליכים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&family=Rubik:wght@500;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -21,6 +21,7 @@
   .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
   .topbar-in{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;max-width:1180px;margin:0 auto}
   .brand{font-weight:900;font-size:1.08rem;display:flex;align-items:center;gap:9px}
+  .brand .logo-img{height:28px;width:auto}
   .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1rem;color:#fff}
   .brand span{color:var(--accent-2)}
   .nav{display:flex;gap:4px;overflow-x:auto;padding:0 14px 9px;max-width:1180px;margin:0 auto;scrollbar-width:none}
@@ -110,7 +111,7 @@
   /* ---- login ---- */
   #login{position:fixed;inset:0;z-index:100;background:radial-gradient(900px 500px at 80% -10%,rgba(43,92,255,.25),transparent 60%),var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
   .login-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px 26px;max-width:380px;width:100%;text-align:center}
-  .login-card .mark{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;font-size:1.7rem;margin:0 auto 14px}
+  .login-card .logo-img{width:200px;max-width:80%;margin:0 auto 14px;display:block}
   .login-card h1{font-size:1.4rem;font-weight:900;margin-bottom:4px}
   .login-card p{color:var(--muted);font-size:.88rem;margin-bottom:20px}
   .login-card input{text-align:center;letter-spacing:.3em;font-size:1.1rem;margin-bottom:12px}
@@ -235,6 +236,7 @@
   .att-item.blue .att-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.42);color:#1741d6}
   .att-item.amber .att-ico{background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.42);color:#9a6a00}
   .att-item.teal .att-ico{background:rgba(0,209,178,.14);border:1px solid rgba(0,209,178,.42);color:#0a7f6b}
+  .att-item.green .att-ico{background:rgba(15,185,129,.14);border:1px solid rgba(15,185,129,.42);color:#0a7f47}
   /* ===== תיק לקוחות ומערכות (אקורדיון) ===== */
   .pf-group{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow-sm)}
   .pf-head{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer;transition:background-color .14s ease-out}
@@ -269,6 +271,26 @@
   .rev-stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-sm)}
   .rev-stat .n{color:var(--accent-2)}
   @media(max-width:640px){.rev-hero{border-bottom:0;padding-bottom:20px}}
+  /* ===== צינור עסקאות (Pipeline / Kanban) ===== */
+  .pipeline{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin}
+  .pipe-col{min-width:200px;flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:10px 11px}
+  .pipe-col h4{font-size:.82rem;font-weight:800;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+  .pipe-col h4 .cnt{background:var(--accent);color:#fff;font-size:.68rem;border-radius:999px;padding:1px 8px;font-weight:700}
+  .pipe-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 11px;margin-bottom:7px;cursor:pointer;transition:border-color .14s,transform .06s}
+  .pipe-card:hover{border-color:var(--accent)}
+  .pipe-card:active{transform:scale(.99)}
+  .pipe-card b{font-size:.88rem;display:block;margin-bottom:2px}
+  .pipe-card small{color:var(--muted);font-size:.76rem}
+  .pipe-card .bar{margin-top:5px}
+  /* ===== Dashboard CRM cards ===== */
+  .crm-acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px}
+  .crm-act{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;cursor:pointer;transition:border-color .14s,transform .06s}
+  .crm-act:hover{border-color:var(--accent)}
+  .crm-act:active{transform:scale(.99)}
+  .crm-act .emoji{font-size:1.3rem;margin-bottom:4px}
+  .crm-act b{font-size:.94rem;display:block}
+  .crm-act small{color:var(--muted);font-size:.78rem}
+  @media(max-width:600px){.pipeline{flex-direction:column}.pipe-col{min-width:0}}
   /* סימון שימוש בסקילז לפי מערכת */
   .sk-inst-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:8px}
   .sk-inst-lbl{font-size:.72rem;font-weight:700;color:var(--green)}
@@ -283,9 +305,8 @@
 <!-- מסך כניסה -->
 <div id="login">
   <div class="login-card">
-    <div class="mark">◆</div>
-    <h1>Agency <span style="color:var(--accent-2)">HQ</span></h1>
-    <p id="loginSub">מרכז הבקרה של בית התוכנה</p>
+    <img src="/ort-tech-logo.jpg" alt="ORT-TECH" class="logo-img">
+    <p id="loginSub" style="margin-top:4px">מרכז הבקרה</p>
     <div class="err" id="loginErr"></div>
     <input type="password" id="pin" inputmode="numeric" placeholder="••••" autocomplete="current-password" />
     <button class="btn primary" style="width:100%" id="loginBtn" onclick="doLogin()">כניסה</button>
@@ -296,7 +317,7 @@
 <div id="app" style="display:none">
   <div class="topbar">
     <div class="topbar-in">
-      <div class="brand"><span class="mark">◆</span>Agency <span>HQ</span></div>
+      <div class="brand"><img src="/ort-tech-logo.jpg" alt="ORT-TECH" class="logo-img">HQ</div>
       <div class="row" style="gap:6px"><button class="btn small ghost" onclick="go('skills')" title="מאגר הסקילז והפקודות">🧩 סקילז</button><button class="btn small ghost" onclick="changePinForm()">🔒 קוד</button><button class="btn small ghost" onclick="logout()">יציאה</button></div>
     </div>
     <div class="nav" id="nav"></div>
@@ -355,7 +376,7 @@ async function showLogin(){
   window.ideaBubbleDestroy && ideaBubbleDestroy();
   try{
     const s = await fetch('/api/auth/status').then(r=>r.json());
-    $('loginSub').textContent = s.setup ? 'מרכז הבקרה של בית התוכנה' : 'הגדרת קוד גישה ראשוני (4 ספרות ומעלה)';
+    $('loginSub').textContent = s.setup ? 'ניהול לקוחות · מתודולוגיה · תהליכים' : 'הגדרת קוד גישה ראשוני (4 ספרות ומעלה)';
     $('loginBtn').textContent = s.setup ? 'כניסה' : 'הגדרת קוד וכניסה';
     $('login').dataset.setup = s.setup ? '1':'0';
   }catch(e){ $('loginErr').textContent='שגיאת חיבור לשרת'; }
@@ -407,14 +428,16 @@ const PAGES = [
   ['finance','כספים'],
   ['growth','צמיחה'],
 ];
-// תפריט משני / הגדרות
+// תפריט משני / הגדרות (כולל מסכים ותיקים שנשמרו)
 const SECONDARY = [
+  ['leads','📥 לידים (CRM)'],
   ['documents','מסמכים'],
   ['playbooks','ספריית מתודולוגיה'],
   ['skills','🧩 סקילז'],
   ['tasks','משימות'],
   ['portfolio','לקוחות ומערכות (מלא)'],
   ['modules','מודולים'],
+  ['health','צינור עסקאות'],
   ['dashboard','לוח בקרה (ישן)'],
 ];
 // מיפוי עמוד → קבוצת ניווט (להדגשה בתפריט הראשי)
@@ -460,7 +483,7 @@ const valN = (id)=> Number($(id)?.value||0);
 
 // ============ תוויות ============
 const CLIENT_STATUS={prospect:['ליד','p-amber'],active:['פעיל','p-green'],paused:['בהמתנה','p-gray'],churned:['נטש','p-red']};
-const CLIENT_STAGE={lead:'ליד',discovery:'אפיון',proposal:'הצעה',building:'בבנייה',live:'עלה לאוויר',retainer:'ריטיינר'};
+const CLIENT_STAGE={lead:'היכרות',discovery:'אבחון',proposal:'הצעת פתרון',building:'בנייה ויישום',live:'מסירה',retainer:'ליווי שוטף'};
 const SYS_STATUS={discovery:['אפיון','p-amber'],design:['עיצוב','p-purple'],building:['בבנייה','p-blue'],live:['חי','p-green'],maintenance:['תחזוקה','p-teal'],retired:['הוקפא','p-gray']};
 const ENG_MODEL={one_time:'חד-פעמי',retainer:'ריטיינר',hourly:'שעתי',revshare:'אחוז ממחזור',value:'מבוסס-ערך',hybrid:'היברידי'};
 const ENG_STATUS={proposed:['מוצע','p-amber'],active:['פעיל','p-green'],paused:['מושהה','p-gray'],ended:['הסתיים','p-red']};
@@ -489,48 +512,62 @@ const systemOptions=(sel,clientId)=>`<option value="">— ללא —</option>`+C
 
 // ---------- לוח בקרה ----------
 RENDER.dashboard=async()=>{
-  const d=await apiGet('/dashboard');
+  const [d,runs,clients]=await Promise.all([apiGet('/dashboard'),apiGet('/playbooks/runs'),apiGet('/clients')]);
   const k=d.kpis;
   const modelRows=Object.entries(d.byModel||{}).sort((a,b)=>b[1]-a[1]);
   const modelTotal=modelRows.reduce((a,[,v])=>a+v,0)||1;
-  const att=[
-    ['blue','🛠️',k.systemsBuilding,'מערכות בפיתוח','systems'],
-    ['amber','📋',k.openTasks,'משימות פתוחות','tasks'],
-    ['red','⚠️',d.health.red,'לקוחות בסיכון','clients'],
-    ['teal','📥',k.leadsMonth||0,'לידים החודש','systems'],
-  ];
+  const activeRuns=runs.filter(r=>r.status==='active').slice(0,5);
+  const PIPE_STAGES=[['lead','היכרות'],['discovery','אבחון'],['proposal','הצעת פתרון'],['building','בנייה ויישום'],['live','מסירה'],['retainer','ליווי שוטף']];
+  const byStage={}; PIPE_STAGES.forEach(([k])=>byStage[k]=[]);
+  clients.forEach(c=>{ if(byStage[c.stage]) byStage[c.stage].push(c); else if(c.status!=='churned') (byStage.lead=byStage.lead||[]).push(c); });
+  const STAGE_EMOJI_CRM={lead:'👋',discovery:'🔍',proposal:'📋',building:'🛠️',live:'🚀',retainer:'🤝'};
   $('view').innerHTML=`
     <h2>לוח בקרה</h2>
-    <div class="sub">התמונה הכוללת של בית התוכנה — ${todayISO()}</div>
+    <div class="sub">תמונת מצב עסקית — ${todayISO()}</div>
+
+    <div class="att">
+      <div class="att-item teal" onclick="go('portfolio')"><div class="att-ico">👥</div><div class="att-txt"><span class="n">${k.clientsActive}</span><span class="l">לקוחות פעילים</span></div></div>
+      <div class="att-item amber" onclick="go('playbooks')"><div class="att-ico">🧭</div><div class="att-txt"><span class="n">${activeRuns.length}</span><span class="l">מהלכים פעילים</span></div></div>
+      <div class="att-item blue" onclick="go('tasks')"><div class="att-ico">📋</div><div class="att-txt"><span class="n">${k.openTasks}</span><span class="l">משימות פתוחות</span></div></div>
+      <div class="att-item red" onclick="go('health')"><div class="att-ico">⚠️</div><div class="att-txt"><span class="n">${d.health.red}</span><span class="l">לקוחות בסיכון</span></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="spread" style="margin-bottom:10px"><h3 style="margin:0">📊 צינור לקוחות</h3><button class="btn ghost small" onclick="go('health')">מבט מלא →</button></div>
+      <div class="pipeline">
+        ${PIPE_STAGES.map(([stg,lbl])=>{const items=byStage[stg]||[];return `
+          <div class="pipe-col">
+            <h4>${STAGE_EMOJI_CRM[stg]||''} ${lbl}<span class="cnt">${items.length}</span></h4>
+            ${items.map(c=>`<div class="pipe-card" onclick="openClient('${c.id}')">
+              <b>${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</b>
+              <small>${esc(c.industry||'')}</small>
+            </div>`).join('')||`<div style="color:var(--muted);font-size:.78rem;text-align:center;padding:10px 0">—</div>`}
+          </div>`;}).join('')}
+      </div>
+    </div>
+
+    ${activeRuns.length?`<div class="card" style="margin-bottom:14px">
+      <div class="spread" style="margin-bottom:8px"><h3 style="margin:0">🧭 מהלכים פעילים</h3><button class="btn ghost small" onclick="go('playbooks')">הכל →</button></div>
+      ${activeRuns.map(r=>`<div class="list-item" onclick="openRun('${r.id}')">
+        <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+          <small>${r.clientName?esc(r.clientName):'כללי'} · ${STAGE_LABELS[r.stage]||''}</small>
+          <div class="bar" style="width:170px;margin-top:4px"><span style="width:${r.progress}%"></span></div></div>
+        <div class="li-val muted">${r.progress}%</div></div>`).join('')}
+    </div>`:''}
 
     <div class="rev">
       <div class="rev-hero">
         <div class="lbl">הכנסה חוזרת חודשית · MRR</div>
         <div class="val">${money(k.mrr)}</div>
-        <div class="note">≈ ${money(k.arr)} בשנה · בריאות לקוחות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
+        <div class="note">≈ ${money(k.arr)} בשנה · בריאות: ${d.health.green}🟢 ${d.health.yellow}🟡 ${d.health.red}🔴</div>
       </div>
       <div class="rev-side">
         <div class="rev-stat"><span class="n">${money(k.pipeline)}</span><span class="l">בצנרת · הצעות פתוחות</span></div>
-        <div class="rev-stat"><span class="n">${money(k.ideasWeighted)}</span><span class="l">פוטנציאל מרווח (משוקלל)</span></div>
+        <div class="rev-stat"><span class="n">${k.clientsProspect||0}</span><span class="l">לידים בהיכרות</span></div>
       </div>
     </div>
 
-    <div class="att">
-      ${att.map(a=>`<div class="att-item ${a[0]}" onclick="go('${a[4]}')"><div class="att-ico">${a[1]}</div><div class="att-txt"><span class="n">${a[2]}</span><span class="l">${a[3]}</span></div></div>`).join('')}
-    </div>
-
-    <div class="kpis">
-      <div class="kpi"><b>${k.clientsActive}</b><small>לקוחות פעילים${k.clientsProspect?` · ${k.clientsProspect} לידים`:''}</small></div>
-      <div class="kpi green"><b>${k.systemsLive}</b><small>מערכות חיות מתוך ${k.systemsTotal}</small></div>
-      <div class="kpi"><b>${k.leadsTotal||0}</b><small>סה"כ לידים שנאספו</small></div>
-    </div>
-
-    ${d.leadsBySystem&&d.leadsBySystem.length?`<div class="card">
-      <h3>📥 לידים לפי מערכת</h3>
-      ${d.leadsBySystem.map(l=>`<div class="list-item" onclick="go('systems')"><div class="li-main"><b>${esc(l.name)}</b><small>${esc(l.clientName)}</small></div><b class="li-val" style="color:var(--accent-2)">${l.count}</b></div>`).join('')}
-    </div>`:''}
-
-    <div class="grid2">
+    <div class="grid2" style="margin-top:14px">
       <div class="card">
         <h3>MRR לפי לקוח</h3>
         ${d.mrrByClient.length?d.mrrByClient.map(c=>`
@@ -600,7 +637,7 @@ function clientForm(c={}){
     <div class="f2"><div class="f"><label>טלפון</label><input id="f_phone" value="${esc(c.phone||'')}"></div>
       <div class="f"><label>אימייל</label><input id="f_email" value="${esc(c.email||'')}"></div></div>
     <div class="f3"><div class="f"><label>סטטוס</label><select id="f_status">${opts(mapLabels(CLIENT_STATUS),c.status||'prospect')}</select></div>
-      <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(CLIENT_STAGE,c.stage||'lead')}</select></div>
+      <div class="f"><label>שלב בתהליך</label><select id="f_stage">${opts(CLIENT_STAGE,c.stage||'lead')}</select></div>
       <div class="f"><label>בריאות</label><select id="f_health">${opts({green:'🟢 תקין',yellow:'🟡 לב לב',red:'🔴 סיכון'},c.health||'green')}</select></div></div>
     <div class="f"><label>הערות</label><textarea id="f_notes" rows="2">${esc(c.notes||'')}</textarea></div>
     <div class="modal-actions"><button class="btn primary" onclick="saveClient('${c.id||''}')">שמירה</button>
@@ -835,7 +872,7 @@ RENDER.portfolio=async()=>{
       <div class="pf-systems">${internal.map(sysRow).join('')}</div></div>`:'';
 
   $('view').innerHTML=`
-    <div class="spread"><div><h2>לקוחות ומערכות</h2>
+    <div class="spread"><div><h2>לקוחות</h2>
       <div class="sub">${clients.length} לקוחות · ${systems.length} מערכות · ${liveCount} חיות</div></div>
       <div class="row">
         <input class="search" id="pfS" placeholder="חיפוש לקוח או מערכת…" oninput="pfFilter()">
@@ -947,6 +984,252 @@ async function loadSysLeads(id){
       <div class="hint" style="margin-top:7px">סה"כ ${rows.length} לידים${list.length>1&&!tie?` · המקור המוביל: <b>${esc(LEAD_SOURCES[top.k]||top.k)}</b>`:''}${tie?' · תיקו בין המקורות המובילים':''}</div>`;
   }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת לידים</div>'; }
 }
+
+// ---------- מסך לידים (CRM) ----------
+const LEAD_STATUS={new:['🆕 חדש','p-amber'],contacted:['📞 נוצר קשר','p-blue'],qualified:['⭐ רלוונטי','p-purple'],won:['✅ נסגר','p-green'],lost:['✕ לא רלוונטי','p-gray']};
+const LEAD_STATUS_ORDER=['new','contacted','qualified','won','lost'];
+let LEADS_ALL=[], LEADS_SYS={}, LEADS_CLIENTS={}, SELF_SET=new Set(), LEADS_FILTER='all', LEADS_MODE='mine';
+const ACT_KINDS={call:['📞','שיחה'],whatsapp:['💬','הודעה'],meeting:['🤝','פגישה'],note:['📝','הערה'],status:['🔀','סטטוס']};
+const leadIsMine=(l)=>!l.clientId || SELF_SET.has(l.clientId);
+function fuBadge(l){
+  if(!l.followUpAt) return '';
+  if(['won','lost'].includes(l.status||'new')) return '';
+  const t=new Date(); t.setHours(0,0,0,0);
+  const d=new Date(l.followUpAt); d.setHours(0,0,0,0);
+  if(d.getTime()<t.getTime()) return '<span class="pill p-red">⏰ באיחור</span>';
+  if(d.getTime()===t.getTime()) return '<span class="pill p-amber">⏰ היום</span>';
+  return '<span class="pill p-gray">📅 '+new Date(l.followUpAt).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+'</span>';
+}
+const fuDue=(l)=>{ if(!l.followUpAt||['won','lost'].includes(l.status||'new'))return false; const e=new Date(); e.setHours(23,59,59,999); return l.followUpAt<=e.getTime(); };
+function leadPhone(note){ const m=(note||'').match(/0\d[\d\- ]{7,11}/); return m? m[0].replace(/\D/g,'') : ''; }
+function waNum(p){ p=(p||'').replace(/\D/g,''); if(p.startsWith('972'))return p; if(p.startsWith('0'))return '972'+p.slice(1); return p; }
+function timeAgo(ms){ const s=Math.floor((Date.now()-ms)/1000); if(s<60)return 'הרגע'; const m=Math.floor(s/60); if(m<60)return "לפני "+m+" דק'"; const h=Math.floor(m/60); if(h<24)return "לפני "+h+" ש'"; const d=Math.floor(h/24); if(d<30)return "לפני "+d+" ימים"; return new Date(ms).toLocaleDateString('he-IL'); }
+function leadStatusSelect(id,cur){ return '<select onchange="leadSetStatus(\''+id+'\',this.value)" style="padding:6px 10px;border:1px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.85rem;background:#fff;font-weight:700;cursor:pointer">'+LEAD_STATUS_ORDER.map(k=>'<option value="'+k+'" '+(k===cur?'selected':'')+'>'+LEAD_STATUS[k][0]+'</option>').join('')+'</select>'; }
+
+RENDER.leads=async()=>{
+  $('view').innerHTML='<h2>📥 לידים</h2><div class="sub">הלידים שלך — CRM מלא לניהול המכירה · לידים של מערכות לקוחות — מעקב וספירה בלבד</div><div id="leadsBody"><div class="empty">טוען…</div></div>';
+  try{
+    const [rows,systems,cls]=await Promise.all([apiGet('/leads'),apiGet('/systems'),apiGet('/clients')]);
+    LEADS_ALL=rows;
+    LEADS_SYS=Object.fromEntries(systems.map(s=>[s.id,s.name]));
+    LEADS_CLIENTS=Object.fromEntries(cls.map(c=>[c.id,c.name]));
+    SELF_SET=new Set(cls.filter(c=>c.isSelf).map(c=>c.id));
+    if(!SELF_SET.size) SELF_SET.add('cl-agency-hq-core'); // עד שהמיגרציה מסמנת את הלקוח הפנימי
+    renderLeadsList();
+  }catch(e){ const b=$('leadsBody'); if(b)b.innerHTML='<div class="empty">שגיאה בטעינת לידים</div>'; }
+};
+
+function renderLeadsList(){
+  const body=$('leadsBody'); if(!body)return;
+  const all=LEADS_ALL.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const mine=all.filter(leadIsMine), others=all.filter(l=>!leadIsMine(l));
+  const toggle=
+    '<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:16px">'+
+      '<button class="btn '+(LEADS_MODE==='mine'?'primary':'ghost')+'" onclick="LEADS_MODE=\'mine\';renderLeadsList()">🎯 הלידים שלי <b>'+mine.length+'</b></button>'+
+      '<button class="btn '+(LEADS_MODE==='clients'?'primary':'ghost')+'" onclick="LEADS_MODE=\'clients\';renderLeadsList()">🏢 לידים של לקוחות <b>'+others.length+'</b></button>'+
+    '</div>';
+  body.innerHTML=toggle+(LEADS_MODE==='mine'? leadsMineHTML(mine) : leadsClientsHTML(others));
+}
+
+// --- הלידים שלי: CRM מלא ---
+function leadsMineHTML(mine){
+  const monthPrefix=new Date().toISOString().slice(0,7);
+  const cnt=k=> k==='all'? mine.length : mine.filter(l=>(l.status||'new')===k).length;
+  const thisMonth=mine.filter(l=>new Date(l.createdAt).toISOString().slice(0,7)===monthPrefix).length;
+  const due=mine.filter(fuDue).length;
+  const filtered= LEADS_FILTER==='all'? mine : mine.filter(l=>(l.status||'new')===LEADS_FILTER);
+  const chip=(k,label)=>'<button onclick="LEADS_FILTER=\''+k+'\';renderLeadsList()" class="btn small '+(LEADS_FILTER===k?'primary':'ghost')+'">'+label+' <b>'+cnt(k)+'</b></button>';
+  return (
+    '<div class="att" style="margin-bottom:14px">'+
+      '<div class="att-item amber"><div class="att-ico">🆕</div><div class="att-txt"><span class="n">'+cnt('new')+'</span><span class="l">חדשים לטיפול</span></div></div>'+
+      '<div class="att-item red"><div class="att-ico">⏰</div><div class="att-txt"><span class="n">'+due+'</span><span class="l">לחזרה היום</span></div></div>'+
+      '<div class="att-item blue"><div class="att-ico">🗓️</div><div class="att-txt"><span class="n">'+thisMonth+'</span><span class="l">החודש</span></div></div>'+
+      '<div class="att-item green"><div class="att-ico">✅</div><div class="att-txt"><span class="n">'+cnt('won')+'</span><span class="l">נסגרו</span></div></div>'+
+    '</div>'+
+    '<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:14px">'+
+      chip('all','הכל')+LEAD_STATUS_ORDER.map(k=>chip(k,LEAD_STATUS[k][0])).join('')+
+    '</div>'+
+    (filtered.length? filtered.map(leadCard).join('') : '<div class="empty">אין לידים בסינון הזה — כשליד חדש ייכנס מהאתר הוא יופיע כאן</div>')
+  );
+}
+
+// --- לידים של לקוחות: מעקב וספירה בלבד ---
+function leadsClientsHTML(others){
+  if(!others.length) return '<div class="empty">עדיין אין לידים ממערכות של לקוחות.<br>כשמערכת שבנית ללקוח תתחיל להזרים לידים — המעקב יופיע כאן אוטומטית.</div>';
+  const monthPrefix=new Date().toISOString().slice(0,7);
+  const won=others.filter(l=>l.status==='won').length;
+  const thisMonth=others.filter(l=>new Date(l.createdAt).toISOString().slice(0,7)===monthPrefix).length;
+  const conv=others.length? Math.round(won/others.length*100) : 0;
+  const bySys={};
+  others.forEach(l=>{ const k=l.systemId||'?'; (bySys[k]=bySys[k]||[]).push(l); });
+  const rows=Object.entries(bySys).map(([sid,ls])=>({
+    sid, sys:LEADS_SYS[sid]||sid, client:LEADS_CLIENTS[ls[0].clientId]||'—',
+    n:ls.length, won:ls.filter(x=>x.status==='won').length,
+    month:ls.filter(x=>new Date(x.createdAt).toISOString().slice(0,7)===monthPrefix).length,
+    last:Math.max(...ls.map(x=>x.createdAt)), ls
+  })).sort((a,b)=>b.n-a.n);
+  return (
+    '<div class="hint" style="margin-bottom:12px">👁️ מעקב בלבד — הלידים האלה מנוהלים אצל הלקוחות במערכות שלהם. כאן סופרים ורואים מה נסגר.</div>'+
+    '<div class="att" style="margin-bottom:14px">'+
+      '<div class="att-item teal"><div class="att-ico">📥</div><div class="att-txt"><span class="n">'+others.length+'</span><span class="l">סה"כ לידים</span></div></div>'+
+      '<div class="att-item blue"><div class="att-ico">🗓️</div><div class="att-txt"><span class="n">'+thisMonth+'</span><span class="l">החודש</span></div></div>'+
+      '<div class="att-item green"><div class="att-ico">✅</div><div class="att-txt"><span class="n">'+won+'</span><span class="l">נסגרו</span></div></div>'+
+      '<div class="att-item amber"><div class="att-ico">📈</div><div class="att-txt"><span class="n">'+conv+'%</span><span class="l">אחוז המרה</span></div></div>'+
+    '</div>'+
+    rows.map(r=>{
+      const convR=r.n? Math.round(r.won/r.n*100) : 0;
+      return '<div class="card" style="margin-bottom:10px">'+
+        '<div class="spread" style="cursor:pointer" onclick="var e=document.getElementById(\'clx_'+r.sid+'\');e.style.display=e.style.display===\'none\'?\'block\':\'none\'">'+
+          '<div><b>'+esc(r.client)+'</b><div class="muted" style="font-size:.83rem">'+esc(r.sys)+' · ליד אחרון '+timeAgo(r.last)+'</div></div>'+
+          '<div class="row" style="gap:14px;flex:none;align-items:center">'+
+            '<span class="muted" style="font-size:.85rem">לידים <b style="color:inherit">'+r.n+'</b></span>'+
+            '<span class="muted" style="font-size:.85rem">החודש <b style="color:inherit">'+r.month+'</b></span>'+
+            '<span class="muted" style="font-size:.85rem">נסגרו <b style="color:inherit">'+r.won+'</b></span>'+
+            '<span class="bar" style="width:90px;flex:none;margin-top:0"><span style="width:'+convR+'%"></span></span>'+
+            '<b style="font-size:.9rem">'+convR+'%</b>'+
+          '</div>'+
+        '</div>'+
+        '<div id="clx_'+r.sid+'" style="display:none;margin-top:10px;border-top:1px dashed #e3dccf;padding-top:8px">'+
+          r.ls.slice().sort((a,b)=>b.createdAt-a.createdAt).map(l=>
+            '<div class="stat-row"><span>'+esc(l.name||'ליד')+' '+pill(LEAD_STATUS,l.status||'new')+'</span><span class="muted" style="font-size:.82rem;flex:none">'+esc(LEAD_SOURCES[l.source]||l.source||'')+' · '+timeAgo(l.createdAt)+'</span></div>'
+          ).join('')+
+        '</div>'+
+      '</div>';
+    }).join('')
+  );
+}
+
+function leadCard(l){
+  const ph=leadPhone(l.note); const st=l.status||'new';
+  return '<div class="card" style="margin-bottom:10px">'+
+    '<div class="spread" style="align-items:flex-start">'+
+      '<div><b style="font-size:1.05rem">'+esc(l.name||'ליד ללא שם')+'</b> '+pill(LEAD_STATUS,st)+' '+fuBadge(l)+
+        '<div class="muted" style="font-size:.83rem;margin-top:2px">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+' · '+timeAgo(l.createdAt)+'</div></div>'+
+      '<div class="row" style="gap:6px;flex:none">'+
+        (ph?'<a class="btn teal small" href="tel:'+ph+'" title="חייג">📞</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank" title="וואטסאפ">💬</a>':'')+
+      '</div>'+
+    '</div>'+
+    (l.note?'<div class="muted" style="margin-top:8px;font-size:.9rem;white-space:pre-wrap;border-inline-start:3px solid #e3dccf;padding-inline-start:10px">'+esc(l.note)+'</div>':'')+
+    '<div class="spread" style="margin-top:10px">'+
+      leadStatusSelect(l.id,st)+
+      '<div class="row" style="gap:6px">'+
+        (l.convertedClientId
+          ?'<button class="btn teal small" onclick="openClient(\''+l.convertedClientId+'\')" title="הליד כבר הומר — פתיחת כרטיס הלקוח">👤 פתח לקוח</button>'
+          :(st!=='won'?'<button class="btn ghost small" onclick="leadConvert(\''+l.id+'\')" title="צור כרטיס לקוח מהליד">🤝 ללקוח</button>':''))+
+        '<button class="btn ghost small" onclick="openLead(\''+l.id+'\')">פרטים</button><button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑</button></div>'+
+    '</div>'+
+  '</div>';
+}
+
+function openLead(id){
+  const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  const ph=leadPhone(l.note);
+  const fuVal=l.followUpAt? new Date(l.followUpAt).toISOString().slice(0,10) : '';
+  const inputStyle='padding:8px 10px;border:1px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.9rem;background:#fff';
+  openModal(
+    '<div class="spread"><h3 style="margin:0">'+esc(l.name||'ליד')+'</h3><span>'+pill(LEAD_STATUS,l.status||'new')+' '+fuBadge(l)+'</span></div>'+
+    '<div class="muted" style="margin:6px 0 14px;font-size:.88rem">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+'<br>נכנס: '+new Date(l.createdAt).toLocaleString('he-IL')+(l.handledAt?' · טופל: '+new Date(l.handledAt).toLocaleString('he-IL'):'')+'</div>'+
+    (ph?'<div class="row" style="gap:8px;margin-bottom:14px"><a class="btn teal small" href="tel:'+ph+'">📞 '+ph+'</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank">💬 וואטסאפ</a></div>':'')+
+    (l.note?'<div class="card" style="margin:0 0 14px;white-space:pre-wrap">'+esc(l.note)+'</div>':'')+
+    '<div class="f2">'+
+      '<div class="f"><label>סטטוס טיפול</label>'+leadStatusSelect(l.id,l.status||'new')+'</div>'+
+      '<div class="f"><label>⏰ חזרה ללקוח</label><input type="date" value="'+fuVal+'" onchange="leadSetFollowUp(\''+l.id+'\',this.value)" style="'+inputStyle+'"></div>'+
+    '</div>'+
+    '<div style="margin-top:16px;border-top:1px solid #eee6d8;padding-top:12px">'+
+      '<b style="font-size:.95rem">📋 יומן פעילות</b>'+
+      '<div class="row" style="gap:6px;margin:10px 0;flex-wrap:wrap">'+
+        '<select id="actKind" style="'+inputStyle+';font-weight:700">'+['call','whatsapp','meeting','note'].map(k=>'<option value="'+k+'">'+ACT_KINDS[k][0]+' '+ACT_KINDS[k][1]+'</option>').join('')+'</select>'+
+        '<input id="actText" placeholder="מה קרה? (דיברנו, מעוניין בהצעה…)" style="'+inputStyle+';flex:1;min-width:180px" onkeydown="if(event.key===\'Enter\')leadAddActivity(\''+l.id+'\')">'+
+        '<button class="btn teal small" onclick="leadAddActivity(\''+l.id+'\')">רשום</button>'+
+      '</div>'+
+      '<div id="actList"><div class="muted hint">טוען יומן…</div></div>'+
+    '</div>'+
+    '<div class="spread" style="margin-top:18px"><span class="row" style="gap:6px">'+
+      (l.convertedClientId
+        ?'<button class="btn teal small" onclick="closeModal();openClient(\''+l.convertedClientId+'\')">👤 פתח לקוח</button>'
+        :'<button class="btn teal small" onclick="leadConvert(\''+l.id+'\')">🤝 הפוך ללקוח</button>')+
+      '<button class="btn danger small" onclick="leadDelete(\''+l.id+'\')">🗑 מחק</button></span><button class="btn primary" onclick="closeModal()">סגור</button></div>'
+  , true);
+  loadLeadActivities(id);
+}
+
+// --- הפיכת ליד ללקוח ---
+function leadConvert(id){
+  const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  if(l.convertedClientId){ toast('הליד כבר הומר ללקוח — פותח את הכרטיס'); closeModal(); openClient(l.convertedClientId); return; }
+  const ph=leadPhone(l.note);
+  const indM=(l.note||'').match(/תחום:\s*([^·]+)/);
+  const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
+  openModal(
+    '<h3 style="margin:0 0 4px">🤝 הפוך ללקוח</h3>'+
+    '<div class="muted" style="font-size:.88rem;margin-bottom:14px">ייווצר כרטיס לקוח חדש מהליד, הליד יסומן כ"✅ נסגר" והמעבר יתועד ביומן הפעילות.</div>'+
+    '<div class="f"><label>שם הלקוח / העסק <b style="color:#a8452f">*</b></label><input id="cv_name" value="'+esc(l.name||'')+'" style="'+inputStyle+'"></div>'+
+    '<div class="f2" style="margin-top:10px">'+
+      '<div class="f"><label>תחום</label><input id="cv_industry" value="'+esc(indM?indM[1].trim():'')+'" placeholder="קליניקה, צימרים…" style="'+inputStyle+'"></div>'+
+      '<div class="f"><label>טלפון</label><input id="cv_phone" value="'+esc(ph)+'" style="'+inputStyle+'"></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:10px"><label>הערות</label><textarea id="cv_notes" rows="3" style="'+inputStyle+'">'+esc('נוצר מליד ('+(LEAD_SOURCES[l.source]||l.source||'אתר')+'): '+(l.note||''))+'</textarea></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn primary" onclick="leadConvertDo(\''+l.id+'\')">🤝 צור לקוח</button></div>'
+  );
+}
+
+async function leadConvertDo(id){
+  const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  if(l.convertedClientId){ toast('הליד כבר הומר ללקוח','bad'); return; }
+  const name=val('cv_name'); if(!name){ toast('חסר שם לקוח','bad'); return; }
+  try{
+    const r=await apiPost('/clients',{name, industry:val('cv_industry')||null, phone:val('cv_phone')||null,
+      contactName:l.name||null, status:'prospect', stage:'lead', health:'green', notes:val('cv_notes')||null});
+    await apiPatch('/leads/'+id,{status:'won', convertedClientId:(r&&r.id)||null});
+    l.status='won'; l.handledAt=Date.now(); l.convertedClientId=(r&&r.id)||null;
+    apiPost('/leads/'+id+'/activities',{kind:'note',text:'🤝 הפך ללקוח: '+name}).catch(()=>{});
+    closeModal(); toast('🤝 נוצר לקוח חדש ✓'); renderLeadsList();
+    if(r&&r.id) openClient(r.id);
+  }catch(e){ toast('שגיאה ביצירת הלקוח','bad'); }
+}
+
+async function loadLeadActivities(id){
+  const box=$('actList'); if(!box)return;
+  try{
+    const rows=await apiGet('/leads/'+id+'/activities');
+    box.innerHTML= rows.length? rows.map(a=>{
+      const k=ACT_KINDS[a.kind]||ACT_KINDS.note;
+      return '<div class="stat-row"><span>'+k[0]+' '+esc(a.text||k[1])+'</span><span class="muted" style="font-size:.8rem;flex:none">'+new Date(a.createdAt).toLocaleString('he-IL',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})+'</span></div>';
+    }).join('') : '<div class="muted hint">אין תיעוד עדיין — רשום את הפעולה הראשונה 👆</div>';
+  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת היומן</div>'; }
+}
+
+async function leadAddActivity(id){
+  const kind=($('actKind')&&$('actKind').value)||'note';
+  const text=(($('actText')&&$('actText').value)||'').trim();
+  if(!text){ toast('כתוב קודם מה קרה','bad'); return; }
+  try{ await apiPost('/leads/'+id+'/activities',{kind,text}); if($('actText'))$('actText').value=''; toast('נרשם ביומן ✓'); loadLeadActivities(id); }
+  catch(e){ toast('שגיאה ברישום','bad'); }
+}
+
+async function leadSetFollowUp(id,dateStr){
+  const ts=dateStr? new Date(dateStr+'T09:00:00').getTime() : null;
+  try{
+    await apiPatch('/leads/'+id,{followUpAt:ts});
+    const l=LEADS_ALL.find(x=>x.id===id); if(l)l.followUpAt=ts;
+    toast(ts?'נקבעה חזרה ✓':'החזרה בוטלה'); renderLeadsList();
+  }catch(e){ toast('שגיאה בעדכון','bad'); }
+}
+
+async function leadSetStatus(id,status){
+  try{
+    await apiPatch('/leads/'+id,{status});
+    const l=LEADS_ALL.find(x=>x.id===id); if(l){l.status=status;l.handledAt=Date.now();}
+    // תיעוד אוטומטי ביומן הפעילות
+    apiPost('/leads/'+id+'/activities',{kind:'status',text:'הסטטוס שונה ל: '+(LEAD_STATUS[status]?LEAD_STATUS[status][0]:status)}).then(()=>loadLeadActivities(id)).catch(()=>{});
+    toast('סטטוס עודכן ✓'); renderLeadsList();
+  }catch(e){ toast('שגיאה בעדכון הסטטוס','bad'); }
+}
+async function leadDelete(id){
+  if(!confirm('למחוק את הליד לצמיתות?'))return;
+  try{ await apiDel('/leads/'+id); LEADS_ALL=LEADS_ALL.filter(x=>x.id!==id); closeModal(); toast('הליד נמחק'); renderLeadsList(); }
+  catch(e){ toast('שגיאה במחיקה','bad'); }
+}
 async function advanceSysTask(taskId,status,systemId){ try{ await apiPatch('/tasks/'+taskId,{status}); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
 async function delSysTask(taskId,systemId){ if(!confirm('למחוק משימה?'))return; try{ await apiDel('/tasks/'+taskId); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
 async function addSysTask(systemId){
@@ -987,7 +1270,7 @@ function systemForm(s={}){
     <div class="f"><label>מצב פיתוח (GitHub)</label><div id="ghBox" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
     <div class="f"><label>🎯 לידים לפי מקור (השוואת גרסאות)</label><div id="sysLeads" class="card" style="margin:0;padding:11px 13px"><div class="muted hint">טוען…</div></div></div>
     <div class="f"><label>📥 Webhook לידים</label><div class="card" style="margin:0;padding:11px 13px">
-      <div class="hint">כדי שהמערכת תספור לידים ב-Agency HQ — הוסף בה קריאה כשנכנס ליד:</div>
+      <div class="hint">כדי שהמערכת תספור לידים ב-ORT-TECH HQ — הוסף בה קריאה כשנכנס ליד:</div>
       <code id="hookCode" style="display:block;direction:ltr;text-align:left;font-size:.72rem;background:var(--bg-2);padding:8px;border-radius:8px;margin-top:6px;word-break:break-all">POST ${location.origin}/api/hook/lead&#10;{"systemId":"${s.id}","source":"website"}</code>
       <button class="btn small ghost" type="button" onclick="copyHook('${s.id}')" style="margin-top:6px">העתק endpoint</button>
     </div></div>`:''}
@@ -1070,13 +1353,44 @@ async function delEngagement(id){ if(!confirm('למחוק התקשרות?'))retu
 
 // ---------- מחשבון מודלי חיוב ----------
 const CALC_MODELS=['one_time','retainer','hourly','revshare','value','hybrid'];
+
+// סוגי שירות — כל אחד מתאים את התוויות, ברירות המחדל והשדות הרלוונטיים
+const SERVICE_TYPES={
+  software:{icon:'💻',label:'פיתוח תוכנה',unit:'שעה',
+    L:{buildHours:'שעות בנייה (פרויקט)',months:'אורך התקשרות (חודשים)',costRate:'עלות שעה שלי ₪',sellRate:'תעריף שעה ללקוח ₪',setupFee:'הקמה/מקדמה ₪',monthlyFee:'ריטיינר חודשי ₪',monthlyHours:'שעות תמיכה בחודש',monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:80,months:12,costRate:120,sellRate:350,setupFee:0,monthlyFee:1500,monthlyHours:4,monthlyCost:150,clientRevenue:40000,sharePct:5,clientValue:8000,capturePct:25},
+    show:{revshare:true,value:true}},
+  consulting:{icon:'🧠',label:'ייעוץ',unit:'יום',
+    L:{buildHours:'ימי ייעוץ (פרויקט)',months:'אורך ליווי (חודשים)',costRate:'עלות יום שלי ₪',sellRate:'תעריף יום ללקוח ₪',setupFee:'אבחון/מקדמה ₪',monthlyFee:'ריטיינר ייעוץ חודשי ₪',monthlyHours:'ימי ליווי בחודש',monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:6,months:6,costRate:800,sellRate:2500,setupFee:0,monthlyFee:4000,monthlyHours:2,monthlyCost:100,clientRevenue:60000,sharePct:5,clientValue:12000,capturePct:25},
+    show:{revshare:true,value:true}},
+  process:{icon:'⚙️',label:'בניית תהליכים',unit:'יום',
+    L:{buildHours:'ימי מיפוי ובנייה',months:'אורך ליווי (חודשים)',costRate:'עלות יום שלי ₪',sellRate:'תעריף יום ללקוח ₪',setupFee:'פרויקט הקמה ₪',monthlyFee:'ליווי חודשי ₪',monthlyHours:'ימי תחזוקה בחודש',monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:10,months:6,costRate:700,sellRate:2200,setupFee:0,monthlyFee:2500,monthlyHours:1,monthlyCost:80,clientRevenue:50000,sharePct:4,clientValue:10000,capturePct:20},
+    show:{revshare:true,value:true}},
+  training:{icon:'🎓',label:'הדרכה',unit:'שעה',
+    L:{buildHours:'שעות הכנה',months:'אורך התוכנית (חודשים)',costRate:'עלות שעה שלי ₪',sellRate:'תעריף שעת הדרכה ₪',setupFee:'הקמת תוכנית ₪',monthlyFee:'מנוי/ליווי חודשי ₪',monthlyHours:'שעות הדרכה בחודש',monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:12,months:3,costRate:150,sellRate:400,setupFee:0,monthlyFee:0,monthlyHours:8,monthlyCost:50,clientRevenue:0,sharePct:0,clientValue:5000,capturePct:20},
+    show:{revshare:false,value:true}},
+  custom:{icon:'✳️',label:'מותאם אישית',unit:'יחידה',
+    L:{buildHours:"כמות עבודה (יח')",months:'חודשים',costRate:'עלות ליחידה ₪',sellRate:'מחיר ליחידה ₪',setupFee:'הקמה/מקדמה ₪',monthlyFee:'תשלום חודשי ₪',monthlyHours:"יח' בחודש",monthlyCost:'עלות חודשית שלי ₪'},
+    D:{buildHours:1,months:12,costRate:0,sellRate:0,setupFee:0,monthlyFee:0,monthlyHours:0,monthlyCost:0,clientRevenue:0,sharePct:0,clientValue:0,capturePct:0},
+    show:{revshare:true,value:true}},
+};
+let CALC_SERVICE='software';
+let CALC_EXTRAS=[]; // משתנים חופשיים: {name, amount, kind:'setup'|'monthly'}
+
 function calcInputs(){
   return {
+    serviceType:CALC_SERVICE,
     buildHours:valN('c_buildHours'), costRate:valN('c_costRate'), sellRate:valN('c_sellRate'),
     setupFee:valN('c_setupFee'), monthlyFee:valN('c_monthlyFee'), monthlyHours:valN('c_monthlyHours'),
     clientRevenue:valN('c_clientRevenue'), sharePct:valN('c_sharePct'),
     clientValue:valN('c_clientValue'), capturePct:valN('c_capturePct'),
     monthlyCost:valN('c_monthlyCost'), months:valN('c_months')||12, vat:$('c_vat')?.checked,
+    extras:CALC_EXTRAS.map(e=>({name:e.name,amount:+e.amount||0,kind:e.kind})),
+    extraSetup:CALC_EXTRAS.filter(e=>e.kind==='setup').reduce((a,e)=>a+(+e.amount||0),0),
+    extraMonthly:CALC_EXTRAS.filter(e=>e.kind==='monthly').reduce((a,e)=>a+(+e.amount||0),0),
   };
 }
 // חישוב מודל בודד לפי אותם משתני קלט
@@ -1091,6 +1405,9 @@ function computeModel(model,I){
     case 'value':    setup=I.setupFee; monthly=I.clientValue*I.capturePct/100; break;
     case 'hybrid':   setup=build; monthly=I.monthlyFee + I.clientRevenue*I.sharePct/100; break;
   }
+  // משתנים חופשיים (רכיבי הצעה נוספים) נכנסים לכל מודל
+  setup += I.extraSetup||0;
+  monthly += I.extraMonthly||0;
   const months=I.months;
   const buildCost=I.buildHours*I.costRate;
   const deliverCost=I.monthlyHours*I.costRate;               // עלות שעות תמיכה חודשיות
@@ -1114,37 +1431,50 @@ RENDER.calculator=async()=>{
       <button class="btn ghost small" onclick="loadScenarios()">תרחישים שמורים</button></div>
     <div class="grid2">
       <div class="card">
-        <h3>משתני הקלט</h3>
-        <div class="f2">
-          <div class="f"><label>שעות בנייה (פרויקט)</label><input type="number" id="c_buildHours" value="80" oninput="calcOut()"></div>
-          <div class="f"><label>אורך התקשרות (חודשים)</label><input type="number" id="c_months" value="12" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>עלות שעה שלי ₪</label><input type="number" id="c_costRate" value="120" oninput="calcOut()"><div class="hint">כמה שעת עבודה עולה לך</div></div>
-          <div class="f"><label>תעריף שעה ללקוח ₪</label><input type="number" id="c_sellRate" value="350" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>הקמה/מקדמה ₪ <span class="muted">(0=לפי שעות)</span></label><input type="number" id="c_setupFee" value="0" oninput="calcOut()"></div>
-          <div class="f"><label>ריטיינר חודשי ₪</label><input type="number" id="c_monthlyFee" value="1500" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>שעות תמיכה בחודש</label><input type="number" id="c_monthlyHours" value="4" oninput="calcOut()"></div>
-          <div class="f"><label>עלות חודשית שלי ₪ <span class="muted">(כלים/קבלני משנה)</span></label><input type="number" id="c_monthlyCost" value="150" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>מחזור חודשי צפוי אצל הלקוח ₪</label><input type="number" id="c_clientRevenue" value="40000" oninput="calcOut()"></div>
-          <div class="f"><label>% ממחזור</label><input type="number" id="c_sharePct" value="5" oninput="calcOut()"></div>
-        </div>
-        <div class="f2">
-          <div class="f"><label>ערך חודשי שאני מייצר ₪</label><input type="number" id="c_clientValue" value="8000" oninput="calcOut()"></div>
-          <div class="f"><label>% מהערך (capture)</label><input type="number" id="c_capturePct" value="25" oninput="calcOut()"></div>
-        </div>
-        <label class="row" style="gap:7px;cursor:pointer"><input type="checkbox" id="c_vat" style="width:auto" onchange="calcOut()"> הצג כולל מע"מ (18%)</label>
+        <div class="spread" style="margin-bottom:10px;align-items:center"><h3 style="margin:0">משתני הקלט</h3>
+          <select id="c_service" onchange="calcSetService(this.value)" style="padding:8px 11px;border:1.5px solid var(--line);border-radius:9px;font-family:inherit;font-weight:700;font-size:.9rem;background:#fff;cursor:pointer">
+            ${Object.entries(SERVICE_TYPES).map(([k,v])=>`<option value="${k}" ${k===CALC_SERVICE?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+          </select></div>
+        <div id="calcCard"></div>
       </div>
       <div id="calcOut"></div>
     </div>`;
+  $('calcCard').innerHTML=calcCardHTML();
+  renderExtras();
   calcOut();
 };
+
+// בונה את שדות הקלט לפי סוג השירות הנבחר
+function calcCardHTML(){
+  const S=SERVICE_TYPES[CALC_SERVICE]||SERVICE_TYPES.software, L=S.L, D=S.D;
+  const fld=(id,label,extra)=>`<div class="f"><label>${label}</label><input type="number" id="c_${id}" value="${D[id]}" oninput="calcOut()">${extra||''}</div>`;
+  return (
+    '<div class="f2">'+fld('buildHours',L.buildHours)+fld('months',L.months)+'</div>'+
+    '<div class="f2">'+fld('costRate',L.costRate,'<div class="hint">כמה יחידת עבודה עולה לך</div>')+fld('sellRate',L.sellRate)+'</div>'+
+    '<div class="f2">'+fld('setupFee',L.setupFee+' <span class="muted">(0=לפי כמות)</span>')+fld('monthlyFee',L.monthlyFee)+'</div>'+
+    '<div class="f2">'+fld('monthlyHours',L.monthlyHours)+fld('monthlyCost',L.monthlyCost+' <span class="muted">(כלים/קב״מ)</span>')+'</div>'+
+    (S.show.revshare?'<div class="f2">'+fld('clientRevenue','מחזור חודשי צפוי אצל הלקוח ₪')+fld('sharePct','% ממחזור')+'</div>':'<input type="hidden" id="c_clientRevenue" value="0"><input type="hidden" id="c_sharePct" value="0">')+
+    (S.show.value?'<div class="f2">'+fld('clientValue','ערך חודשי שאני מייצר ₪')+fld('capturePct','% מהערך (capture)')+'</div>':'<input type="hidden" id="c_clientValue" value="0"><input type="hidden" id="c_capturePct" value="0">')+
+    '<div class="f" style="margin-top:6px"><div class="spread" style="align-items:center;margin-bottom:4px"><label style="margin:0">✳️ משתנים נוספים <span class="muted" style="font-weight:400">(רכיבי הצעה חופשיים)</span></label>'+
+      '<button class="btn ghost small" onclick="calcAddExtra()">+ הוסף</button></div>'+
+      '<div id="calcExtras"></div></div>'+
+    '<label class="row" style="gap:7px;cursor:pointer;margin-top:8px"><input type="checkbox" id="c_vat" style="width:auto" onchange="calcOut()"> הצג כולל מע"מ (18%)</label>'
+  );
+}
+function calcSetService(t){ CALC_SERVICE=t; $('calcCard').innerHTML=calcCardHTML(); renderExtras(); calcOut(); }
+
+// משתנים חופשיים
+function calcExtraRow(i){
+  const e=CALC_EXTRAS[i], ib='padding:8px 10px;border:1.5px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.88rem';
+  return '<div class="row" style="gap:6px;margin-bottom:6px;align-items:center">'+
+    '<input value="'+esc(e.name||'')+'" oninput="CALC_EXTRAS['+i+'].name=this.value" placeholder="שם הרכיב (אפיון, סדנה…)" style="flex:1;'+ib+'">'+
+    '<input type="number" value="'+(e.amount||'')+'" oninput="CALC_EXTRAS['+i+'].amount=+this.value;calcOut()" placeholder="₪" style="width:92px;'+ib+'">'+
+    '<select onchange="CALC_EXTRAS['+i+'].kind=this.value;calcOut()" style="'+ib+';cursor:pointer"><option value="setup"'+(e.kind==='setup'?' selected':'')+'>חד-פעמי</option><option value="monthly"'+(e.kind==='monthly'?' selected':'')+'>חודשי</option></select>'+
+    '<button class="btn ghost small" onclick="calcDelExtra('+i+')" title="הסר">✕</button></div>';
+}
+function renderExtras(){ const b=$('calcExtras'); if(b) b.innerHTML=CALC_EXTRAS.length?CALC_EXTRAS.map((_,i)=>calcExtraRow(i)).join(''):'<div class="muted hint">אין רכיבים נוספים. לחץ "+ הוסף" כדי לשלב משתנה משלך.</div>'; }
+function calcAddExtra(){ CALC_EXTRAS.push({name:'',amount:0,kind:'setup'}); renderExtras(); }
+function calcDelExtra(i){ CALC_EXTRAS.splice(i,1); renderExtras(); calcOut(); }
 function calcOut(){
   const I=calcInputs();
   const results=CALC_MODELS.map(m=>computeModel(m,I));
@@ -1152,9 +1482,10 @@ function calcOut(){
   const vlabel=I.vat?' <span class="muted" style="font-size:.7rem">כולל מע"מ</span>':'';
   // המודל עם הרווח הגבוה ביותר
   const best=results.reduce((a,b)=>b.profit>a.profit?b:a,results[0]);
+  const S=SERVICE_TYPES[I.serviceType]||SERVICE_TYPES.software; const unit=S.unit;
   $('calcOut').innerHTML=`
     <div class="card" style="border-color:var(--accent-2)">
-      <div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מומלץ: ${ENG_MODEL[best.model]}</h3>${marginPill(best.margin)}</div>
+      <div class="spread" style="margin-bottom:6px"><h3 style="margin:0">${S.icon} מומלץ: ${ENG_MODEL[best.model]}</h3>${marginPill(best.margin)}</div>
       <div class="split" style="margin-bottom:10px">
         <div><div class="muted hint">חד-פעמי (הקמה)</div><div class="big">${money(best.setup*vat)}</div></div>
         <div><div class="muted hint">חודשי</div><div class="big" style="color:var(--accent-2)">${money(best.monthly*vat)}</div></div>
@@ -1162,7 +1493,7 @@ function calcOut(){
       <div class="stat-row"><span>סה"כ הכנסה (${I.months} ח')${vlabel}</span><b>${money(best.totalRevenue*vat)}</b></div>
       <div class="stat-row"><span>עלות כוללת שלי</span><b>${money(best.totalCost)}</b></div>
       <div class="stat-row"><span>רווח</span><b style="color:${best.profit>=0?'var(--green)':'var(--red)'}">${money(best.profit)}</b></div>
-      <div class="stat-row"><span>תעריף אפקטיבי לשעה</span><b>${money(best.effHourly)}</b></div>
+      <div class="stat-row"><span>תעריף אפקטיבי ל${unit}</span><b>${money(best.effHourly)}</b></div>
       <div class="stat-row"><span>החזר השקעה (break-even)</span><b>${best.breakEven!=null?best.breakEven+" ח'":'—'}</b></div>
     </div>
     <div class="card">
@@ -1177,7 +1508,7 @@ function calcOut(){
           <td class="num" style="color:${r.profit>=0?'var(--green)':'var(--red)'}">${money1(r.profit)}</td>
           <td>${marginPill(r.margin)}</td></tr>`).join('')}
       </table></div>
-      <div class="hint">השוליים מחושבים על בסיס עלות עבודה (${money(I.costRate)}/שעה) + עלות חודשית. תעריף אפקטיבי לשעה מגלם את כל ההכנסה חלקי כל השעות.</div>
+      <div class="hint">השוליים מחושבים על בסיס עלות עבודה (${money(I.costRate)}/${unit}) + עלות חודשית. תעריף אפקטיבי ל${unit} מגלם את כל ההכנסה חלקי כל יחידות העבודה.</div>
       <div class="modal-actions"><button class="btn primary small" onclick="saveScenario()">שמירת תרחיש</button>
         <button class="btn teal small" onclick="scenarioToEngagement()">צור התקשרות מהמומלץ</button></div>
     </div>`;
@@ -1210,8 +1541,8 @@ RENDER.cashflow=async()=>{
   await loadRefs();
   const [f,ledger,opening,byProj]=await Promise.all([apiGet('/finance/forecast?months='+CF_MONTHS),apiGet('/finance/cashflow'),apiGet('/finance/opening'),apiGet('/finance/by-project')]);
   const s=f.summary; const maxAbs=Math.max(1,...f.buckets.map(b=>Math.max(b.income,b.expense)));
-  const recurExp=ledger.filter(r=>r.recurring==='monthly'&&r.kind==='expense').reduce((a,r)=>a+(r.amount||0),0);
-  const recurInc=ledger.filter(r=>r.recurring==='monthly'&&r.kind==='income').reduce((a,r)=>a+(r.amount||0),0);
+  const recurExp=ledger.filter(r=>(r.recurring==='monthly'||r.recurring==='yearly')&&r.kind==='expense').reduce((a,r)=>a+(r.recurring==='yearly'?(r.amount||0)/12:(r.amount||0)),0);
+  const recurInc=ledger.filter(r=>(r.recurring==='monthly'||r.recurring==='yearly')&&r.kind==='income').reduce((a,r)=>a+(r.recurring==='yearly'?(r.amount||0)/12:(r.amount||0)),0);
   $('view').innerHTML=`
     <div class="spread"><div><h2>תזרים</h2><div class="sub">תחזית מבוססת התקשרויות פעילות + תנועות ידניות</div></div>
       <div class="row"><div class="seg">${[6,12,24].map(n=>`<button class="${n===CF_MONTHS?'on':''}" onclick="CF_MONTHS=${n};go('cashflow')">${n} ח'</button>`).join('')}</div>
@@ -1230,14 +1561,21 @@ RENDER.cashflow=async()=>{
         <button class="btn ghost small" onclick="openingForm(${opening.value})">יתרת פתיחה: ${money(opening.value)}</button></div>
       <div class="tbl-wrap"><table>
         <tr><th>חודש</th><th class="num">הכנסה</th><th class="num">הוצאה</th><th class="num">נטו</th><th class="num">מאזן מצטבר</th><th style="width:130px"></th></tr>
-        ${f.buckets.map(b=>`<tr>
-          <td>${b.label}</td>
+        ${f.buckets.map((b,i)=>`<tr style="cursor:pointer" onclick="document.getElementById('fd${i}').style.display=document.getElementById('fd${i}').style.display==='none'?'':'none'">
+          <td>${b.label} <small style="opacity:.4">▼</small></td>
           <td class="num" style="color:var(--green)">${money1(b.income)}</td>
           <td class="num" style="color:var(--amber)">${money1(b.expense)}</td>
           <td class="num">${money1(b.net)}</td>
           <td class="num" style="color:${b.balance>=0?'var(--txt)':'var(--red)'};font-weight:800">${money1(b.balance)}</td>
           <td><div class="bar" style="height:9px"><span style="width:${Math.round(b.income/maxAbs*100)}%"></span></div></td>
-        </tr>`).join('')}
+        </tr><tr id="fd${i}" style="display:none"><td colspan="6" style="padding:0">
+          <div style="background:var(--bg2,#f5f5f5);padding:8px 12px;border-radius:6px;margin:2px 0">
+          ${b.items.length?b.items.map(it=>`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:.85em;border-bottom:1px solid var(--border,#eee)">
+            <span>${it.kind==='income'?'⬆️':'⬇️'} ${esc(it.label)} <small class="sub">${it.source==='engagement'?'התקשרות':'ידני'} · ${it.recurring==='monthly'?'חודשי':it.recurring==='yearly'?'שנתי':'חד-פעמי'}</small></span>
+            <span style="color:${it.kind==='income'?'var(--green)':'var(--amber)'};font-weight:600">${money1(it.amount)}</span>
+          </div>`).join(''):'<div class="sub" style="text-align:center;padding:6px">אין תנועות בחודש זה</div>'}
+          </div>
+        </td></tr>`).join('')}
       </table></div>
     </div>
     ${byProj.projects.length?`<div class="card">
@@ -1255,7 +1593,7 @@ RENDER.cashflow=async()=>{
     <div class="card">
       <h3>תנועות ידניות (${ledger.length})</h3>
       ${ledger.length?ledger.map(r=>`<div class="list-item" onclick='cfForm(${j(r)})'>
-        <div class="li-main"><b>${r.kind==='income'?'⬆️':'⬇️'} ${esc(r.label)}</b><small>${r.startDate} · ${r.recurring==='monthly'?('🔁 חודשי'+(r.billingDay?` · חיוב ב-${r.billingDay} לחודש`:'')):'חד-פעמי'}${r.clientName?' · '+esc(r.clientName):''}${r.category?' · '+esc(r.category):''}</small>
+        <div class="li-main"><b>${r.kind==='income'?'⬆️':'⬇️'} ${esc(r.label)}</b><small>${r.startDate} · ${r.recurring==='monthly'?('🔁 חודשי'+(r.billingDay?` · חיוב ב-${r.billingDay} לחודש`:'')):r.recurring==='yearly'?'🔄 שנתי':'חד-פעמי'}${r.clientName?' · '+esc(r.clientName):''}${r.category?' · '+esc(r.category):''}</small>
         ${r.kind==='expense'&&r.allocations&&r.allocations.length?`<div class="chips" style="margin-top:5px">${r.allocations.map(a=>`<span class="chip">${esc(a.clientName)} · ${money1(a.share)}</span>`).join('')}</div>`:''}</div>
         <div class="row" style="gap:8px">
           ${r.kind==='expense'?`<button class="btn ghost small" onclick='event.stopPropagation();allocForm(${j(r)})'>🔗 שיוך</button>`:''}
@@ -1265,9 +1603,9 @@ RENDER.cashflow=async()=>{
 // ---------- שיוך הוצאה לפרויקטים (פיצול עלות שווה) ----------
 function allocForm(r){
   const cur=new Set((r.allocations||[]).map(a=>a.clientId||'__internal__'));
-  const rows=[{id:'__internal__',name:'מערכת הניהול (Agency HQ)'}].concat(CACHE.clients.map(c=>({id:c.id,name:c.name})));
+  const rows=[{id:'__internal__',name:'מערכת הניהול (ORT-TECH HQ)'}].concat(CACHE.clients.map(c=>({id:c.id,name:c.name})));
   openModal(`<h3>שיוך הוצאה לפרויקטים</h3>
-    <div class="sub" style="margin-bottom:10px">${esc(r.label)} · ${money(r.amount)}${r.recurring==='monthly'?"/ח'":''} — סמנו את הפרויקטים שמשתמשים במנוי. העלות מתחלקת שווה בשווה ביניהם.</div>
+    <div class="sub" style="margin-bottom:10px">${esc(r.label)} · ${money(r.amount)}${r.recurring==='monthly'?"/ח'":r.recurring==='yearly'?"/שנה":''} — סמנו את הפרויקטים שמשתמשים במנוי. העלות מתחלקת שווה בשווה ביניהם.</div>
     <div id="allocList" style="max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px">
       ${rows.map(o=>`<label class="list-item" style="cursor:pointer">
         <div class="li-main"><b>${o.id==='__internal__'?'🏠 ':''}${esc(o.name)}</b></div>
@@ -1301,7 +1639,7 @@ function cfForm(r={}){
     <div class="f2"><div class="f"><label>סוג</label><select id="f_kind">${opts({income:'הכנסה',expense:'הוצאה'},r.kind||'expense')}</select></div>
       <div class="f"><label>סכום ₪ *</label><input type="number" id="f_amount" value="${r.amount||''}"></div></div>
     <div class="f"><label>תיאור *</label><input id="f_label" value="${esc(r.label||'')}"></div>
-    <div class="f2"><div class="f"><label>חזרתיות</label><select id="f_recurring">${opts({once:'חד-פעמי',monthly:'חודשי (מנוי)'},r.recurring||'once')}</select></div>
+    <div class="f2"><div class="f"><label>חזרתיות</label><select id="f_recurring">${opts({once:'חד-פעמי',monthly:'חודשי (מנוי)',yearly:'שנתי (מתחדש)'},r.recurring||'once')}</select></div>
       <div class="f"><label>יום חיוב בחודש (למנוי)</label><input type="number" id="f_billingDay" min="1" max="31" value="${r.billingDay||''}" placeholder="1–31"></div></div>
     <div class="f"><label>קטגוריה</label><input id="f_category" value="${esc(r.category||'')}" placeholder="מנוי / כלים / שכ""ד / קבלן…"></div>
     <div class="f2"><div class="f"><label>תאריך התחלה</label><input type="date" id="f_startDate" value="${esc(r.startDate||todayISO())}"></div>
@@ -1509,7 +1847,7 @@ RENDER.documents=async()=>{
   const list=await apiGet('/documents');
   const groups={};
   for(const dc of list){ const k=dc.clientId||'__agency'; (groups[k]=groups[k]||[]).push(dc); }
-  const gName=(id)=>id==='__agency'?'בית התוכנה · חוצה-פרויקטים':(CACHE.clients.find(c=>c.id===id)?.name||'—');
+  const gName=(id)=>id==='__agency'?'ORT-TECH · חוצה-פרויקטים':(CACHE.clients.find(c=>c.id===id)?.name||'—');
   const keys=Object.keys(groups).sort((a,b)=>(a==='__agency'?1:0)-(b==='__agency'?1:0));
   $('view').innerHTML=`
     <div class="spread"><div><h2>מסמכים ותוצרים</h2><div class="sub">${list.length} תוצרים · מרכז אחד לכל הקישורים, המסמכים והתשתיות</div></div>
@@ -1546,6 +1884,112 @@ async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await api
 
 // ---------- מתודולוגיה (פלייבוק) ----------
 let PB_CACHE=[], PBSECS=[], RUN=null;
+// ---------- הצעת מחיר על דף לוגו (PDF דרך הדפסה) ----------
+async function quoteForm(){
+  let cls=(CACHE.clients&&CACHE.clients.length)?CACHE.clients:[];
+  if(!cls.length){ try{ cls=await apiGet('/clients'); }catch(e){} }
+  const inp='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
+  const validDefault=new Date(Date.now()+14*86400e3).toISOString().slice(0,10);
+  openModal(
+    '<h3 style="margin:0 0 4px">📄 הצעת מחיר</h3>'+
+    '<div class="muted" style="font-size:.88rem;margin-bottom:14px">מלא את הפרטים — ייפתח דף הצעה ממותג עם הלוגו, מוכן להדפסה או לשמירה כ-PDF (בחלון ההדפסה: יעד → שמירה כ-PDF).</div>'+
+    '<div class="f2">'+
+      '<div class="f"><label>לקוח</label><select id="q_client" style="'+inp+'"><option value="">— בחר מהרשימה —</option>'+cls.map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('')+'</select></div>'+
+      '<div class="f"><label>או שם חופשי</label><input id="q_client_free" placeholder="שם הלקוח / העסק" style="'+inp+'"></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:10px"><label>נושא ההצעה</label><input id="q_title" placeholder="לדוגמה: מערכת ניהול לקליניקה" style="'+inp+'"></div>'+
+    '<div class="f" style="margin-top:10px"><label>פריטים</label><div id="qItems"></div>'+
+      '<button class="btn ghost small" onclick="quoteAddRow()">+ הוסף שורה</button></div>'+
+    '<div class="f2" style="margin-top:10px">'+
+      '<div class="f"><label>מע"מ % (0 = ללא)</label><input id="q_vat" type="number" value="18" style="'+inp+'"></div>'+
+      '<div class="f"><label>ההצעה בתוקף עד</label><input id="q_valid" type="date" value="'+validDefault+'" style="'+inp+'"></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:10px"><label>תנאי תשלום</label><input id="q_terms" value="50% מקדמה עם אישור ההצעה · 50% בעלייה לאוויר" style="'+inp+'"></div>'+
+    '<div class="f" style="margin-top:10px"><label>הערות</label><textarea id="q_notes" rows="2" placeholder="אופציונלי — מה כלול, מה לא כלול, לו״ז…" style="'+inp+'"></textarea></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn primary" onclick="quoteBuild()">📄 הפק PDF</button></div>'
+  , true);
+  quoteAddRow(); quoteAddRow();
+}
+function quoteAddRow(){
+  const box=$('qItems'); if(!box)return;
+  const d=document.createElement('div');
+  d.className='row q-item'; d.style.cssText='gap:6px;margin-bottom:6px;align-items:center';
+  d.innerHTML='<input class="qi-desc" placeholder="תיאור הפריט / השירות" style="flex:1;padding:8px 10px;border:1.5px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.9rem">'+
+    '<input class="qi-amt" type="number" min="0" placeholder="₪" style="width:110px;padding:8px 10px;border:1.5px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.9rem">'+
+    '<button class="btn ghost small" onclick="this.parentElement.remove()" title="הסר שורה">✕</button>';
+  box.appendChild(d);
+}
+function quoteBuild(){
+  const client=val('q_client_free')||val('q_client');
+  if(!client){ toast('חסר שם לקוח','bad'); return; }
+  const items=[...document.querySelectorAll('#qItems .q-item')].map(r=>({
+    desc:(r.querySelector('.qi-desc')||{}).value?.trim()||'',
+    amt:Number((r.querySelector('.qi-amt')||{}).value||0)
+  })).filter(x=>x.desc&&x.amt>0);
+  if(!items.length){ toast('הוסף לפחות פריט אחד עם תיאור וסכום','bad'); return; }
+  const title=val('q_title'), terms=val('q_terms'), notes=val('q_notes');
+  const vatPct=Math.max(0,Number(val('q_vat')||0));
+  const sub=items.reduce((a,x)=>a+x.amt,0);
+  const vatAmt=sub*vatPct/100;
+  const total=sub+vatAmt;
+  const fmt=n=>'₪'+Number(n).toLocaleString('he-IL',{maximumFractionDigits:0});
+  const now=new Date();
+  const qnum='ORT-'+now.toISOString().slice(2,10).replace(/-/g,'')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+  const validStr=val('q_valid')? new Date(val('q_valid')+'T12:00:00').toLocaleDateString('he-IL') : '';
+  const logoUrl=location.origin+'/ort-tech-logo.jpg';
+  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>הצעת מחיר '+qnum+'</title><style>'+
+    '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
+    "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}"+
+    '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:24px}'+
+    '.logo-crop{width:264px;height:60px;overflow:hidden;position:relative}'+
+    '.logo-crop img{width:369px;position:absolute;left:-48px;top:-82px}'+
+    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}'+
+    'h1{font-size:26px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:13px}'+
+    '.to{margin:18px 0 4px;font-size:15px}.subject{font-size:16px;font-weight:700;margin-bottom:16px}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:6px}'+
+    'th{background:#f4efe6;text-align:right;padding:9px 12px;font-size:13px;border-bottom:2px solid #0f7a5c}'+
+    'td{padding:9px 12px;border-bottom:1px solid #e3dccf}'+
+    'td.amt,th.amt{text-align:left;white-space:nowrap;width:130px}'+
+    '.totals{margin-inline-start:auto;width:290px;margin-top:8px}'+
+    '.totals div{display:flex;justify-content:space-between;padding:5px 12px}'+
+    '.totals .grand{background:#0f7a5c;color:#fff;font-weight:900;font-size:16px;border-radius:8px;margin-top:5px}'+
+    '.sec{margin-top:16px;font-size:13.5px}.sec b{display:block;margin-bottom:1px}'+
+    '.sig{margin-top:46px;display:flex;justify-content:space-between;align-items:flex-end;gap:30px}'+
+    '.sig .line{width:210px;border-top:1.5px solid #16202e;padding-top:5px;text-align:center;font-size:12.5px;color:#3d4b5e}'+
+    '.foot{margin-top:34px;border-top:1px solid #e3dccf;padding-top:9px;font-size:11.5px;color:#6b7a8d;display:flex;justify-content:space-between}'+
+    '@media print{body{padding:20px 26px}}'+
+    '</style></head><body>'+
+    '<div class="hdr">'+
+      '<div><h1>הצעת מחיר</h1><div class="meta">מס\' '+qnum+' · תאריך: '+now.toLocaleDateString('he-IL')+'</div></div>'+
+      '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="ORT-TECH"></div>'+
+      '<div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div>'+
+    '</div>'+
+    '<div class="to">לכבוד: <b>'+esc(client)+'</b></div>'+
+    (title?'<div class="subject">הנדון: '+esc(title)+'</div>':'')+
+    '<table><thead><tr><th style="width:34px">#</th><th>תיאור</th><th class="amt">סכום</th></tr></thead><tbody>'+
+    items.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.desc)+'</td><td class="amt">'+fmt(x.amt)+'</td></tr>').join('')+
+    '</tbody></table>'+
+    '<div class="totals">'+
+      '<div><span>סכום ביניים</span><b>'+fmt(sub)+'</b></div>'+
+      (vatPct>0?'<div><span>מע"מ '+vatPct+'%</span><b>'+fmt(vatAmt)+'</b></div>':'')+
+      '<div class="grand"><span>סה"כ לתשלום</span><span>'+fmt(total)+'</span></div>'+
+    '</div>'+
+    (validStr?'<div class="sec"><b>תוקף</b>ההצעה בתוקף עד '+validStr+'.</div>':'')+
+    (terms?'<div class="sec"><b>תנאי תשלום</b>'+esc(terms)+'</div>':'')+
+    (notes?'<div class="sec"><b>הערות</b>'+esc(notes).replace(/\n/g,'<br>')+'</div>':'')+
+    '<div class="sig">'+
+      '<div><div style="font-weight:700">בברכה,</div><div>ORT-TECH · פתרונות תפעול חכמים לעסק שלך</div></div>'+
+      '<div class="line">חתימת הלקוח ואישור ההצעה</div>'+
+    '</div>'+
+    '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+
+    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},400)}</scr'+'ipt>'+
+    '</body></html>';
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const w=window.open(URL.createObjectURL(blob),'_blank');
+  if(!w){ toast('הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); return; }
+  closeModal();
+}
+
 RENDER.playbooks=async()=>{
   const [list,runs]=await Promise.all([apiGet('/playbooks'),apiGet('/playbooks/runs')]);
   PB_CACHE=list;
@@ -1553,9 +1997,10 @@ RENDER.playbooks=async()=>{
   const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
   const stages=STAGE_ORDER.filter(s=>byStage[s]);
   $('view').innerHTML=`
-    <div class="spread"><div><h2>מתודולוגיה — מרעיון לפרודקשן</h2>
-      <div class="sub">ספריית הפורמטים המקצועיים שלך למסע המוצר. ערוך כל פורמט, והחל אותו על לקוח כדי שיהפוך למהלך חי עם מעקב.</div></div>
+    <div class="spread"><div><h2>מתודולוגיה ORT-TECH</h2>
+      <div class="sub">תבניות המתודולוגיה לכל שלב בעבודה עם לקוח. בחר פורמט, החל על לקוח — ותקבל מהלך חי עם מעקב.</div></div>
       <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
+        <button class="btn teal" onclick="quoteForm()">📄 הצעת מחיר</button>
         <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
     ${activeRuns.length?`<div class="card">
       <h3>מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
@@ -1603,7 +2048,7 @@ function playbookForm(p={}){
   const kind=p.kind||'checklist';
   openModal(`<h3>${p.id?'עריכת פורמט':'פורמט חדש'}</h3>
     <div class="f2"><div class="f"><label>כותרת *</label><input id="f_title" value="${esc(p.title||'')}"></div>
-      <div class="f"><label>שלב במסע</label><select id="f_stage">${opts(STAGE_LABELS,p.stage||'discovery')}</select></div></div>
+      <div class="f"><label>שלב בתהליך</label><select id="f_stage">${opts(STAGE_LABELS,p.stage||'discovery')}</select></div></div>
     <div class="f2"><div class="f"><label>סוג</label><select id="f_kind" onchange="togglePbKind(this.value)">${opts({checklist:'צ׳ק־ליסט',template:'תבנית מסמך',canvas:'קנבס'},kind)}</select></div>
       <div class="f"><label>תגיות</label><input id="f_tags" value="${esc(p.tags||'')}" placeholder="מופרד בפסיקים"></div></div>
     <div class="f"><label>תקציר (שורה אחת)</label><input id="f_summary" value="${esc(p.summary||'')}"></div>
@@ -1809,8 +2254,8 @@ RENDER.health=async()=>{
   };
   const rows=active.map(c=>{ let passed=0; const cells=HEALTH_GATES.map(([st])=>{const x=cellFor(c.id,st); if(x.kind==='done')passed++; return {st,x};}); return {c,cells,passed}; });
   $('view').innerHTML=`
-    <h2>בריאות מסירה</h2>
-    <div class="sub">לכל לקוח — אילו שערי מסע המוצר עבר (✓), מה בעבודה (%) ומה עוד לא נפתח. לחיצה על תא פותחת מהלך קיים או יוצרת חדש.</div>
+    <h2>צינור עסקאות</h2>
+    <div class="sub">לכל לקוח — אילו שלבי המתודולוגיה הושלמו (✓), מה בעבודה (%) ומה עוד לא נפתח. לחיצה על תא פותחת מהלך קיים או יוצרת חדש.</div>
     ${active.length?`<div class="card tbl-wrap" style="margin-top:12px"><table>
       <thead><tr><th>לקוח</th>${HEALTH_GATES.map(([,l])=>`<th style="text-align:center">${l}</th>`).join('')}<th class="num">מוכנות</th></tr></thead>
       <tbody>${rows.map(row=>`<tr>
@@ -1822,7 +2267,7 @@ RENDER.health=async()=>{
         }).join('')}
         <td class="num"><b>${row.passed}/${HEALTH_GATES.length}</b></td>
       </tr>`).join('')}</tbody></table></div>`:'<div class="empty">אין לקוחות פעילים עדיין</div>'}
-    <div class="hint" style="margin-top:10px">✓ שער שהושלם · צהוב = מהלך פעיל (אחוז) · ＋ = פתיחת מהלך חדש · לחיצה על שם לקוח פותחת את הכרטיס</div>`;
+    <div class="hint" style="margin-top:10px">✓ שלב שהושלם · צהוב = מהלך פעיל (אחוז) · ＋ = פתיחת מהלך חדש · לחיצה על שם לקוח פותחת את הכרטיס</div>`;
 };
 async function launchGate(clientId,stage){
   const pb=GATE_PB[stage]; if(!pb)return;

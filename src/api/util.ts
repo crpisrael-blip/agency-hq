@@ -3,7 +3,14 @@ import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
 import { adminSessions, activities } from '../db/schema';
 
-export type Bindings = { DB: D1Database; GITHUB_TOKEN?: string };
+export type Bindings = {
+  DB: D1Database;
+  GITHUB_TOKEN?: string;
+  /** טוקן בוט טלגרם (מ-@BotFather) — סוד. אם ריק, התראות טלגרם מושבתות. */
+  TELEGRAM_BOT_TOKEN?: string;
+  /** מזהה/י צ'אט לקבלת התראות לידים. אפשר כמה מופרדים בפסיק. */
+  TELEGRAM_CHAT_ID?: string;
+};
 export type Env = { Bindings: Bindings };
 
 export const db = (c: Context<Env>) => drizzle(c.env.DB);
@@ -83,6 +90,36 @@ export async function logStatusChange(
     title: `${label}: ${previous} → ${next}`,
     metadata: { previous, new: next },
   });
+}
+
+/**
+ * שולח הודעת טקסט לטלגרם לכל צ'אט (chatIds מופרד בפסיק).
+ * לא זורק לעולם — אם אין טוקן/צ'אט או שהקריאה נכשלה, מחזיר בשקט.
+ * מיועד לעטיפה ב-executionCtx.waitUntil כדי לא לעכב את התגובה.
+ */
+export async function notifyTelegram(
+  token: string | undefined,
+  chatIds: string | undefined,
+  text: string
+): Promise<void> {
+  try {
+    const chats = (chatIds || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!token || chats.length === 0) return;
+    await Promise.all(
+      chats.map((chat_id) =>
+        fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id, text, disable_web_page_preview: true }),
+        }).catch(() => {})
+      )
+    );
+  } catch {
+    /* מתעלמים — התראה היא best-effort ולא אמורה לשבור שמירת ליד */
+  }
 }
 
 /** אימות מנהל: טוקן בכותרת x-admin-token */

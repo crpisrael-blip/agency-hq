@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>צור קשר — ORT-TECH</title>
+<meta name="description" content="ספר לי בכמה מילים על העסק, ואחזור אליך אישית. שיחת אבחון של 20 דקות, ללא עלות וללא התחייבות. טלפון, וואטסאפ או טופס.">
+<meta property="og:title" content="צור קשר — ORT-TECH">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body data-page="contact">
+<header id="site-header"></header>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="kick">בוא נדבר</div>
+    <h1>נתחיל בשיחה אחת</h1>
+    <p>ספר לי בכמה מילים על העסק, ואחזור אליך אישית. הכי מהר — בוואטסאפ או בטלפון.</p>
+  </div>
+</section>
+
+<!-- ===== CONTACT METHODS ===== -->
+<section style="padding-bottom:24px">
+  <div class="wrap">
+    <div class="cards c3 reveal">
+      <a class="card" id="c-phone" href="#" style="text-align:center"><div class="ico" style="margin-inline:auto">📞</div><h3>טלפון</h3><p>מעדיף לדבר? חייג ונדבר עכשיו.</p></a>
+      <a class="card" id="c-wa" href="#" target="_blank" rel="noopener" style="text-align:center"><div class="ico" style="margin-inline:auto">💬</div><h3>וואטסאפ</h3><p>הכי נוח — הודעה מהירה ואחזור אליך.</p></a>
+      <a class="card" id="c-mail" href="#" style="text-align:center"><div class="ico" style="margin-inline:auto">✉️</div><h3>אימייל</h3><p>מעדיף לכתוב בהרחבה? שלח מייל.</p></a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== LEAD FORM ===== -->
+<section style="padding-top:24px">
+  <div class="wrap">
+    <div class="form-card reveal">
+      <div class="form-inner">
+        <h2>או השאר פרטים ואחזור אליך</h2>
+        <p class="sub">ממלא את זה ישירות אליי — לא למוקד, לא לרובוט.</p>
+        <div class="promise">גם אם לא נעבוד יחד — תצא מהשיחה עם שתיים־שלוש נקודות שאפשר לתקן כבר מחר.</div>
+        <form data-source="website-contact" onsubmit="return submitLead(event)">
+          <div class="row2">
+            <div class="field"><label>איך קוראים לך? <b>*</b></label><input name="name" required autocomplete="name" placeholder="השם שלך"></div>
+            <div class="field"><label>טלפון <b>*</b></label><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="050-0000000"></div>
+          </div>
+          <div class="field"><label>מה העסק שלך עושה?</label><input name="field" placeholder="קליניקה, בית אירוח, שירות שטח…"></div>
+          <div class="field"><label>מה הכי מציק לך בעסק היום?</label><textarea name="msg" rows="3" placeholder="הדבר שגורם לך הכי הרבה כאב ראש…"></textarea></div>
+          <button type="submit" class="btn primary">שלחו לי — ונקבע שיחה 💬</button>
+          <p class="form-note">הפרטים מגיעים ישירות אליי · אחזור אליך אישית · בלי ספאם ובלי הפצרות</p>
+        </form>
+      </div>
+      <div class="ok-box"><div class="big">✅</div><h3>קיבלתי, תודה!</h3><p>הפרטים אצלי ואחזור אליך בהקדם.<br>בינתיים — יום מצוין 🙌</p></div>
+    </div>
+  </div>
+</section>
+
+<footer id="site-footer"></footer>
+<script src="/site.js"></script>
+<script>
+  /* מחבר את כרטיסי יצירת הקשר לפרטים מ-SITE (site.js) */
+  (function () {
+    var S = window.SITE || {};
+    var wa = 'https://wa.me/' + S.whatsapp + '?text=' + encodeURIComponent('היי, הגעתי דרך האתר ואשמח לשמוע פרטים 🙂');
+    var p = document.getElementById('c-phone'); if (p) p.href = 'tel:' + (S.phone || '').replace(/[^0-9+]/g, '');
+    var w = document.getElementById('c-wa'); if (w) w.href = wa;
+    var m = document.getElementById('c-mail'); if (m) m.href = 'mailto:' + S.email;
+  })();
+</script>
+</body>
+</html>
