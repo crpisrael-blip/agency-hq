@@ -150,22 +150,90 @@
         <div class="ix">02</div>
         <h3>מסע לקוח</h3>
         <p>בניית מסלול ברור מהפנייה הראשונה ועד ביצוע, גבייה, חזרה והמלצה.</p>
+        <!-- viz: מסלול לקוח — נקודת אור עוברת בין תחנות -->
+        <div class="viz viz-journey" aria-hidden="true">
+          <div class="j-track">
+            <span class="j-node" style="--n:0"></span><span class="j-node" style="--n:1"></span>
+            <span class="j-node" style="--n:2"></span><span class="j-node" style="--n:3"></span>
+            <span class="j-node" style="--n:4"></span><span class="j-node" style="--n:5"></span>
+          </div>
+          <span class="j-pulse"></span>
+        </div>
       </div>
       <div class="mod reveal" data-d="2">
         <div class="ix">03</div>
         <h3>מערכות מותאמות</h3>
         <p>פיתוח מערכת כאשר מוצר מדף לא מתאים לתהליך האמיתי של העסק.</p>
+        <!-- viz: מודולים מתאספים למערכת אחת סביב Core -->
+        <div class="viz viz-modular" aria-hidden="true">
+          <svg viewBox="0 0 320 108" preserveAspectRatio="xMidYMid meet">
+            <g class="m-links" fill="none" stroke="var(--cyan)" stroke-width="1">
+              <line x1="160" y1="54" x2="258" y2="54"/><line x1="160" y1="54" x2="209" y2="85"/>
+              <line x1="160" y1="54" x2="111" y2="85"/><line x1="160" y1="54" x2="62" y2="54"/>
+              <line x1="160" y1="54" x2="111" y2="23"/><line x1="160" y1="54" x2="209" y2="23"/>
+            </g>
+            <g class="m-mods">
+              <rect class="m-mod" style="--tx:14px;--ty:0" x="236" y="43" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--tx:8px;--ty:9px" x="187" y="74" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--tx:-8px;--ty:9px" x="89" y="74" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--tx:-14px;--ty:0" x="40" y="43" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--tx:-8px;--ty:-9px" x="89" y="12" width="44" height="22" rx="6"/>
+              <rect class="m-mod" style="--tx:8px;--ty:-9px" x="187" y="12" width="44" height="22" rx="6"/>
+            </g>
+            <rect class="m-core" x="137" y="40" width="46" height="28" rx="8"/>
+          </svg>
+        </div>
       </div>
       <div class="mod-strip">
         <div class="mod reveal" data-d="1">
           <div class="ix">04</div>
           <h3>אוטומציות ואינטגרציות</h3>
           <p>חיבור בין טפסים, הודעות, יומנים, CRM, מסמכים ומערכות כדי לבטל עבודה שחוזרת על עצמה.</p>
+          <!-- viz: רשת אוטומציה — Data pulses זורמים בין מערכות -->
+          <div class="viz viz-network" aria-hidden="true">
+            <svg viewBox="0 0 320 118" preserveAspectRatio="xMidYMid meet">
+              <g class="n-edges" fill="none" stroke="var(--line)" stroke-width="1">
+                <line x1="160" y1="59" x2="280" y2="59"/><line x1="160" y1="59" x2="220" y2="97"/>
+                <line x1="160" y1="59" x2="100" y2="97"/><line x1="160" y1="59" x2="40" y2="59"/>
+                <line x1="160" y1="59" x2="100" y2="21"/><line x1="160" y1="59" x2="220" y2="21"/>
+              </g>
+              <g class="n-sats" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="1.2">
+                <circle cx="280" cy="59" r="11"/><circle cx="220" cy="97" r="11"/><circle cx="100" cy="97" r="11"/>
+                <circle cx="40" cy="59" r="11"/><circle cx="100" cy="21" r="11"/><circle cx="220" cy="21" r="11"/>
+              </g>
+              <circle class="n-core" cx="160" cy="59" r="16"/>
+              <g class="n-pulses" fill="var(--cyan-2)">
+                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:120px;--dy:0px;--dur:2.4s;--delay:0s"/>
+                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:60px;--dy:38px;--dur:2.8s;--delay:.7s"/>
+                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:-60px;--dy:38px;--dur:2.6s;--delay:1.4s"/>
+                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:-120px;--dy:0px;--dur:2.5s;--delay:.4s"/>
+                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:-60px;--dy:-38px;--dur:2.7s;--delay:1.9s"/>
+                <circle class="n-pulse" cx="160" cy="59" r="3.4" style="--dx:60px;--dy:-38px;--dur:2.9s;--delay:1.1s"/>
+              </g>
+            </svg>
+          </div>
         </div>
         <div class="mod reveal" data-d="2">
           <div class="ix">05</div>
           <h3>בקרה ונתונים</h3>
           <p>דשבורדים, חריגים, התראות ותמונת מצב שמאפשרת לנהל לפי מידע ולא לפי תחושת בטן.</p>
+          <!-- viz: בקרה — גרף שנמשך, עמודות עולות, התראה פועמת -->
+          <div class="viz viz-data" aria-hidden="true">
+            <svg viewBox="0 0 320 118" preserveAspectRatio="xMidYMid meet">
+              <g class="d-grid" stroke="var(--line)" stroke-width="1">
+                <line x1="16" y1="34" x2="304" y2="34"/><line x1="16" y1="64" x2="304" y2="64"/><line x1="16" y1="94" x2="304" y2="94"/>
+              </g>
+              <g class="d-bars" fill="var(--cyan)">
+                <rect class="d-bar" style="--i:0" x="30" y="54" width="18" height="40" rx="3"/>
+                <rect class="d-bar" style="--i:1" x="66" y="40" width="18" height="54" rx="3"/>
+                <rect class="d-bar" style="--i:2" x="102" y="66" width="18" height="28" rx="3"/>
+                <rect class="d-bar" style="--i:3" x="138" y="30" width="18" height="64" rx="3"/>
+              </g>
+              <polyline class="d-chart" fill="none" stroke="var(--cyan-2)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"
+                points="182,82 214,68 246,74 278,44 304,30"/>
+              <circle class="d-alert" cx="278" cy="44" r="4.5" fill="var(--cyan-2)"/>
+            </svg>
+          </div>
         </div>
       </div>
     </div>
