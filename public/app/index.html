@@ -1939,7 +1939,10 @@ async function quoteBuild(){
   };
   closeModal();
   quoteRenderPrint(q);
-  try{ await apiPost('/quotes',q); toast('ההצעה נשמרה ✓'); if(CURRENT==='playbooks') loadQuotesList(); }
+  try{ await apiPost('/quotes',q); toast('ההצעה נשמרה ✓');
+    if(CURRENT==='playbooks') loadQuotesList();
+    else if(CURRENT==='sales' && window.BOS){ try{ go('sales'); }catch(_){}}
+  }
   catch(e){ toast('הדף הופק אך השמירה נכשלה','bad'); }
 }
 
