@@ -252,30 +252,30 @@ section{padding:92px 0;position:relative}
 .mod:not(.in) .viz *{animation-play-state:paused}
 
 /* 01 — תכנון תהליכי עבודה: נקודת אור מימין → שלבים → תוצאה; הקו מאחוריה נצבע, ובסוף המסלול כולו זוהר */
-.viz-workflow{--wf:6s;height:84px}
+.viz-workflow{--wf:5.5s;height:84px}
 .w-rail{stroke:var(--line-2);stroke-width:2;stroke-linecap:round}
 .w-fill{stroke:var(--cyan);stroke-width:2.4;stroke-linecap:round;stroke-dasharray:260;stroke-dashoffset:260;
   filter:drop-shadow(0 0 4px var(--glow));animation:wfFill var(--wf) var(--ease) infinite}
-@keyframes wfFill{0%{stroke-dashoffset:260;opacity:0}8%{stroke-dashoffset:260;opacity:1}
-  68%{stroke-dashoffset:0;opacity:1}90%{stroke-dashoffset:0;opacity:1}97%{stroke-dashoffset:0;opacity:0}100%{stroke-dashoffset:260;opacity:0}}
+@keyframes wfFill{0%{stroke-dashoffset:260;opacity:0}5%{stroke-dashoffset:260;opacity:1}
+  78%{stroke-dashoffset:0;opacity:1}90%{stroke-dashoffset:0;opacity:1}96%{stroke-dashoffset:0;opacity:0}100%{stroke-dashoffset:260;opacity:0}}
 .w-flash{stroke:var(--cyan-2);stroke-width:3;stroke-linecap:round;opacity:0;
   filter:drop-shadow(0 0 7px var(--cyan));animation:wfFlash var(--wf) var(--ease) infinite}
-@keyframes wfFlash{0%,66%{opacity:0}74%{opacity:.85}84%{opacity:0}100%{opacity:0}}
+@keyframes wfFlash{0%,76%{opacity:0}84%{opacity:.85}93%{opacity:0}100%{opacity:0}}
 .w-node{fill:var(--panel);stroke:var(--line-2);stroke-width:1.6px;transform-box:fill-box;transform-origin:center;
-  animation:wfNode var(--wf) var(--ease) infinite;animation-delay:calc(var(--wf)*.08 + var(--p)*var(--wf)*.6)}
+  animation:wfNode var(--wf) var(--ease) infinite;animation-delay:calc(var(--wf)*.01 + var(--p)*var(--wf)*.72)}
 @keyframes wfNode{
   0%{fill:var(--panel);stroke:var(--line-2);filter:none;transform:scale(1)}
   5%{fill:var(--cyan);stroke:var(--cyan);filter:drop-shadow(0 0 6px var(--glow));transform:scale(1.18)}
-  16%{fill:var(--panel-2);stroke:var(--cyan);filter:none;transform:scale(1)}
-  84%{fill:var(--panel-2);stroke:var(--cyan);filter:none;transform:scale(1)}
+  14%{fill:var(--panel-2);stroke:var(--cyan);filter:none;transform:scale(1)}
+  90%{fill:var(--panel-2);stroke:var(--cyan);filter:none;transform:scale(1)}
   100%{fill:var(--panel);stroke:var(--line-2);filter:none;transform:scale(1)}}
 .w-check{stroke:var(--cyan-2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20;
   animation:wfCheck var(--wf) var(--ease) infinite}
-@keyframes wfCheck{0%,66%{stroke-dashoffset:20}74%{stroke-dashoffset:0}96%{stroke-dashoffset:0}100%{stroke-dashoffset:20}}
-.w-light{fill:var(--cyan-2);filter:drop-shadow(0 0 6px var(--cyan));offset-path:path("M280 42 L20 42");offset-rotate:0deg;
+@keyframes wfCheck{0%,76%{stroke-dashoffset:20}84%{stroke-dashoffset:0}96%{stroke-dashoffset:0}100%{stroke-dashoffset:20}}
+.w-light{fill:var(--cyan-2);will-change:offset-distance;filter:drop-shadow(0 0 6px var(--cyan));offset-path:path("M280 42 L20 42");offset-rotate:0deg;
   animation:wfLight var(--wf) var(--ease) infinite}
-@keyframes wfLight{0%,8%{offset-distance:0%;opacity:0}12%{opacity:1}64%{offset-distance:100%;opacity:1}
-  70%{offset-distance:100%;opacity:0}100%{offset-distance:100%;opacity:0}}
+@keyframes wfLight{0%,5%{offset-distance:0%;opacity:0}9%{opacity:1}78%{offset-distance:100%;opacity:1}
+  85%{offset-distance:100%;opacity:0}100%{offset-distance:100%;opacity:0}}
 
 /* 02 — מסע לקוח: נקודת אור עוברת בין תחנות (RTL: ליד מימין → חוזר משמאל), התחנה הפעילה גדלה, הקודמות נשארות דולקות חלש */
 .viz-journey{--jc:6s;height:60px;display:flex;align-items:center}
@@ -283,18 +283,18 @@ section{padding:92px 0;position:relative}
 .j-track::before{content:"";position:absolute;inset-inline:6px;top:50%;height:2px;transform:translateY(-50%);
   background:repeating-linear-gradient(90deg,var(--line-2) 0 7px,transparent 7px 13px)}
 .j-node{width:11px;height:11px;border-radius:50%;background:var(--panel);border:1.5px solid var(--line-2);flex:none;
-  position:relative;z-index:2;animation:jNode var(--jc) var(--ease) infinite;animation-delay:calc(var(--n)*var(--jc)*.15)}
+  position:relative;z-index:2;animation:jNode var(--jc) var(--ease) infinite;animation-delay:calc(var(--n)*var(--jc)*.17)}
 @keyframes jNode{
   0%{background:var(--panel);border-color:var(--line-2);box-shadow:none;transform:scale(1)}
   3%{background:var(--cyan-2);border-color:var(--cyan);box-shadow:0 0 12px var(--glow);transform:scale(1.5)}
   12%{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 5px var(--glow);transform:scale(1.12)}
-  86%{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 5px var(--glow);transform:scale(1.12)}
+  90%{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 5px var(--glow);transform:scale(1.12)}
   100%{background:var(--panel);border-color:var(--line-2);box-shadow:none;transform:scale(1)}}
 .j-pulse{position:absolute;top:50%;inset-inline-start:0;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;
-  background:var(--cyan-2);box-shadow:0 0 12px var(--cyan);animation:jMove var(--jc) var(--ease) infinite}
+  background:var(--cyan-2);box-shadow:0 0 12px var(--cyan);will-change:inset-inline-start;animation:jMove var(--jc) var(--ease) infinite}
 @keyframes jMove{0%{inset-inline-start:3%;opacity:0}2%{opacity:1}3%{inset-inline-start:3%}
-  18%{inset-inline-start:21.6%}33%{inset-inline-start:40.2%}48%{inset-inline-start:58.8%}
-  63%{inset-inline-start:77.4%}75%{inset-inline-start:97%;opacity:1}80%{inset-inline-start:97%;opacity:0}
+  20%{inset-inline-start:21.6%}37%{inset-inline-start:40.2%}54%{inset-inline-start:58.8%}
+  71%{inset-inline-start:77.4%}88%{inset-inline-start:97%;opacity:1}94%{inset-inline-start:97%;opacity:0}
   100%{inset-inline-start:97%;opacity:0}}
 
 /* 03 — מערכות מותאמות: ה-Core פועם ושולח אות אחד בכל פעם ל-Node אחר ברצף; ה-Node נדלק בהגעה */
@@ -310,7 +310,7 @@ section{padding:92px 0;position:relative}
   17%{fill:var(--panel-2);stroke:var(--cyan);filter:drop-shadow(0 0 2px var(--glow))}
   90%{fill:var(--panel-2);stroke:var(--cyan);filter:none}
   100%{fill:var(--panel);stroke:var(--line);filter:none}}
-.m-sig{opacity:0;animation:mSig var(--cyc) var(--ease) infinite;animation-delay:calc(var(--k)*var(--cyc)/6)}
+.m-sig{opacity:0;will-change:transform,opacity;animation:mSig var(--cyc) var(--ease) infinite;animation-delay:calc(var(--k)*var(--cyc)/6)}
 @keyframes mSig{0%{transform:translate(0,0);opacity:0}1.5%{opacity:1}
   10%{transform:translate(var(--dx),var(--dy));opacity:1}12%{transform:translate(var(--dx),var(--dy));opacity:0}
   100%{transform:translate(var(--dx),var(--dy));opacity:0}}
@@ -328,7 +328,7 @@ section{padding:92px 0;position:relative}
   100%{fill:var(--panel-2);stroke:var(--cyan);filter:none;transform:scale(1)}}
 .n-ring{opacity:0;transform-box:fill-box;transform-origin:center;animation:nRing var(--cyc) var(--ease) infinite;animation-delay:calc(var(--k)*var(--cyc)/6)}
 @keyframes nRing{0%,7%{opacity:0;transform:scale(.5)}9%{opacity:.75;transform:scale(1)}17%{opacity:0;transform:scale(1.7)}100%{opacity:0;transform:scale(1.7)}}
-.n-pulse{opacity:0;animation:nPulse var(--cyc) var(--ease) infinite;animation-delay:calc(var(--k)*var(--cyc)/6)}
+.n-pulse{opacity:0;will-change:transform,opacity;animation:nPulse var(--cyc) var(--ease) infinite;animation-delay:calc(var(--k)*var(--cyc)/6)}
 @keyframes nPulse{0%{transform:translate(0,0);opacity:0}1.5%{opacity:1}
   8%{transform:translate(var(--dx),var(--dy));opacity:1}9%{opacity:.85}
   15.5%{transform:translate(0,0);opacity:1}16.667%{transform:translate(0,0);opacity:0}
@@ -352,7 +352,7 @@ section{padding:92px 0;position:relative}
 /* Mobile: אותה משמעות, תנועה עדינה יותר — מאיטים ~15% (בסנכרון) ומחלישים glow */
 @media(max-width:600px){
   .viz{--glow:rgba(0,220,235,.2)}
-  .viz-workflow{--wf:7s}
+  .viz-workflow{--wf:6.3s}
   .viz-modular,.viz-network{--cyc:7.9s}
   .viz-journey{--jc:6.9s}
 }
