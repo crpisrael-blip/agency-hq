@@ -1,5 +1,7 @@
 # דף הנחיתה (לשעבר /lp2) הוא כעת העמוד הראשי — שומרים על קישורים ישנים
 /lp2       /       301
 /lp2.html  /       301
-# הדשבורד הפנימי (Agency HQ) עבר מ-/ ל-/app
-/app       /app.html   200
+# הדשבורד הפנימי (Agency HQ) יושב ב-/app (מוגש מ-public/app/index.html).
+# אין כלל rewrite ל-/app.html — כדי למנוע לולאת redirect עם ה-pretty-URL של Pages.
+# קישור ישן ל-/app.html מפנה ל-/app.
+/app.html  /app    301
