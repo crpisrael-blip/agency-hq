@@ -17,9 +17,9 @@
   --ease:cubic-bezier(.22,1,.36,1);
   --ease-ui:cubic-bezier(.2,.8,.2,1);
 }
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;overflow-x:clip}
 body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.72;
-  font-size:17px;-webkit-font-smoothing:antialiased;overflow-x:hidden;position:relative}
+  font-size:17px;-webkit-font-smoothing:antialiased;overflow-x:clip;position:relative}
 /* background motion: slow radial + faint technical grid + cyan halo */
 body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
   background:
@@ -96,6 +96,12 @@ header.site .wrap{display:flex;align-items:center;justify-content:space-between;
   header.site .nav .drawer-cta{display:inline-flex;justify-content:center;margin-top:10px;border:none;font-size:1.05rem}
 }
 body.nav-locked{overflow:hidden}
+/* מסכים צרים מאוד (≤400px): לוגו קומפקטי כדי למנוע גלישת ה-header */
+@media(max-width:400px){
+  header.site .wrap{height:66px}
+  .brand .logo-img{height:29px}
+  header.site .nav{top:66px;height:calc(100dvh - 66px)}
+}
 
 /* ---------- page hero (inner pages) ---------- */
 .page-hero{padding:120px 0 56px;text-align:center;position:relative}
@@ -238,6 +244,73 @@ section{padding:92px 0;position:relative}
 @keyframes flow{0%{inset-inline-start:0;opacity:0}12%{opacity:1}88%{opacity:1}100%{inset-inline-start:100%;opacity:0}}
 .mod-strip{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:700px){.mod-strip{grid-template-columns:1fr}}
+
+/* כניסת כרטיסי השירות: opacity + translateY + scale עדין (משתמש ב-transition הקיים של .reveal) */
+.mod.reveal{transform:translateY(24px) scale(.985)}
+.mod.reveal.in{transform:none}
+
+/* ===== Service micro-animations (same visual language as card 01) ===== */
+.viz{margin-top:20px;position:relative;width:100%}
+.viz svg{width:100%;height:100%;display:block;overflow:visible}
+/* perf: כל אנימציה רצה רק כשהכרטיס נכנס ל-viewport (ומושהית מחוצה לו) */
+.mod:not(.in) .viz *{animation-play-state:paused}
+.mod.feature:not(.in) .ln::before{animation-play-state:paused}
+
+/* 02 — מסע לקוח: נקודת אור עוברת בין תחנות (RTL: ליד מימין → חוזר משמאל) */
+.viz-journey{height:60px;display:flex;align-items:center}
+.j-track{position:relative;width:100%;height:12px;display:flex;align-items:center;justify-content:space-between}
+.j-track::before{content:"";position:absolute;inset-inline:6px;top:50%;height:2px;transform:translateY(-50%);
+  background:repeating-linear-gradient(90deg,var(--line-2) 0 7px,transparent 7px 13px)}
+.j-node{width:11px;height:11px;border-radius:50%;background:var(--panel);border:1.5px solid var(--line-2);flex:none;
+  position:relative;z-index:2;animation:jNode 3.6s var(--ease) infinite;animation-delay:calc(var(--n)*.34s)}
+@keyframes jNode{0%,10%{background:var(--panel);border-color:var(--line-2);box-shadow:none}
+  18%{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 11px var(--glow)}
+  44%,100%{background:var(--panel);border-color:var(--line-2);box-shadow:none}}
+.j-pulse{position:absolute;top:50%;inset-inline-start:0;width:8px;height:8px;margin-top:-4px;border-radius:50%;
+  background:var(--cyan-2);box-shadow:0 0 12px var(--cyan);animation:jMove 3.6s linear infinite}
+@keyframes jMove{0%{inset-inline-start:3%;opacity:0}7%{opacity:1}93%{opacity:1}100%{inset-inline-start:97%;opacity:0}}
+
+/* 03 — מערכות מותאמות: מודולים מתאספים למערכת אחת סביב Core */
+.viz-modular{height:98px}
+.m-core{fill:var(--panel-2);stroke:var(--cyan);stroke-width:1.3px;animation:mCore 6s var(--ease) infinite}
+@keyframes mCore{0%,30%{filter:none}42%{filter:drop-shadow(0 0 6px var(--glow))}70%,100%{filter:none}}
+.m-mod{fill:var(--panel);stroke:var(--line);stroke-width:1px;transform-box:fill-box;transform-origin:center;
+  animation:mAssemble 6s var(--ease) infinite}
+@keyframes mAssemble{0%{transform:translate(var(--tx),var(--ty));opacity:.2}
+  24%{transform:translate(0,0);opacity:1}44%{stroke:var(--cyan)}76%{transform:translate(0,0);opacity:1;stroke:var(--line)}
+  100%{transform:translate(var(--tx),var(--ty));opacity:.2}}
+.m-links line{stroke-dasharray:120;stroke-dashoffset:120;opacity:0;animation:mDraw 6s var(--ease) infinite}
+@keyframes mDraw{0%,20%{stroke-dashoffset:120;opacity:0}34%{stroke-dashoffset:0;opacity:.5}74%{stroke-dashoffset:0;opacity:.5}100%{stroke-dashoffset:120;opacity:0}}
+
+/* 04 — אוטומציות ואינטגרציות: Data pulses זורמים מה-Core למערכות */
+.viz-network{height:106px}
+.n-core{fill:var(--panel-2);stroke:var(--cyan);stroke-width:1.6px;transform-box:fill-box;transform-origin:center;
+  animation:nCore 3s var(--ease) infinite}
+@keyframes nCore{0%,100%{filter:none}50%{filter:drop-shadow(0 0 7px var(--glow))}}
+.n-pulse{opacity:0;animation:nPulse var(--dur) linear var(--delay) infinite}
+@keyframes nPulse{0%{transform:translate(0,0);opacity:0}10%{opacity:1}88%{opacity:1}100%{transform:translate(var(--dx),var(--dy));opacity:0}}
+
+/* 05 — בקרה ונתונים: גרף שנמשך, עמודות עולות, התראה פועמת */
+.viz-data{height:106px}
+.d-bar{transform-box:fill-box;transform-origin:bottom;opacity:.85;animation:dBar 4.4s var(--ease) infinite;animation-delay:calc(var(--i)*.18s)}
+@keyframes dBar{0%{transform:scaleY(.14);opacity:.35}26%{transform:scaleY(1);opacity:.9}80%{transform:scaleY(1);opacity:.9}100%{transform:scaleY(.14);opacity:.35}}
+.d-chart{stroke-dasharray:360;stroke-dashoffset:360;animation:dDraw 4.4s var(--ease) infinite}
+@keyframes dDraw{0%,10%{stroke-dashoffset:360}46%{stroke-dashoffset:0}86%{stroke-dashoffset:0}100%{stroke-dashoffset:360}}
+.d-alert{transform-box:fill-box;transform-origin:center;animation:dAlert 2s var(--ease) infinite}
+@keyframes dAlert{0%,100%{opacity:.35;transform:scale(.6)}50%{opacity:1;transform:scale(1.2)}}
+
+/* reduced-motion: מציגים את המצב הסופי הסטטי, ללא לולאות */
+@media(prefers-reduced-motion:reduce){
+  .viz *{animation:none!important}
+  .j-pulse{display:none}
+  .j-node{background:var(--panel);border-color:var(--line-2)}
+  .m-mod{transform:none;opacity:1}
+  .m-links line{stroke-dashoffset:0;opacity:.5}
+  .n-pulse{display:none}
+  .d-bar{transform:none;opacity:.9}
+  .d-chart{stroke-dashoffset:0}
+  .d-alert{opacity:.7}
+}
 
 /* ---------- method timeline ---------- */
 .method{position:relative;max-width:1080px;margin:0 auto}
