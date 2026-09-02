@@ -49,6 +49,22 @@ test.describe('כספים — מרכז שליטה', () => {
     await expect(page.locator('.tabs2 button', { hasText: 'סקירה' })).toHaveClass(/on/);
   });
 
+  test('סרגל לשוניות-המשנה נשמר גם במסכים הוותיקים (תזרים/מחשבון) — אין מלכודת ניווט', async ({ page }) => {
+    const app = new AppShell(page);
+    // מעבר ללשונית "תזרים" (מסך ותיק, מסך מלא) — הסרגל חייב להישאר
+    await app.openSubTab('תזרים');
+    await expect(page.locator('#view > .tabs2')).toBeVisible();
+    await expect(page.locator('.tabs2 button', { hasText: 'שליטה' })).toBeVisible();
+    // מהמסך הוותיק אפשר לנווט חזרה ללשונית אחרת
+    await app.openSubTab('הכנסות');
+    await expect(page.getByRole('heading', { name: /גיול חייבים/ })).toBeVisible();
+    // מעבר ל"מחשבון" (מסך ותיק נוסף) — שוב הסרגל נשאר וניתן לחזור ל"שליטה"
+    await app.openSubTab('מחשבון');
+    await expect(page.locator('#view > .tabs2')).toBeVisible();
+    await app.openSubTab('שליטה');
+    await expect(page.locator('.kpi.clk').first()).toBeVisible();
+  });
+
   test('תרחיש What-if מריץ סימולציה חיה ומראה פער מהבסיס', async ({ page }) => {
     const app = new AppShell(page);
     await app.openSubTab('תרחישים');
