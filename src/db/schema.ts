@@ -146,6 +146,22 @@ export const cashflow = sqliteTable('cashflow', {
   sourceType: text('source_type'),
   sourceId: text('source_id'),
   confidence: integer('confidence'),         // 0-100
+  // --- תשתית למעקב בלבד (0024) — מנוי/תשתית שנרשם למודעות אך לא נספר כהוצאה ---
+  trackOnly: integer('track_only').notNull().default(0), // 1 = תשתית למעקב · לא ב-Burn/תחזית/KPI
+});
+
+/**
+ * קבלה להוצאה (0024) — קובץ נשמר ב-R2 (bucket פרטי), כאן רק מטא-דאטה + מפתח.
+ * הוצאה אחת יכולה לשאת מספר קבלות. גישה מוגנת בטוקן מנהל.
+ */
+export const expenseReceipts = sqliteTable('expense_receipts', {
+  id: text('id').primaryKey(),
+  cashflowId: text('cashflow_id').notNull(),
+  r2Key: text('r2_key').notNull(),
+  filename: text('filename'),
+  contentType: text('content_type'),
+  size: integer('size'),
+  uploadedAt: integer('uploaded_at').notNull(),
 });
 
 /**
@@ -598,6 +614,7 @@ export type Task = typeof tasks.$inferSelect;
 export type Playbook = typeof playbooks.$inferSelect;
 export type PlaybookRun = typeof playbookRuns.$inferSelect;
 export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;
+export type ExpenseReceipt = typeof expenseReceipts.$inferSelect;
 export type SkillUsage = typeof skillUsage.$inferSelect;
 
 export type FinancialOccurrence = typeof financialOccurrences.$inferSelect;
