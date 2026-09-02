@@ -2,43 +2,13 @@ import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
 import { engagements, clients, systems } from '../db/schema';
 import { Env, db, uid, now, pick, num } from './util';
+import { engagementMonthly, engagementSetup } from '../finance/engine';
 
 export const engagementsApp = new Hono<Env>();
 
-/**
- * ערך חודשי חוזר (MRR) של התקשרות לפי מודל החיוב.
- *  retainer – ריטיינר חודשי קבוע
- *  hourly   – תעריף שעה × שעות חודשיות
- *  revshare – אחוז ממחזור חודשי צפוי אצל הלקוח
- *  value    – מבוסס-ערך: מיוצג כריטיינר חודשי (monthlyFee)
- *  one_time – פרויקט חד-פעמי: אין רכיב חודשי (ראה engagementSetup)
- *  hybrid   – סכום כל הרכיבים
- */
-export function engagementMonthly(e: any): number {
-  const retainer = num(e.monthlyFee);
-  const hourly = num(e.hourlyRate) * num(e.monthlyHours);
-  const rev = num(e.revshareBase) * (num(e.revsharePercent) / 100);
-  switch (e.model) {
-    case 'retainer':
-    case 'value':
-      return retainer;
-    case 'hourly':
-      return hourly;
-    case 'revshare':
-      return rev;
-    case 'one_time':
-      return 0;
-    case 'hybrid':
-      return retainer + hourly + rev;
-    default:
-      return retainer;
-  }
-}
-
-/** רכיב חד-פעמי (הקמה/מקדמה) של ההתקשרות */
-export function engagementSetup(e: any): number {
-  return num(e.setupFee);
-}
+// מקור אמת יחיד לערך התקשרות מרוכז ב-src/finance/engine (§1.4). נשמר ה-re-export
+// כדי לא לשבור מייבאים קיימים (finance.ts ואחרים).
+export { engagementMonthly, engagementSetup };
 
 const FIELDS = [
   'clientId', 'systemId', 'title', 'model', 'status', 'setupFee', 'monthlyFee',

@@ -10,6 +10,7 @@
     "db:migrate:local": "wrangler d1 migrations apply agency-hq-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply agency-hq-db --remote",
     "e2e:serve": "npm run db:migrate:local && npm run dev",
+    "test:unit": "tsx --test tests/unit/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
@@ -22,6 +23,7 @@
     "@cloudflare/workers-types": "^4.20241218.0",
     "@playwright/test": "^1.62.1",
     "drizzle-kit": "^0.28.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "wrangler": "^3.95.0"
   }
