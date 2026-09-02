@@ -16,3 +16,10 @@ binding = "DB"
 database_name = "agency-hq-db"
 database_id = "81a73754-cd5a-498b-a4d2-79c70d29fa02"
 migrations_dir = "migrations"
+
+# --- אחסון קבצים R2 (קבלות להוצאות) ---
+# bucket פרטי — הגישה לקבצים עוברת דרך ה-API בלבד (מוגן בטוקן מנהל).
+# יצירה חד-פעמית לפני deploy:  npx wrangler r2 bucket create agency-hq-receipts
+[[r2_buckets]]
+binding = "RECEIPTS"
+bucket_name = "agency-hq-receipts"

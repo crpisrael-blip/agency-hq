@@ -202,6 +202,7 @@ export function buildFlows(data: FinanceData): Flow[] {
 
   // --- 2. תנועות cashflow ידניות ---
   for (const r of data.cashflow) {
+    if (r.trackOnly) continue; // תשתית למעקב בלבד — לא נספרת כהוצאה (idea 4)
     const amt = num(r.amount);
     if (!amt) continue; // תנועת 0 (כלי שלא עלה כסף) — לא בתחזית
     const rec: Recurring = r.recurring === 'monthly' ? 'monthly' : r.recurring === 'yearly' ? 'yearly' : 'once';
@@ -362,6 +363,65 @@ export function monthlyForecast(data: FinanceData, scenario: ScenarioKind, month
       totalIncome, totalExpense, net: round2(totalIncome - totalExpense),
       endBalance: buckets.at(-1)?.balance ?? startingBalance(data),
       minBalance, minBalanceYm,
+    },
+  };
+}
+
+// ============ היסטוריה חודשית (הוצאות/הכנסות שחלפו, §idea-2) ============
+
+export interface HistoryBucket {
+  ym: string;
+  label: string;
+  income: number;
+  expense: number;
+  net: number;
+  items: { label: string; amount: number; kind: Kind; tier: Tier; source: string }[];
+}
+export interface MonthlyHistory {
+  months: number;
+  buckets: HistoryBucket[]; // מהחודש הישן ביותר עד החודש הנוכחי (כולל)
+  summary: { totalIncome: number; totalExpense: number; net: number; avgMonthlyExpense: number };
+}
+
+/**
+ * פירוט חודשי לחודשים שחלפו (כולל החודש הנוכחי). בניגוד לתחזית, כאן אין שקלול
+ * תרחישים — מה שהיה פעיל באותו חודש נספר במלואו (למעט Pipeline פוטנציאלי שטרם נסגר).
+ * מיועד ל"הוצאות אחורה" + drill-down חודשי. אין מאזן מצטבר (לא ניתן לשחזור אמין אחורה).
+ */
+export function monthlyHistory(data: FinanceData, months: number): MonthlyHistory {
+  const flows = buildFlows(data);
+  const n = Math.min(36, Math.max(1, months));
+  const current = ymOf(data.today);
+  const buckets: HistoryBucket[] = [];
+  // מהישן ביותר (current - (n-1)) עד החודש הנוכחי
+  for (let i = n - 1; i >= 0; i--) {
+    const ym = addMonths(current, -i);
+    let income = 0;
+    let expense = 0;
+    const items: HistoryBucket['items'] = [];
+    for (const f of flows) {
+      if (f.tier === 'potential') continue;     // צינור עתידי — לא היסטוריה
+      if (!activeInMonth(f, ym)) continue;
+      const val = f.amount;
+      if (!val) continue;
+      if (f.kind === 'income') income += val;
+      else expense += val;
+      items.push({ label: f.label, amount: round2(val), kind: f.kind, tier: f.tier, source: f.sourceType });
+    }
+    income = round2(income);
+    expense = round2(expense);
+    buckets.push({ ym, label: monthLabel(ym), income, expense, net: round2(income - expense), items });
+  }
+  const totalIncome = round2(buckets.reduce((a, b) => a + b.income, 0));
+  const totalExpense = round2(buckets.reduce((a, b) => a + b.expense, 0));
+  return {
+    months: n,
+    buckets,
+    summary: {
+      totalIncome,
+      totalExpense,
+      net: round2(totalIncome - totalExpense),
+      avgMonthlyExpense: round2(totalExpense / n),
     },
   };
 }
@@ -536,6 +596,7 @@ export function fixedMonthlyCosts(data: FinanceData): number {
   let sum = 0;
   for (const r of data.cashflow) {
     if (r.kind !== 'expense') continue;
+    if (r.trackOnly) continue; // תשתית למעקב בלבד — לא נספרת ב-Burn (idea 4)
     const amt = num(r.amount);
     if (r.recurring === 'monthly') sum += amt;
     else if (r.recurring === 'yearly') sum += amt / 12;
@@ -700,7 +761,7 @@ export function computeExceptions(data: FinanceData): Exception[] {
   }
 
   // הוצאות: איחור, ללא קטגוריה, ללא שיוך, חריגה
-  const expenses = data.cashflow.filter((r) => r.kind === 'expense');
+  const expenses = data.cashflow.filter((r) => r.kind === 'expense' && !r.trackOnly);
   const expAmts = expenses.map((r) => num(r.amount)).filter((a) => a > 0);
   const avgExp = expAmts.length ? expAmts.reduce((a, b) => a + b, 0) / expAmts.length : 0;
   for (const r of expenses) {
@@ -831,7 +892,7 @@ export function computeExceptions(data: FinanceData): Exception[] {
 
 export function dataQuality(data: FinanceData): { score: number; level: 'high' | 'medium' | 'low'; issues: { label: string; count: number }[] } {
   const issues: { label: string; count: number }[] = [];
-  const unallocated = data.cashflow.filter((r) => r.kind === 'expense' && (r.recurring === 'monthly' || r.recurring === 'yearly') && num(r.amount) > 0 && !r.clientId && !r.projectId && !data.allocations.some((a) => a.cashflowId === r.id)).length;
+  const unallocated = data.cashflow.filter((r) => r.kind === 'expense' && !r.trackOnly && (r.recurring === 'monthly' || r.recurring === 'yearly') && num(r.amount) > 0 && !r.clientId && !r.projectId && !data.allocations.some((a) => a.cashflowId === r.id)).length;
   const engNoDates = data.engagements.filter((e) => e.status === 'active' && !e.startDate).length;
   const oppNoClose = data.opportunities.filter((o) => ACTIVE_OPP_STAGES.includes(o.stage) && !o.expectedCloseDate).length;
   const occNoDue = data.occurrences.filter((o) => o.status !== 'received' && o.status !== 'paid' && o.status !== 'cancelled' && !o.dueDate && !o.expectedDate).length;
@@ -869,7 +930,7 @@ export function businessStatus(data: FinanceData): { tone: 'ok' | 'attention' | 
     const overdueCount = rec.items.filter((i) => i.daysLate > prefs.overdueGraceDays).length;
     lines.push(`קיימים ${overdueCount} תשלומים באיחור בסך ${money0(rec.overdueReceivables)}`);
   }
-  const unallocated = data.cashflow.filter((r) => r.kind === 'expense' && (r.recurring === 'monthly' || r.recurring === 'yearly') && num(r.amount) > 0 && !r.clientId && !r.projectId && !data.allocations.some((a) => a.cashflowId === r.id)).length;
+  const unallocated = data.cashflow.filter((r) => r.kind === 'expense' && !r.trackOnly && (r.recurring === 'monthly' || r.recurring === 'yearly') && num(r.amount) > 0 && !r.clientId && !r.projectId && !data.allocations.some((a) => a.cashflowId === r.id)).length;
   if (unallocated > 0) {
     if (tone === 'ok') tone = 'attention';
     lines.push(`קיימות ${unallocated} הוצאות ללא שיוך`);
