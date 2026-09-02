@@ -1,8 +1,18 @@
 import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
-import { cashflow, scenarios, engagements, clients, settings, expenseAllocations } from '../db/schema';
-import { Env, db, uid, now, pick, num, todayIL } from './util';
+import {
+  cashflow, scenarios, engagements, clients, settings, expenseAllocations,
+  opportunities, projects, financialOccurrences, vendors, expenseCategories,
+  financialAlerts, financePreferences, financeBalanceSnapshots,
+} from '../db/schema';
+import { Env, db, uid, now, pick, num, todayIL, logActivity } from './util';
 import { engagementMonthly, engagementSetup } from './engagements';
+import {
+  FinanceData, Prefs, DEFAULT_PREFS, ScenarioKind,
+  controlPayload, forecastScenarios, monthlyForecast, dailyForecast, receivables,
+  clientProfitability, businessProfitability, computeExceptions, pipeline, mrr,
+  fixedMonthlyCosts, burnAndRunway, buildFlows, startingBalance, dataQuality,
+} from '../finance/engine';
 
 const INTERNAL_LABEL = 'מערכת הניהול (Agency HQ)';
 
@@ -25,7 +35,20 @@ const monthLabel = (ym: string) => {
 };
 
 // ---------- פנקס תזרים (CRUD) ----------
-const CF_FIELDS = ['kind', 'label', 'amount', 'clientId', 'engagementId', 'category', 'recurring', 'billingDay', 'startDate', 'endDate', 'status', 'notes'];
+const CF_FIELDS = [
+  'kind', 'label', 'amount', 'clientId', 'engagementId', 'category', 'recurring', 'billingDay', 'startDate', 'endDate', 'status', 'notes',
+  // Finance Control (0023)
+  'vendorId', 'projectId', 'categoryId', 'subcategory', 'costType', 'paymentMethod', 'renewalDate',
+  'cancelNoticeDays', 'essential', 'cancellable', 'dueDate', 'actualDate', 'expectedDate', 'externalRef',
+  'sourceType', 'sourceId', 'confidence',
+];
+const CF_NUM = ['amount', 'billingDay', 'cancelNoticeDays', 'confidence'];
+const CF_BOOL = ['essential', 'cancellable'];
+function normalizeCf(data: any) {
+  for (const f of CF_NUM) if (data[f] !== undefined) data[f] = data[f] === '' || data[f] == null ? null : num(data[f]);
+  for (const f of CF_BOOL) if (data[f] !== undefined) data[f] = data[f] ? 1 : 0;
+  return data;
+}
 
 financeApp.get('/cashflow', async (c) => {
   const d = db(c);
@@ -118,10 +141,9 @@ financeApp.post('/cashflow', async (c) => {
   const id = uid();
   await db(c).insert(cashflow).values({
     id,
-    ...pick(body, CF_FIELDS),
+    ...normalizeCf(pick(body, CF_FIELDS)),
     label: String(body.label),
     amount: num(body.amount),
-    billingDay: body.billingDay != null && body.billingDay !== '' ? num(body.billingDay) : null,
     startDate: String(body.startDate || todayIL()),
     createdAt: now(),
   } as any);
@@ -130,9 +152,7 @@ financeApp.post('/cashflow', async (c) => {
 
 financeApp.patch('/cashflow/:id', async (c) => {
   const body = await c.req.json().catch(() => ({} as any));
-  const data: any = pick(body, CF_FIELDS);
-  if (data.amount !== undefined) data.amount = num(data.amount);
-  if (data.billingDay !== undefined) data.billingDay = data.billingDay === '' || data.billingDay == null ? null : num(data.billingDay);
+  const data: any = normalizeCf(pick(body, CF_FIELDS));
   if (Object.keys(data).length) await db(c).update(cashflow).set(data).where(eq(cashflow.id, c.req.param('id')));
   return c.json({ ok: true });
 });
@@ -282,5 +302,423 @@ financeApp.patch('/scenarios/:id', async (c) => {
 
 financeApp.delete('/scenarios/:id', async (c) => {
   await db(c).delete(scenarios).where(eq(scenarios.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+/* =========================================================================
+ * Finance Control — מודול שליטה פיננסית (§26)
+ * טעינת נתונים מרוכזת + מנוע חישוב מרכזי (src/finance/engine).
+ * כל endpoint טוען את הנתונים הגולמיים פעם אחת ומזרים אותם למנוע הטהור.
+ * ========================================================================= */
+
+function parsePrefs(row: any): Prefs {
+  if (!row) return { ...DEFAULT_PREFS };
+  return {
+    currency: row.currency || 'ILS',
+    cashThreshold: num(row.cashThreshold),
+    forecastMonths: num(row.forecastMonths, 12),
+    defaultScenario: (row.defaultScenario || 'realistic') as ScenarioKind,
+    overdueGraceDays: num(row.overdueGraceDays),
+    alertRenewalDays: String(row.alertRenewalDays || '30,14,7').split(',').map((s) => num(s.trim())).filter((n) => n > 0),
+    marginWarningThreshold: num(row.marginWarningThreshold, 20),
+    revenueConcentrationThreshold: num(row.revenueConcentrationThreshold, 40),
+    defaultOpportunityForecastMode: (row.defaultOpportunityForecastMode || 'weighted') as Prefs['defaultOpportunityForecastMode'],
+    optimisticMinProbability: num(row.optimisticMinProbability, 30),
+    unusualExpenseFactor: num(row.unusualExpenseFactor, 2.5),
+  };
+}
+
+/** טוען את כל הנתונים הדרושים למנוע הפיננסי בבת אחת. */
+async function loadFinanceData(c: any): Promise<FinanceData> {
+  const d = db(c);
+  const [engs, cfs, opps, occs, cls, allocs, projs, prefRows, snaps, alertRows, openingRow] = await Promise.all([
+    d.select().from(engagements).all(),
+    d.select().from(cashflow).all(),
+    d.select().from(opportunities).all(),
+    d.select().from(financialOccurrences).all(),
+    d.select().from(clients).all(),
+    d.select().from(expenseAllocations).all(),
+    d.select().from(projects).all(),
+    d.select().from(financePreferences).where(eq(financePreferences.id, 'default')).limit(1),
+    d.select().from(financeBalanceSnapshots).all(),
+    d.select().from(financialAlerts).all(),
+    d.select().from(settings).where(eq(settings.key, OPENING_KEY)).limit(1),
+  ]);
+  const prefs = parsePrefs(prefRows[0]);
+  const openingBalance = openingRow.length ? num(openingRow[0].value) : 0;
+  const sortedSnaps = [...snaps].sort((a: any, b: any) =>
+    String(b.asOfDate).localeCompare(String(a.asOfDate)) || num(b.createdAt) - num(a.createdAt));
+  const latest = sortedSnaps[0];
+  const dismissedAlertKeys = alertRows
+    .filter((a: any) => (a.status === 'dismissed' || a.status === 'resolved') && a.entityId)
+    .map((a: any) => String(a.entityId));
+  return {
+    today: todayIL(),
+    openingBalance,
+    currentBalance: latest ? num(latest.amount) : null,
+    balanceAsOf: latest ? String(latest.asOfDate) : null,
+    prefs,
+    engagements: engs,
+    cashflow: cfs,
+    opportunities: opps,
+    occurrences: occs,
+    clients: cls,
+    allocations: allocs,
+    projects: projs,
+    dismissedAlertKeys,
+  };
+}
+
+// ---------- מסך שליטה (payload מאוחד §26) ----------
+financeApp.get('/control', async (c) => {
+  const data = await loadFinanceData(c);
+  return c.json(controlPayload(data));
+});
+
+// ---------- תחזית מלאה: 3 תרחישים + יומי 90 (§13) ----------
+financeApp.get('/forecast/scenarios', async (c) => {
+  const data = await loadFinanceData(c);
+  const months = Math.min(36, Math.max(1, num(c.req.query('months'), data.prefs.forecastMonths)));
+  return c.json(forecastScenarios(data, months));
+});
+
+// ---------- תחזית חודשית לפי תרחיש בודד ----------
+financeApp.get('/forecast/monthly', async (c) => {
+  const data = await loadFinanceData(c);
+  const months = Math.min(36, Math.max(1, num(c.req.query('months'), data.prefs.forecastMonths)));
+  const scenario = (c.req.query('scenario') || data.prefs.defaultScenario) as ScenarioKind;
+  return c.json(monthlyForecast(data, scenario, months));
+});
+
+// ---------- תחזית יומית (§12) ----------
+financeApp.get('/forecast/daily', async (c) => {
+  const data = await loadFinanceData(c);
+  const days = Math.min(365, Math.max(7, num(c.req.query('days'), 90)));
+  const scenario = (c.req.query('scenario') || data.prefs.defaultScenario) as ScenarioKind;
+  return c.json(dailyForecast(data, days, scenario));
+});
+
+// ---------- הכנסות: מקורות + גבייה + צינור (§4, §6) ----------
+financeApp.get('/income', async (c) => {
+  const data = await loadFinanceData(c);
+  const flows = buildFlows(data).filter((f) => f.kind === 'income');
+  const byTier = (t: string) => flows.filter((f) => f.tier === t);
+  const monthValue = (arr: typeof flows) => arr.reduce((a, f) => a + (f.recurring === 'monthly' ? f.amount : 0), 0);
+  const rec = receivables(data);
+  const pl = pipeline(data);
+  return c.json({
+    currency: data.prefs.currency,
+    kpis: {
+      mrr: mrr(data),
+      committedMonthly: Math.round(monthValue(byTier('committed')) * 100) / 100,
+      expectedMonthly: Math.round(monthValue(byTier('expected')) * 100) / 100,
+      overdue: rec.overdueReceivables,
+      pipeline: pl.total,
+      weightedPipeline: pl.weighted,
+    },
+    receivables: rec,
+    pipeline: pl,
+    sources: flows.map((f) => ({
+      label: f.label, amount: f.amount, tier: f.tier, recurring: f.recurring,
+      probability: f.probability, clientId: f.clientId, sourceType: f.sourceType, sourceId: f.sourceId, date: f.date,
+    })),
+  });
+});
+
+// ---------- הוצאות: Expense Control (§7) ----------
+financeApp.get('/expenses', async (c) => {
+  const data = await loadFinanceData(c);
+  const cats = await db(c).select().from(expenseCategories).all();
+  const vends = await db(c).select().from(vendors).all();
+  const catName = (id: string | null) => cats.find((x: any) => x.id === id)?.name || null;
+  const vendorName = (id: string | null) => vends.find((x: any) => x.id === id)?.name || null;
+  const clientName = (id: string | null) => data.clients.find((x: any) => x.id === id)?.name || null;
+  const monthlyOf = (r: any) => (r.recurring === 'monthly' ? num(r.amount) : r.recurring === 'yearly' ? num(r.amount) / 12 : 0);
+  const expenses = data.cashflow.filter((r: any) => r.kind === 'expense').map((r: any) => {
+    const allocs = data.allocations.filter((a: any) => a.cashflowId === r.id);
+    return {
+      ...r,
+      categoryName: catName(r.categoryId) || r.category || null,
+      vendorName: vendorName(r.vendorId),
+      clientName: clientName(r.clientId),
+      monthlyEquivalent: Math.round(monthlyOf(r) * 100) / 100,
+      yearlyEquivalent: Math.round((r.recurring === 'monthly' ? num(r.amount) * 12 : r.recurring === 'yearly' ? num(r.amount) : 0) * 100) / 100,
+      allocationCount: allocs.length,
+      unallocated: !allocs.length && !r.clientId && !r.projectId,
+    };
+  });
+  const recurring = expenses.filter((e) => e.recurring === 'monthly' || e.recurring === 'yearly');
+  return c.json({
+    currency: data.prefs.currency,
+    kpis: {
+      fixedMonthly: fixedMonthlyCosts(data),
+      recurringCount: recurring.length,
+      unallocatedCount: expenses.filter((e) => e.unallocated && (e.recurring === 'monthly' || e.recurring === 'yearly')).length,
+      totalMonthly: Math.round(expenses.reduce((a, e) => a + e.monthlyEquivalent, 0) * 100) / 100,
+    },
+    burn: burnAndRunway(data),
+    expenses,
+    categories: cats,
+    vendors: vends,
+  });
+});
+
+// ---------- חידושים ומנויים (§9) ----------
+financeApp.get('/renewals', async (c) => {
+  const data = await loadFinanceData(c);
+  const today = data.today;
+  const items = data.cashflow
+    .filter((r: any) => r.kind === 'expense' && (r.recurring === 'monthly' || r.recurring === 'yearly'))
+    .map((r: any) => {
+      const monthly = r.recurring === 'yearly' ? num(r.amount) / 12 : num(r.amount);
+      const daysToRenewal = r.renewalDate
+        ? Math.round((Date.parse(r.renewalDate + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86400000)
+        : null;
+      return {
+        id: r.id, label: r.label, amount: num(r.amount), recurring: r.recurring,
+        monthlyEquivalent: Math.round(monthly * 100) / 100,
+        yearlyEquivalent: Math.round((r.recurring === 'monthly' ? num(r.amount) * 12 : num(r.amount)) * 100) / 100,
+        renewalDate: r.renewalDate || null, daysToRenewal,
+        cancellable: !!r.cancellable, cancelNoticeDays: r.cancelNoticeDays || null, essential: !!r.essential,
+        vendorId: r.vendorId || null,
+      };
+    })
+    .sort((a, b) => {
+      if (a.daysToRenewal == null) return 1;
+      if (b.daysToRenewal == null) return -1;
+      return a.daysToRenewal - b.daysToRenewal;
+    });
+  return c.json({ currency: data.prefs.currency, items });
+});
+
+// ---------- גבייה (§6) ----------
+financeApp.get('/receivables', async (c) => {
+  const data = await loadFinanceData(c);
+  return c.json(receivables(data));
+});
+
+// ---------- רווחיות (§17) ----------
+financeApp.get('/profitability', async (c) => {
+  const data = await loadFinanceData(c);
+  const prof = clientProfitability(data);
+  return c.json({
+    currency: data.prefs.currency,
+    clients: prof.clients,
+    concentration: prof.concentration,
+    topConcentration: prof.topConcentration,
+    business: businessProfitability(data),
+    marginThresholds: { high: 60, ok: 40, review: 20 },
+  });
+});
+
+// ---------- רווחיות לפי לקוח (drill-down §17.1) ----------
+financeApp.get('/by-client', async (c) => {
+  const data = await loadFinanceData(c);
+  return c.json(clientProfitability(data));
+});
+
+// ---------- התראות/חריגות (§21) ----------
+financeApp.get('/alerts', async (c) => {
+  const data = await loadFinanceData(c);
+  const exceptions = computeExceptions(data);
+  // התראות ידניות פתוחות שנשמרו (לא כולל רשומות dismiss/resolve)
+  const persisted = (await db(c).select().from(financialAlerts).all())
+    .filter((a: any) => a.status === 'open');
+  return c.json({ exceptions, persisted });
+});
+
+// דחייה/סימון-כטופל של חריגה מחושבת — נשמר לפי key יציב (§3.3)
+financeApp.post('/alerts/dismiss', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  if (!body.key) return c.json({ error: 'invalid_input' }, 400);
+  const action = body.action === 'resolve' ? 'resolved' : 'dismissed';
+  const d = db(c);
+  const ts = now();
+  await d.insert(financialAlerts).values({
+    id: uid(),
+    type: String(body.type || 'exception'),
+    entityType: 'exception',
+    entityId: String(body.key),
+    title: body.title ? String(body.title) : null,
+    message: body.message ? String(body.message) : null,
+    amount: body.amount != null ? num(body.amount) : null,
+    dueDate: body.dueDate ? String(body.dueDate) : null,
+    severity: String(body.severity || 'info'),
+    recommendedAction: body.recommendedAction ? String(body.recommendedAction) : null,
+    status: action,
+    createdAt: ts,
+    resolvedAt: ts,
+  } as any);
+  return c.json({ ok: true });
+});
+
+// שחזור חריגה שנדחתה (מבטל את רשומת ה-dismiss/resolve)
+financeApp.post('/alerts/restore', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  if (!body.key) return c.json({ error: 'invalid_input' }, 400);
+  await db(c).delete(financialAlerts).where(eq(financialAlerts.entityId, String(body.key)));
+  return c.json({ ok: true });
+});
+
+// סימון alert ידני שמור כטופל (§21 — לא נמחק)
+financeApp.post('/alerts/:id/resolve', async (c) => {
+  await db(c).update(financialAlerts)
+    .set({ status: 'resolved', resolvedAt: now() } as any)
+    .where(eq(financialAlerts.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+// ---------- יתרה נוכחית / Snapshots (§14) ----------
+financeApp.get('/balance', async (c) => {
+  const data = await loadFinanceData(c);
+  const d = db(c);
+  const snaps = (await d.select().from(financeBalanceSnapshots).all())
+    .sort((a: any, b: any) => String(b.asOfDate).localeCompare(String(a.asOfDate)) || num(b.createdAt) - num(a.createdAt));
+  return c.json({
+    current: startingBalance(data),
+    asOf: data.balanceAsOf,
+    opening: data.openingBalance,
+    history: snaps.slice(0, 24),
+  });
+});
+
+financeApp.post('/balance', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  if (body.amount == null || body.amount === '') return c.json({ error: 'invalid_input' }, 400);
+  const d = db(c);
+  const id = uid();
+  const asOf = String(body.asOfDate || todayIL());
+  await d.insert(financeBalanceSnapshots).values({
+    id, amount: num(body.amount), asOfDate: asOf, notes: body.notes ? String(body.notes) : null, createdAt: now(),
+  } as any);
+  await logActivity(d, {
+    entityType: 'finance', entityId: id, type: 'note',
+    title: `עדכון יתרה נוכחית: ${num(body.amount)}`, metadata: { asOfDate: asOf },
+  });
+  return c.json({ ok: true, id });
+});
+
+// ---------- Occurrences (§5) ----------
+const OCC_FIELDS = ['sourceType', 'sourceId', 'kind', 'label', 'amount', 'dueDate', 'expectedDate', 'actualDate', 'status', 'confidence', 'clientId', 'projectId', 'engagementId', 'vendorId', 'categoryId', 'cashflowId', 'notes'];
+
+financeApp.get('/occurrences', async (c) => {
+  const d = db(c);
+  const rows = await d.select().from(financialOccurrences).orderBy(desc(financialOccurrences.dueDate)).all();
+  return c.json(rows);
+});
+
+financeApp.post('/occurrences', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  if (body.amount == null) return c.json({ error: 'invalid_input' }, 400);
+  const data: any = pick(body, OCC_FIELDS);
+  if (data.amount !== undefined) data.amount = num(data.amount);
+  if (data.confidence !== undefined) data.confidence = num(data.confidence);
+  const id = uid();
+  await db(c).insert(financialOccurrences).values({
+    id,
+    sourceType: String(body.sourceType || 'manual'),
+    kind: body.kind === 'expense' ? 'expense' : 'income',
+    status: String(body.status || 'expected'),
+    confidence: data.confidence != null ? data.confidence : 80,
+    ...data,
+    amount: num(body.amount),
+    createdAt: now(),
+  } as any);
+  return c.json({ ok: true, id });
+});
+
+financeApp.patch('/occurrences/:id', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const data: any = pick(body, OCC_FIELDS);
+  if (data.amount !== undefined) data.amount = num(data.amount);
+  if (data.confidence !== undefined) data.confidence = num(data.confidence);
+  data.updatedAt = now();
+  if (Object.keys(data).length) await db(c).update(financialOccurrences).set(data).where(eq(financialOccurrences.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+financeApp.delete('/occurrences/:id', async (c) => {
+  await db(c).delete(financialOccurrences).where(eq(financialOccurrences.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+// ---------- קטגוריות הוצאה (§7.3) ----------
+financeApp.get('/categories', async (c) => {
+  const rows = await db(c).select().from(expenseCategories).all();
+  return c.json(rows.sort((a: any, b: any) => num(a.sort) - num(b.sort)));
+});
+
+financeApp.post('/categories', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  if (!body.name) return c.json({ error: 'invalid_input' }, 400);
+  const id = uid();
+  await db(c).insert(expenseCategories).values({
+    id, name: String(body.name), kind: String(body.kind || 'expense'),
+    sort: num(body.sort, 50), active: 1, builtin: 0, createdAt: now(),
+  } as any);
+  return c.json({ ok: true, id });
+});
+
+financeApp.patch('/categories/:id', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const data: any = pick(body, ['name', 'kind', 'sort', 'active']);
+  if (data.sort !== undefined) data.sort = num(data.sort);
+  if (data.active !== undefined) data.active = data.active ? 1 : 0;
+  if (Object.keys(data).length) await db(c).update(expenseCategories).set(data).where(eq(expenseCategories.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+// ---------- ספקים (§8) ----------
+const VENDOR_FIELDS = ['name', 'categoryId', 'website', 'contactName', 'email', 'phone', 'notes', 'active'];
+
+financeApp.get('/vendors', async (c) => {
+  const rows = await db(c).select().from(vendors).orderBy(desc(vendors.createdAt)).all();
+  return c.json(rows);
+});
+
+financeApp.post('/vendors', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  if (!body.name) return c.json({ error: 'invalid_input' }, 400);
+  const id = uid();
+  const data: any = pick(body, VENDOR_FIELDS);
+  if (data.active !== undefined) data.active = data.active ? 1 : 0;
+  await db(c).insert(vendors).values({ id, ...data, name: String(body.name), active: data.active ?? 1, createdAt: now() } as any);
+  return c.json({ ok: true, id });
+});
+
+financeApp.patch('/vendors/:id', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const data: any = pick(body, VENDOR_FIELDS);
+  if (data.active !== undefined) data.active = data.active ? 1 : 0;
+  data.updatedAt = now();
+  if (Object.keys(data).length) await db(c).update(vendors).set(data).where(eq(vendors.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+financeApp.delete('/vendors/:id', async (c) => {
+  await db(c).delete(vendors).where(eq(vendors.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+// ---------- העדפות פיננסיות (§25) ----------
+const PREF_FIELDS = ['currency', 'cashThreshold', 'forecastMonths', 'defaultScenario', 'overdueGraceDays', 'alertRenewalDays', 'marginWarningThreshold', 'revenueConcentrationThreshold', 'defaultOpportunityForecastMode', 'optimisticMinProbability', 'unusualExpenseFactor'];
+
+financeApp.get('/preferences', async (c) => {
+  const rows = await db(c).select().from(financePreferences).where(eq(financePreferences.id, 'default')).limit(1);
+  return c.json(rows[0] || { id: 'default', ...DEFAULT_PREFS, alertRenewalDays: '30,14,7' });
+});
+
+financeApp.put('/preferences', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const data: any = pick(body, PREF_FIELDS);
+  for (const f of ['cashThreshold', 'forecastMonths', 'overdueGraceDays', 'marginWarningThreshold', 'revenueConcentrationThreshold', 'optimisticMinProbability', 'unusualExpenseFactor']) {
+    if (data[f] !== undefined) data[f] = num(data[f]);
+  }
+  if (data.alertRenewalDays !== undefined && Array.isArray(data.alertRenewalDays)) data.alertRenewalDays = data.alertRenewalDays.join(',');
+  data.updatedAt = now();
+  const d = db(c);
+  const existing = await d.select().from(financePreferences).where(eq(financePreferences.id, 'default')).limit(1);
+  if (existing.length) await d.update(financePreferences).set(data).where(eq(financePreferences.id, 'default'));
+  else await d.insert(financePreferences).values({ id: 'default', ...data } as any);
   return c.json({ ok: true });
 });
