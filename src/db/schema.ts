@@ -128,6 +128,121 @@ export const cashflow = sqliteTable('cashflow', {
   status: text('status').notNull().default('planned'),    // planned | confirmed | paid
   notes: text('notes'),
   createdAt: integer('created_at').notNull(),
+  // --- הרחבות Finance Control (0023, כולן nullable — תאימות מלאה ל-legacy) ---
+  vendorId: text('vendor_id'),
+  projectId: text('project_id'),
+  categoryId: text('category_id'),
+  subcategory: text('subcategory'),
+  costType: text('cost_type'),               // fixed | variable | direct | overhead
+  paymentMethod: text('payment_method'),
+  renewalDate: text('renewal_date'),         // מנוי: מועד חידוש
+  cancelNoticeDays: integer('cancel_notice_days'),
+  essential: integer('essential'),           // 1 | 0
+  cancellable: integer('cancellable'),       // 1 | 0
+  dueDate: text('due_date'),
+  actualDate: text('actual_date'),
+  expectedDate: text('expected_date'),
+  externalRef: text('external_ref'),
+  sourceType: text('source_type'),
+  sourceId: text('source_id'),
+  confidence: integer('confidence'),         // 0-100
+});
+
+/**
+ * אירוע תשלום — מפריד בין מקור הכנסה/הוצאה לבין תנועת התשלום בפועל.
+ * מקור אחד (התקשרות/מנוי) מייצר occurrences חודשיים. מאפשר Actual מול Forecast
+ * ומדידת איחורים גם לאחר שהתשלום התקבל (dueDate מול actualDate).
+ */
+export const financialOccurrences = sqliteTable('financial_occurrences', {
+  id: text('id').primaryKey(),
+  sourceType: text('source_type').notNull().default('manual'), // manual|opportunity|proposal|engagement|project|subscription|vendor|scenario|system
+  sourceId: text('source_id'),
+  kind: text('kind').notNull().default('income'), // income | expense
+  label: text('label'),
+  amount: real('amount').notNull().default(0),
+  dueDate: text('due_date'),
+  expectedDate: text('expected_date'),
+  actualDate: text('actual_date'),
+  status: text('status').notNull().default('expected'), // expected|committed|received|paid|overdue|cancelled
+  confidence: integer('confidence').notNull().default(80),
+  clientId: text('client_id'),
+  projectId: text('project_id'),
+  engagementId: text('engagement_id'),
+  vendorId: text('vendor_id'),
+  categoryId: text('category_id'),
+  cashflowId: text('cashflow_id'),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+});
+
+/** ספק — הוצאה חוזרת יכולה להיות משויכת לספק */
+export const vendors = sqliteTable('vendors', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  categoryId: text('category_id'),
+  website: text('website'),
+  contactName: text('contact_name'),
+  email: text('email'),
+  phone: text('phone'),
+  notes: text('notes'),
+  active: integer('active').notNull().default(1),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+});
+
+/** קטגוריית הוצאה/הכנסה — ניתנת לניהול (לא מקודדת ב-frontend) */
+export const expenseCategories = sqliteTable('expense_categories', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  kind: text('kind').notNull().default('expense'), // expense | income
+  sort: integer('sort').notNull().default(0),
+  active: integer('active').notNull().default(1),
+  builtin: integer('builtin').notNull().default(0),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** התראה פיננסית — לא נמחקת לאחר טיפול, מסומנת resolved/dismissed */
+export const financialAlerts = sqliteTable('financial_alerts', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull(),
+  entityType: text('entity_type'),
+  entityId: text('entity_id'),
+  title: text('title'),
+  message: text('message'),
+  amount: real('amount'),
+  dueDate: text('due_date'),
+  severity: text('severity').notNull().default('warning'), // info | warning | critical
+  recommendedAction: text('recommended_action'),
+  status: text('status').notNull().default('open'), // open | resolved | dismissed
+  createdAt: integer('created_at').notNull(),
+  resolvedAt: integer('resolved_at'),
+});
+
+/** העדפות פיננסיות ברמת העסק — שורה יחידה (id='default') */
+export const financePreferences = sqliteTable('finance_preferences', {
+  id: text('id').primaryKey().default('default'),
+  currency: text('currency').notNull().default('ILS'),
+  cashThreshold: real('cash_threshold').notNull().default(0),
+  forecastMonths: integer('forecast_months').notNull().default(12),
+  defaultScenario: text('default_scenario').notNull().default('realistic'),
+  overdueGraceDays: integer('overdue_grace_days').notNull().default(0),
+  alertRenewalDays: text('alert_renewal_days').notNull().default('30,14,7'),
+  marginWarningThreshold: integer('margin_warning_threshold').notNull().default(20),
+  revenueConcentrationThreshold: integer('revenue_concentration_threshold').notNull().default(40),
+  defaultOpportunityForecastMode: text('default_opportunity_forecast_mode').notNull().default('weighted'),
+  optimisticMinProbability: integer('optimistic_min_probability').notNull().default(30),
+  unusualExpenseFactor: real('unusual_expense_factor').notNull().default(2.5),
+  updatedAt: integer('updated_at'),
+});
+
+/** תמונת יתרה נוכחית — התחזית מתחילה מה-snapshot האחרון */
+export const financeBalanceSnapshots = sqliteTable('finance_balance_snapshots', {
+  id: text('id').primaryKey(),
+  amount: real('amount').notNull().default(0),
+  asOfDate: text('as_of_date').notNull(),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull(),
 });
 
 /** מרכז רווח / רעיון עסקי חדש — החוזקה הייחודית: לייצר הכנסות חדשות מהמשאבים הקיימים */
@@ -484,3 +599,10 @@ export type Playbook = typeof playbooks.$inferSelect;
 export type PlaybookRun = typeof playbookRuns.$inferSelect;
 export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;
 export type SkillUsage = typeof skillUsage.$inferSelect;
+
+export type FinancialOccurrence = typeof financialOccurrences.$inferSelect;
+export type Vendor = typeof vendors.$inferSelect;
+export type ExpenseCategory = typeof expenseCategories.$inferSelect;
+export type FinancialAlert = typeof financialAlerts.$inferSelect;
+export type FinancePreferences = typeof financePreferences.$inferSelect;
+export type FinanceBalanceSnapshot = typeof financeBalanceSnapshots.$inferSelect;
