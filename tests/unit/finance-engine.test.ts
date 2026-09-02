@@ -4,6 +4,7 @@ import {
   DEFAULT_PREFS, FinanceData, buildFlows, monthlyForecast, forecastScenarios,
   dailyForecast, receivables, mrr, fixedMonthlyCosts, clientProfitability,
   businessProfitability, computeExceptions, pipeline, startingBalance, addMonths, dueInMonth,
+  simulateScenario, Adjustment,
 } from '../../src/finance/engine';
 
 // ---------- בונה FinanceData עם ברירות מחדל ----------
@@ -230,6 +231,33 @@ test('computeExceptions מזהה תשלום באיחור וניתן ל-dismiss',
 });
 
 // ---------- אופקי תחזית ----------
+// ---------- What-if Simulation (§20) ----------
+test('simulateScenario מוסיף MRR חדש ומגדיל את היתרה בסוף התקופה, בלי לגעת בבסיס', () => {
+  const data = makeData({ currentBalance: 0, engagements: [activeRetainer({ monthlyFee: 10000 })] });
+  const adj: Adjustment[] = [{ label: 'לקוח חדש', target: 'income', op: 'add', amount: 5000, recurring: 'monthly', startDate: '2026-01-01', endDate: null }];
+  const sim = simulateScenario(data, adj, 'committed', 6);
+  // בסיס: 10000/ח' * 6 = 60000
+  assert.equal(sim.base.at(-1).balance, 60000);
+  // תרחיש: (10000+5000)*6 = 90000
+  assert.equal(sim.simulated.at(-1).balance, 90000);
+  assert.equal(sim.summary.endBalanceDelta, 30000);
+  assert.equal(sim.summary.mrrDelta, 5000);
+});
+
+test('simulateScenario תומך באובדן לקוח (remove) ובהוצאה חד-פעמית', () => {
+  const data = makeData({ currentBalance: 100000, engagements: [activeRetainer({ monthlyFee: 10000 })] });
+  const adj: Adjustment[] = [
+    { label: 'אובדן לקוח', target: 'income', op: 'remove', amount: 4000, recurring: 'monthly', startDate: '2026-01-01', endDate: null },
+    { label: 'רכישת ציוד', target: 'expense', op: 'add', amount: 12000, recurring: 'once', startDate: '2026-02-15', endDate: null },
+  ];
+  const sim = simulateScenario(data, adj, 'committed', 3);
+  // חודש 1: 100000 + (10000-4000) = 106000
+  assert.equal(sim.simulated[0].balance, 106000);
+  // חודש 2: +6000 income -12000 expense = 100000
+  assert.equal(sim.simulated[1].balance, 100000);
+  assert.equal(sim.summary.mrrDelta, -4000);
+});
+
 test('forecastScenarios מחזיר אופקים ו-3 קווים', () => {
   const data = makeData({ engagements: [activeRetainer({ monthlyFee: 10000 })], currentBalance: 0 });
   const fc = forecastScenarios(data, 12);

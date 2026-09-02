@@ -120,7 +120,7 @@
   // ================= לשוניות =================
   const TABS = [
     ['control', 'שליטה'], ['income', 'הכנסות'], ['expenses', 'הוצאות'],
-    ['cashflow', 'תזרים'], ['forecast', 'תחזית'], ['profitability', 'רווחיות'],
+    ['cashflow', 'תזרים'], ['forecast', 'תחזית'], ['scenarios', 'תרחישים'], ['profitability', 'רווחיות'],
     ['overview', 'סקירה'], ['engagements', 'התקשרויות'], ['calculator', 'מחשבון'],
   ];
   function tabbar() {
@@ -136,6 +136,7 @@
       if (FIN_TAB === 'income') return await renderIncome();
       if (FIN_TAB === 'expenses') return await renderExpenses();
       if (FIN_TAB === 'forecast') return await renderForecast();
+      if (FIN_TAB === 'scenarios') return await renderScenarios();
       if (FIN_TAB === 'profitability') return await renderProfit();
       if (FIN_TAB === 'overview') return await renderOverview();
       return await renderControl();
@@ -505,8 +506,139 @@
   }
   async function _delExpense(id) { if (!confirm('למחוק הוצאה?')) return; await apiDel('/finance/cashflow/' + id); closeModal(); toast('נמחק'); go('finance'); }
 
+  // ================= תרחישים (What-if §20) =================
+  // טיוטת תרחיש במצב מודול — נשמרת בין רינדורים של הלשונית. Snapshot בלבד, לא נוגע בנתוני אמת.
+  let SC_DRAFT = { id: null, name: '', months: 12, scenario: 'realistic', adjustments: [] };
+  let SC_RESULT = null;
+
+  // presets ידידותיים → התאמה מנורמלת
+  const SC_PRESETS = {
+    new_client: { label: 'לקוח חדש', target: 'income', op: 'add', recurring: 'monthly', hint: 'MRR חדש' },
+    onetime_income: { label: 'הכנסה חד-פעמית', target: 'income', op: 'add', recurring: 'once', hint: 'פרויקט/מקדמה' },
+    lose_client: { label: 'אובדן לקוח', target: 'income', op: 'remove', recurring: 'monthly', hint: 'ירידת MRR' },
+    new_hire: { label: 'עובד/קבלן חדש', target: 'expense', op: 'add', recurring: 'monthly', hint: 'עלות חודשית' },
+    new_subscription: { label: 'מנוי חדש', target: 'expense', op: 'add', recurring: 'monthly', hint: 'הוצאה חוזרת' },
+    expense_up: { label: 'הגדלת הוצאה', target: 'expense', op: 'add', recurring: 'monthly', hint: 'תוספת חודשית' },
+    expense_down: { label: 'הפחתת הוצאה', target: 'expense', op: 'remove', recurring: 'monthly', hint: 'חיסכון חודשי' },
+    onetime_expense: { label: 'הוצאה חד-פעמית', target: 'expense', op: 'add', recurring: 'once', hint: 'רכישה' },
+  };
+  const adjIcon = (a) => a.target === 'income' ? (a.op === 'add' ? '📈' : '📉') : (a.op === 'add' ? '💸' : '💰');
+  const adjSign = (a) => (a.op === 'add' ? '+' : '−');
+
+  async function renderScenarios() {
+    let saved = []; try { saved = await apiGet('/finance/whatif'); } catch (e) {}
+    // הרצת סימולציה חיה אם יש התאמות
+    SC_RESULT = null;
+    if (SC_DRAFT.adjustments.length) {
+      try { SC_RESULT = await apiPost('/finance/whatif/simulate', { adjustments: SC_DRAFT.adjustments, months: SC_DRAFT.months, scenario: SC_DRAFT.scenario }); } catch (e) {}
+    }
+
+    const savedHtml = saved.length ? saved.map((s) => `<div class="list-item">
+      <div class="li-main"><b>${esc(s.name)}</b><small>${s.adjustments.length} התאמות · ${s.months} ח׳ · ${{ committed: 'מחויב', realistic: 'ריאלי', optimistic: 'אופטימי' }[s.scenario] || s.scenario}</small></div>
+      <div class="row" style="gap:5px"><button class="btn small" onclick="FIN.scLoad('${s.id}')">טען</button><button class="btn small ghost" onclick="FIN.scDelete('${s.id}')">✕</button></div></div>`).join('')
+      : '<div class="empty">אין תרחישים שמורים. בנה תרחיש חדש למטה.</div>';
+
+    const adjChips = SC_DRAFT.adjustments.length ? SC_DRAFT.adjustments.map((a, i) => `<div class="list-item">
+      <div class="li-main"><b>${adjIcon(a)} ${esc(a.label)}</b><small>${adjSign(a)}${m(a.amount)} · ${a.recurring === 'monthly' ? 'חודשי' : 'חד-פעמי'}${a.startDate ? ' · מ-' + fmt(a.startDate) : ''}${a.endDate ? ' עד ' + fmt(a.endDate) : ''}</small></div>
+      <button class="btn small ghost" onclick="FIN.scRemoveAdj(${i})">✕</button></div>`).join('')
+      : '<div class="empty">הוסף התאמות (לקוח חדש, אובדן לקוח, גיוס, שינוי הוצאה...) כדי לראות את ההשפעה.</div>';
+
+    const presetBtns = Object.entries(SC_PRESETS).map(([k, p]) => `<button class="btn small ghost" onclick="FIN.scAdd('${k}')">+ ${p.label}</button>`).join('');
+
+    // תצוגת השוואה
+    let compare = '<div class="empty">הוסף לפחות התאמה אחת כדי להריץ סימולציה.</div>';
+    if (SC_RESULT) {
+      const r = SC_RESULT;
+      const labels = r.base.map((b) => b.label);
+      const chart = lineChart(labels, [
+        { name: 'בסיס (מצב נוכחי)', color: '#93a0c8', values: r.base.map((b) => b.balance) },
+        { name: 'תרחיש', color: C.optimistic, values: r.simulated.map((b) => b.balance) },
+      ], SC_DRAFT.scenario === 'committed' ? null : null);
+      const su = r.summary;
+      const deltaKpi = (v, lbl) => `<div class="kpi ${v > 0 ? 'green' : v < 0 ? 'red' : 'gray'}"><b>${v >= 0 ? '+' : ''}${m(v)}</b><small>${lbl}</small></div>`;
+      compare = `
+        <div class="kpis" style="margin:0 0 12px">
+          ${deltaKpi(su.endBalanceDelta, 'שינוי יתרה בסוף התקופה')}
+          ${deltaKpi(su.minBalanceDelta, 'שינוי יתרת מינימום')}
+          ${deltaKpi(su.mrrDelta, 'שינוי MRR')}
+        </div>
+        ${chart}
+        ${su.firstNegativeYm ? `<div class="fin-status critical" style="margin-top:10px"><span class="dot">🔴</span><div>בתרחיש זה היתרה יורדת מתחת ל-0 בחודש ${esc(r.simulated.find((b) => b.ym === su.firstNegativeYm).label)}.</div></div>` : ''}
+        <div class="fin-scroll" style="margin-top:10px"><table class="fin-tbl"><thead><tr><th>חודש</th><th class="num">בסיס</th><th class="num">תרחיש</th><th class="num">פער</th></tr></thead><tbody>
+          ${r.base.map((b, i) => { const s = r.simulated[i]; const diff = Math.round((s.balance - b.balance) * 100) / 100; return `<tr><td>${esc(b.label)}</td><td class="num">${m(b.balance)}</td><td class="num" style="font-weight:700">${m(s.balance)}</td><td class="num" style="color:${diff > 0 ? 'var(--green)' : diff < 0 ? '#b42323' : 'var(--muted)'}">${diff >= 0 ? '+' : ''}${m(diff)}</td></tr>`; }).join('')}
+        </tbody></table></div>`;
+    }
+
+    FB().innerHTML = `
+      <div class="card"><div class="fin-sec-h"><h3>תרחישים שמורים</h3></div>${savedHtml}</div>
+      <div class="card">
+        <div class="fin-sec-h"><h3>בונה תרחיש${SC_DRAFT.name ? ' · ' + esc(SC_DRAFT.name) : ' חדש'}</h3>
+          <div class="row" style="gap:5px">${SC_DRAFT.adjustments.length ? '<button class="btn small" onclick="FIN.scSave()">שמירה</button>' : ''}<button class="btn small ghost" onclick="FIN.scNew()">חדש</button></div></div>
+        <div class="grid2" style="align-items:start">
+          <div class="f"><label>טווח תחזית</label><div class="seg">${[3, 6, 12, 24].map((n) => `<button class="${n === SC_DRAFT.months ? 'on' : ''}" onclick="FIN.scMonths(${n})">${n} ח׳</button>`).join('')}</div></div>
+          <div class="f"><label>בסיס תרחיש</label><div class="seg">${[['committed', 'מחויב'], ['realistic', 'ריאלי'], ['optimistic', 'אופטימי']].map(([k, l]) => `<button class="${k === SC_DRAFT.scenario ? 'on' : ''}" onclick="FIN.scBase('${k}')">${l}</button>`).join('')}</div></div>
+        </div>
+        <div style="margin:6px 0 10px">${adjChips}</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">${presetBtns}</div>
+        <p class="hint" style="color:var(--muted);margin-top:8px">התרחיש הוא סימולציה בלבד — אינו משנה תזרים, התקשרויות, הזדמנויות או נתוני אמת.</p>
+      </div>
+      <div class="card"><h3 style="margin:0 0 10px">השפעת התרחיש</h3>${compare}</div>`;
+  }
+
+  function scAdd(presetKey) {
+    const p = SC_PRESETS[presetKey];
+    if (!p) return;
+    const isDelay = false;
+    openModal(`<h3>${esc(p.label)}</h3>
+      <div class="f"><label>תיאור</label><input id="sca_label" value="${esc(p.label)}"></div>
+      <div class="f"><label>סכום חודשי/חד-פעמי (₪)</label><input type="number" id="sca_amt" inputmode="decimal" placeholder="${p.hint}"></div>
+      <div class="grid2">
+        <div class="f"><label>מ-תאריך</label><input type="date" id="sca_start" value="${todayISO()}"></div>
+        <div class="f"><label>${p.recurring === 'monthly' ? 'עד תאריך (אופציונלי)' : ' '}</label>${p.recurring === 'monthly' ? '<input type="date" id="sca_end">' : '<span style="color:var(--muted);font-size:.8rem">אירוע חד-פעמי</span>'}</div>
+      </div>
+      <div class="modal-actions"><button class="btn primary" onclick="FIN._scAdd('${presetKey}')">הוספה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+  }
+  function _scAdd(presetKey) {
+    const p = SC_PRESETS[presetKey];
+    const amt = $('sca_amt').value;
+    if (amt === '' || Number(amt) <= 0) return toast('הזן סכום', 'bad');
+    SC_DRAFT.adjustments.push({
+      label: val('sca_label') || p.label, target: p.target, op: p.op, amount: Number(amt),
+      recurring: p.recurring, startDate: val('sca_start') || todayISO(), endDate: (p.recurring === 'monthly' && $('sca_end')) ? (val('sca_end') || null) : null,
+    });
+    closeModal(); go('finance');
+  }
+  function scRemoveAdj(i) { SC_DRAFT.adjustments.splice(i, 1); go('finance'); }
+  function scMonths(n) { SC_DRAFT.months = n; go('finance'); }
+  function scBase(s) { SC_DRAFT.scenario = s; go('finance'); }
+  function scNew() { SC_DRAFT = { id: null, name: '', months: 12, scenario: 'realistic', adjustments: [] }; go('finance'); }
+  async function scLoad(id) {
+    const list = await apiGet('/finance/whatif');
+    const s = list.find((x) => x.id === id);
+    if (!s) return toast('לא נמצא', 'bad');
+    SC_DRAFT = { id: s.id, name: s.name, months: s.months, scenario: s.scenario, adjustments: s.adjustments };
+    go('finance');
+  }
+  async function scSave() {
+    const name = SC_DRAFT.name || prompt('שם התרחיש:');
+    if (!name) return;
+    SC_DRAFT.name = name;
+    try {
+      if (SC_DRAFT.id) await apiPatch('/finance/whatif/' + SC_DRAFT.id, { name, adjustments: SC_DRAFT.adjustments, months: SC_DRAFT.months, scenario: SC_DRAFT.scenario });
+      else { const r = await apiPost('/finance/whatif', { name, adjustments: SC_DRAFT.adjustments, months: SC_DRAFT.months, scenario: SC_DRAFT.scenario }); SC_DRAFT.id = r.id; }
+      toast('התרחיש נשמר ✓'); go('finance');
+    } catch (e) { toast('שגיאה', 'bad'); }
+  }
+  async function scDelete(id) {
+    if (!confirm('למחוק תרחיש?')) return;
+    await apiDel('/finance/whatif/' + id);
+    if (SC_DRAFT.id === id) scNew(); else go('finance');
+    toast('נמחק');
+  }
+
   // ---------- חשיפה גלובלית ----------
   window.FIN = {
+    scAdd, _scAdd, scRemoveAdj, scMonths, scBase, scNew, scLoad, scSave, scDelete,
     tab, explain, expFilter, fcMonths, fcScen,
     dismissExc, exceptionTask, updateBalance, _saveBalance,
     addIncome, _saveIncome, addExpense, editExpense, _saveExpense, _delExpense, _expToggle,

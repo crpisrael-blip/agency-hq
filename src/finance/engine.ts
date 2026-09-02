@@ -901,6 +901,102 @@ function fmtDate(iso: string): string {
   return iso.split('-').reverse().join('/');
 }
 
+// ============ תרחישי What-if (§20) — Snapshot בלבד, לא נוגע בנתוני אמת ============
+
+/**
+ * התאמת תרחיש בודדת. מנורמלת: target (הכנסה/הוצאה), op (הוספה/הסרה), סכום, מחזוריות וטווח.
+ * ה-frontend מתרגם סוגי-תרחיש ידידותיים (לקוח חדש, אובדן לקוח, גיוס, דחיית תשלום...) להתאמות אלה.
+ */
+export interface Adjustment {
+  label: string;
+  target: 'income' | 'expense';
+  op: 'add' | 'remove';
+  amount: number;
+  recurring: 'once' | 'monthly';
+  startDate: string | null;  // YYYY-MM-DD
+  endDate: string | null;
+}
+
+function adjActiveInMonth(a: Adjustment, ym: string, firstYm: string): boolean {
+  const startYm = a.startDate ? ymOf(a.startDate) : firstYm;
+  const endYm = a.endDate ? ymOf(a.endDate) : null;
+  if (a.recurring === 'once') return startYm === ym;
+  if (ym < startYm) return false;
+  if (endYm && ym > endYm) return false;
+  return true;
+}
+
+export interface SimulationResult {
+  scenario: ScenarioKind;
+  months: number;
+  base: MonthBucket[];
+  simulated: MonthBucket[];
+  summary: {
+    baseEndBalance: number;
+    simEndBalance: number;
+    endBalanceDelta: number;
+    baseMinBalance: number;
+    simMinBalance: number;
+    minBalanceDelta: number;
+    mrrDelta: number;         // שינוי חוזר חודשי נטו
+    firstNegativeYm: string | null;
+  };
+  adjustments: Adjustment[];
+}
+
+/**
+ * מריץ סימולציית What-if: לוקח את התחזית הבסיסית (על נתוני אמת) ומוסיף מעליה שכבת
+ * התאמות — בלי לשנות שום נתון אמיתי (§20). מחזיר בסיס מול תרחיש להשוואה.
+ */
+export function simulateScenario(data: FinanceData, adjustments: Adjustment[], scenario: ScenarioKind, months: number): SimulationResult {
+  const base = monthlyForecast(data, scenario, months);
+  const firstYm = ymOf(data.today);
+  const opening = startingBalance(data);
+  const adjs = (adjustments || []).filter((a) => a && a.amount);
+
+  let balance = opening;
+  let simMin = opening;
+  let firstNeg: string | null = null;
+  const simulated: MonthBucket[] = base.buckets.map((b) => {
+    let dIncome = 0;
+    let dExpense = 0;
+    const extraItems: MonthBucket['items'] = [];
+    for (const a of adjs) {
+      if (!adjActiveInMonth(a, b.ym, firstYm)) continue;
+      const signed = a.op === 'add' ? a.amount : -a.amount;
+      if (a.target === 'income') dIncome += signed;
+      else dExpense += signed;
+      extraItems.push({ label: a.label, amount: round2(signed), kind: a.target, tier: 'potential', source: 'scenario' });
+    }
+    const income = round2(b.income + dIncome);
+    const expense = round2(b.expense + dExpense);
+    const net = round2(income - expense);
+    balance = round2(balance + net);
+    if (balance < simMin) simMin = balance;
+    if (firstNeg == null && balance < 0) firstNeg = b.ym;
+    return { ym: b.ym, label: b.label, income, expense, net, balance, items: [...b.items, ...extraItems] };
+  });
+
+  // שינוי MRR נטו = סך התאמות חוזרות על הכנסה (add−remove) שפעילות לאורך זמן
+  const mrrDelta = round2(adjs.filter((a) => a.recurring === 'monthly' && a.target === 'income').reduce((s, a) => s + (a.op === 'add' ? a.amount : -a.amount), 0)
+    - adjs.filter((a) => a.recurring === 'monthly' && a.target === 'expense').reduce((s, a) => s + (a.op === 'add' ? a.amount : -a.amount), 0));
+
+  return {
+    scenario, months, base: base.buckets, simulated,
+    summary: {
+      baseEndBalance: base.summary.endBalance,
+      simEndBalance: simulated.at(-1)?.balance ?? opening,
+      endBalanceDelta: round2((simulated.at(-1)?.balance ?? opening) - base.summary.endBalance),
+      baseMinBalance: base.summary.minBalance,
+      simMinBalance: simMin,
+      minBalanceDelta: round2(simMin - base.summary.minBalance),
+      mrrDelta,
+      firstNegativeYm: firstNeg,
+    },
+    adjustments: adjs,
+  };
+}
+
 // ============ Payload מאוחד למסך שליטה (§26) ============
 
 export function controlPayload(data: FinanceData) {

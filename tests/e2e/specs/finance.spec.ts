@@ -49,6 +49,21 @@ test.describe('כספים — מרכז שליטה', () => {
     await expect(page.locator('.tabs2 button', { hasText: 'סקירה' })).toHaveClass(/on/);
   });
 
+  test('תרחיש What-if מריץ סימולציה חיה ומראה פער מהבסיס', async ({ page }) => {
+    const app = new AppShell(page);
+    await app.openSubTab('תרחישים');
+    await expect(page.getByRole('heading', { name: /בונה תרחיש/ })).toBeVisible();
+    // הוספת התאמה: לקוח חדש
+    await page.getByRole('button', { name: '+ לקוח חדש' }).first().click();
+    await expect(page.locator('.overlay')).toBeVisible();
+    await page.locator('#sca_amt').fill('7000');
+    await page.locator('.overlay').getByRole('button', { name: 'הוספה' }).click();
+    // תוצאת סימולציה: KPI שינוי MRR + טבלת השוואה
+    await expect(page.locator('.kpi', { hasText: 'שינוי MRR' })).toBeVisible();
+    await expect(page.locator('.kpi', { hasText: 'שינוי MRR' })).toContainText('7,000');
+    await expect(page.locator('.fin-tbl')).toBeVisible();
+  });
+
   test('עדכון יתרה נוכחית נשמר ומזין את התחזית', async ({ page }) => {
     const app = new AppShell(page);
     await page.getByRole('button', { name: 'עדכן יתרה' }).click();

@@ -8,10 +8,10 @@ import {
 import { Env, db, uid, now, pick, num, todayIL, logActivity } from './util';
 import { engagementMonthly, engagementSetup } from './engagements';
 import {
-  FinanceData, Prefs, DEFAULT_PREFS, ScenarioKind,
+  FinanceData, Prefs, DEFAULT_PREFS, ScenarioKind, Adjustment,
   controlPayload, forecastScenarios, monthlyForecast, dailyForecast, receivables,
   clientProfitability, businessProfitability, computeExceptions, pipeline, mrr,
-  fixedMonthlyCosts, burnAndRunway, buildFlows, startingBalance, dataQuality,
+  fixedMonthlyCosts, burnAndRunway, buildFlows, startingBalance, dataQuality, simulateScenario,
 } from '../finance/engine';
 
 const INTERNAL_LABEL = 'מערכת הניהול (Agency HQ)';
@@ -720,5 +720,80 @@ financeApp.put('/preferences', async (c) => {
   const existing = await d.select().from(financePreferences).where(eq(financePreferences.id, 'default')).limit(1);
   if (existing.length) await d.update(financePreferences).set(data).where(eq(financePreferences.id, 'default'));
   else await d.insert(financePreferences).values({ id: 'default', ...data } as any);
+  return c.json({ ok: true });
+});
+
+/* ---------- תרחישי What-if (§20) ----------
+ * נשמרים בטבלת scenarios הקיימת עם model='whatif' (inputs=הגדרת התרחיש) כדי לא לשכפל טבלה.
+ * הסימולציה טהורה ולא נוגעת בנתוני אמת — Snapshot בלבד.
+ */
+function normalizeAdjustments(raw: any): Adjustment[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((a) => ({
+    label: String(a.label || 'התאמה'),
+    target: a.target === 'expense' ? 'expense' : 'income',
+    op: a.op === 'remove' ? 'remove' : 'add',
+    amount: num(a.amount),
+    recurring: a.recurring === 'monthly' ? 'monthly' : 'once',
+    startDate: a.startDate ? String(a.startDate) : null,
+    endDate: a.endDate ? String(a.endDate) : null,
+  })) as Adjustment[];
+}
+
+// הרצת סימולציה ללא שמירה (Preview חי)
+financeApp.post('/whatif/simulate', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const data = await loadFinanceData(c);
+  const adjustments = normalizeAdjustments(body.adjustments);
+  const months = Math.min(36, Math.max(1, num(body.months, data.prefs.forecastMonths)));
+  const scenario = (body.scenario || data.prefs.defaultScenario) as ScenarioKind;
+  return c.json(simulateScenario(data, adjustments, scenario, months));
+});
+
+// רשימת תרחישי What-if שמורים (בלבד — לא תרחישי מחשבון החיוב)
+financeApp.get('/whatif', async (c) => {
+  const rows = await db(c).select().from(scenarios).where(eq(scenarios.model, 'whatif')).orderBy(desc(scenarios.createdAt)).all();
+  return c.json(rows.map((s) => {
+    let cfg: any = {};
+    try { cfg = JSON.parse(s.inputs || '{}'); } catch { /* ignore */ }
+    return { id: s.id, name: s.name, notes: s.notes, createdAt: s.createdAt, adjustments: cfg.adjustments || [], months: cfg.months || 12, scenario: cfg.scenario || 'realistic' };
+  }));
+});
+
+financeApp.post('/whatif', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  if (!body.name) return c.json({ error: 'invalid_input' }, 400);
+  const id = uid();
+  const cfg = {
+    adjustments: normalizeAdjustments(body.adjustments),
+    months: Math.min(36, Math.max(1, num(body.months, 12))),
+    scenario: body.scenario || 'realistic',
+  };
+  await db(c).insert(scenarios).values({
+    id, clientId: body.clientId || null, name: String(body.name), model: 'whatif',
+    inputs: JSON.stringify(cfg), results: '{}', notes: body.notes ? String(body.notes) : null, createdAt: now(),
+  } as any);
+  return c.json({ ok: true, id });
+});
+
+financeApp.patch('/whatif/:id', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const data: any = {};
+  if (body.name !== undefined) data.name = String(body.name);
+  if (body.notes !== undefined) data.notes = body.notes ? String(body.notes) : null;
+  if (body.adjustments !== undefined || body.months !== undefined || body.scenario !== undefined) {
+    const cur = (await db(c).select().from(scenarios).where(eq(scenarios.id, c.req.param('id'))).limit(1))[0];
+    let cfg: any = {}; try { cfg = JSON.parse(cur?.inputs || '{}'); } catch { /* ignore */ }
+    if (body.adjustments !== undefined) cfg.adjustments = normalizeAdjustments(body.adjustments);
+    if (body.months !== undefined) cfg.months = Math.min(36, Math.max(1, num(body.months, 12)));
+    if (body.scenario !== undefined) cfg.scenario = body.scenario;
+    data.inputs = JSON.stringify(cfg);
+  }
+  if (Object.keys(data).length) await db(c).update(scenarios).set(data).where(eq(scenarios.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+financeApp.delete('/whatif/:id', async (c) => {
+  await db(c).delete(scenarios).where(eq(scenarios.id, c.req.param('id')));
   return c.json({ ok: true });
 });
