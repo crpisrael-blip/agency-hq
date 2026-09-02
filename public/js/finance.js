@@ -35,6 +35,8 @@
     .fin-tbl th{color:var(--muted);font-weight:700;font-size:.76rem}
     .fin-tbl td.num,.fin-tbl th.num{text-align:end;font-variant-numeric:tabular-nums}
     .fin-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .fin-clk:hover td{background:var(--bg-2)}
+    .fin-detail>td{background:var(--bg-2)}
     .fin-sec-h{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px}
     .fin-sec-h h3{margin:0;font-size:1rem}
     .exc{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -55,6 +57,15 @@
   let FC_MONTHS = 12;
   let FC_SCEN = 'realistic';
   let EXP_FILTER = 'all';
+  let HIST_MONTHS = 6;
+  const HIST_OPEN = {};   // ym -> true  (שורות חודש פתוחות בהיסטוריה)
+  const FC_OPEN = {};     // ym -> true  (שורות חודש פתוחות בתחזית)
+
+  // fetch עם טוקן מנהל שאינו-JSON (העלאה/הורדת קבצי קבלה)
+  const authFetch = (path, opts = {}) => fetch('/api' + path, {
+    ...opts,
+    headers: { 'x-admin-token': (typeof TOKEN !== 'undefined' ? TOKEN : localStorage.getItem('agencyhq_token')) || '', ...(opts.headers || {}) },
+  });
 
   // ---------- עזרי תצוגה ----------
   const m = (n) => money(n);
@@ -119,7 +130,7 @@
 
   // ================= לשוניות =================
   const TABS = [
-    ['control', 'שליטה'], ['income', 'הכנסות'], ['expenses', 'הוצאות'],
+    ['control', 'שליטה'], ['income', 'הכנסות'], ['expenses', 'הוצאות'], ['history', 'היסטוריה'],
     ['cashflow', 'תזרים'], ['forecast', 'תחזית'], ['scenarios', 'תרחישים'], ['profitability', 'רווחיות'],
     ['overview', 'סקירה'], ['engagements', 'התקשרויות'], ['calculator', 'מחשבון'],
   ];
@@ -137,6 +148,7 @@
     try {
       if (FIN_TAB === 'income') return await renderIncome();
       if (FIN_TAB === 'expenses') return await renderExpenses();
+      if (FIN_TAB === 'history') return await renderHistory();
       if (FIN_TAB === 'forecast') return await renderForecast();
       if (FIN_TAB === 'scenarios') return await renderScenarios();
       if (FIN_TAB === 'profitability') return await renderProfit();
@@ -308,33 +320,40 @@
       <div class="kpi"><b>${m(k.totalMonthly)}</b><small>סה"כ חודשי שקול</small></div>
       <div class="kpi"><b>${k.recurringCount}</b><small>הוצאות חוזרות</small></div>
       <div class="kpi ${k.unallocatedCount ? 'amber' : ''}"><b>${k.unallocatedCount}</b><small>ללא שיוך</small></div>
+      ${k.infraCount ? `<div class="kpi gray"><b>${k.infraCount}</b><small>תשתיות (מעקב)</small></div>` : ''}
       ${b.cashNegative && b.runwayMonths != null ? `<div class="kpi red"><b>${b.runwayMonths} ח׳</b><small>Runway</small></div>` : ''}
     </div>`;
     const cats = d.categories;
     const catName = (r) => (cats.find((c) => c.id === r.categoryId) || {}).name || r.category || '—';
-    let rows = d.expenses;
+    const isInfra = EXP_FILTER === 'infra';
+    let rows = isInfra ? (d.infra || []) : d.expenses;
     if (EXP_FILTER === 'recurring') rows = rows.filter((r) => r.recurring !== 'once');
     if (EXP_FILTER === 'once') rows = rows.filter((r) => r.recurring === 'once');
     if (EXP_FILTER === 'unallocated') rows = rows.filter((r) => r.unallocated && r.recurring !== 'once');
-    const seg = `<div class="seg" style="max-width:420px;margin-bottom:12px">${[['all', 'הכול'], ['recurring', 'חוזרות'], ['once', 'חד-פעמי'], ['unallocated', 'ללא שיוך']].map(([kk, l]) => `<button class="${kk === EXP_FILTER ? 'on' : ''}" onclick="FIN.expFilter('${kk}')">${l}</button>`).join('')}</div>`;
-    const list = rows.length ? `<div class="fin-scroll"><table class="fin-tbl"><thead><tr><th>הוצאה</th><th>קטגוריה</th><th>מחזוריות</th><th class="num">חודשי שקול</th><th>שיוך</th><th></th></tr></thead><tbody>
+    const filters = [['all', 'הכול'], ['recurring', 'חוזרות'], ['once', 'חד-פעמי'], ['unallocated', 'ללא שיוך'], ['infra', `תשתיות${k.infraCount ? ` (${k.infraCount})` : ''}`]];
+    const seg = `<div class="seg" style="max-width:520px;margin-bottom:12px">${filters.map(([kk, l]) => `<button class="${kk === EXP_FILTER ? 'on' : ''}" onclick="FIN.expFilter('${kk}')">${l}</button>`).join('')}</div>`;
+    const receiptBadge = (r) => r.receiptCount ? `<span title="${r.receiptCount} קבלות" style="color:var(--muted);font-size:.8rem">📎${r.receiptCount}</span>` : '';
+    const list = rows.length ? `<div class="fin-scroll"><table class="fin-tbl"><thead><tr><th>הוצאה</th><th>ספק</th><th>קטגוריה</th><th>מחזוריות</th><th class="num">${isInfra ? 'עלות' : 'חודשי שקול'}</th><th>${isInfra ? 'קבלה' : 'שיוך'}</th><th></th></tr></thead><tbody>
       ${rows.map((r) => `<tr>
-        <td>${esc(r.label)}${r.vendorName ? `<small style="color:var(--muted)"> · ${esc(r.vendorName)}</small>` : ''}</td>
+        <td>${esc(r.label)} ${receiptBadge(r)}</td>
+        <td>${r.vendorName ? esc(r.vendorName) : '<span style="color:var(--muted)">—</span>'}</td>
         <td>${esc(catName(r))}</td>
         <td>${r.recurring === 'monthly' ? 'חודשי' : r.recurring === 'yearly' ? 'שנתי' : 'חד-פעמי'}${r.renewalDate ? `<br><small style="color:var(--muted)">חידוש ${fmt(r.renewalDate)}</small>` : ''}</td>
-        <td class="num">${m(r.monthlyEquivalent)}</td>
-        <td>${r.unallocated ? '<span class="pill p-amber">ללא</span>' : r.clientName ? `<span class="pill p-teal">${esc(r.clientName)}</span>` : r.allocationCount ? `<span class="pill p-teal">${r.allocationCount} יעדים</span>` : '<span class="pill p-gray">Overhead</span>'}</td>
+        <td class="num">${isInfra ? (r.amount ? m(r.amount) : '<span style="color:var(--muted)">0</span>') : m(r.monthlyEquivalent)}</td>
+        <td>${isInfra ? (r.receiptCount ? `📎 ${r.receiptCount}` : '<span style="color:var(--muted)">—</span>') : (r.unallocated ? '<span class="pill p-amber">ללא</span>' : r.clientName ? `<span class="pill p-teal">${esc(r.clientName)}</span>` : r.allocationCount ? `<span class="pill p-teal">${r.allocationCount} יעדים</span>` : '<span class="pill p-gray">Overhead</span>')}</td>
         <td><button class="btn small ghost" onclick="FIN.editExpense('${r.id}')">✎</button></td>
       </tr>`).join('')}
-    </tbody></table></div>` : '<div class="empty">אין הוצאות בסינון זה</div>';
+    </tbody></table></div>` : `<div class="empty">${isInfra ? 'אין תשתיות למעקב. סמן הוצאה כ"תשתית למעקב בלבד" כדי שתופיע כאן.' : 'אין הוצאות בסינון זה'}</div>`;
 
     FB().innerHTML = `
       <div class="row" style="justify-content:flex-end;gap:6px;margin-bottom:10px">
+        <button class="btn small ghost" onclick="FIN.tab('history')">הוצאות אחורה →</button>
         <button class="btn small ghost" onclick="FIN.tab('forecast')">חידושים בתחזית</button>
         <button class="btn small" onclick="FIN.addExpense()">+ הוצאה</button>
       </div>
       ${kpis}
-      ${b.cashNegative ? `<div class="fin-status attention"><span class="dot">🟡</span><div><b>Burn חודשי:</b> ${m(b.monthlyBurn)} · הכנסה חודשית ${m(b.monthlyIncome)} · נטו ${m(b.netMonthly)}${b.runwayMonths != null ? ` · Runway כ-${b.runwayMonths} חודשים` : ''}</div></div>` : ''}
+      ${isInfra ? '<div class="fin-status ok"><span class="dot">🧩</span><div>תשתיות למעקב בלבד — מנויים/כלים שאתה רוצה לדעת עליהם (גם ב-0 ₪). אינם נספרים ב-Burn, בתחזית או ב-KPI.</div></div>' : ''}
+      ${!isInfra && b.cashNegative ? `<div class="fin-status attention"><span class="dot">🟡</span><div><b>Burn חודשי:</b> ${m(b.monthlyBurn)} · הכנסה חודשית ${m(b.monthlyIncome)} · נטו ${m(b.netMonthly)}${b.runwayMonths != null ? ` · Runway כ-${b.runwayMonths} חודשים` : ''}</div></div>` : ''}
       <div class="card">${seg}${list}</div>`;
   }
   function expFilter(k) { EXP_FILTER = k; go('finance'); }
@@ -356,7 +375,11 @@
     const hz = d.horizons.map((h) => `<div class="kpi"><b>${m(h[FC_SCEN])}</b><small>+${h.days} יום</small></div>`).join('');
 
     const table = `<div class="fin-scroll"><table class="fin-tbl"><thead><tr><th>חודש</th><th class="num">הכנסות</th><th class="num">הוצאות</th><th class="num">נטו</th><th class="num">יתרה</th></tr></thead><tbody>
-      ${scen.buckets.map((x) => `<tr><td>${esc(x.label)}</td><td class="num" style="color:var(--green)">${m(x.income)}</td><td class="num" style="color:#b42323">${m(x.expense)}</td><td class="num">${m(x.net)}</td><td class="num" style="font-weight:800${x.balance < (d.threshold || 0) ? ';color:#b42323' : ''}">${m(x.balance)}</td></tr>`).join('')}
+      ${scen.buckets.map((x) => {
+        const open = !!FC_OPEN[x.ym];
+        const head = `<tr class="fin-clk" onclick="FIN.fcToggle('${x.ym}')" style="cursor:pointer"><td>${open ? '▾' : '◂'} ${esc(x.label)}</td><td class="num" style="color:var(--green)">${m(x.income)}</td><td class="num" style="color:#b42323">${m(x.expense)}</td><td class="num">${m(x.net)}</td><td class="num" style="font-weight:800${x.balance < (d.threshold || 0) ? ';color:#b42323' : ''}">${m(x.balance)}</td></tr>`;
+        return head + (open ? monthDetailRows(x.items || [], 5) : '');
+      }).join('')}
     </tbody></table></div>`;
 
     const daily = d.daily;
@@ -375,6 +398,56 @@
   }
   function fcMonths(n) { FC_MONTHS = n; go('finance'); }
   function fcScen(s) { FC_SCEN = s; go('finance'); }
+  function fcToggle(ym) { FC_OPEN[ym] = !FC_OPEN[ym]; go('finance'); }
+
+  // ================= היסטוריה (הוצאות אחורה, idea 2) =================
+  const kindIco = (k) => (k === 'income' ? '🟢' : '🔴');
+  function monthDetailRows(items, cols) {
+    // פירוט פריטי חודש — מקובצים לפי תווית, ממוין לפי סכום
+    const agg = {};
+    for (const it of items) {
+      const key = it.kind + '|' + it.label;
+      if (!agg[key]) agg[key] = { label: it.label, kind: it.kind, amount: 0 };
+      agg[key].amount += it.amount;
+    }
+    const arr = Object.values(agg).sort((a, b) => b.amount - a.amount);
+    if (!arr.length) return `<tr class="fin-detail"><td colspan="${cols}"><span style="color:var(--muted)">אין תנועות בחודש זה</span></td></tr>`;
+    return `<tr class="fin-detail"><td colspan="${cols}"><div style="padding:2px 0 6px">
+      ${arr.map((it) => `<div class="row" style="justify-content:space-between;gap:10px;font-size:.82rem;padding:2px 0"><span>${kindIco(it.kind)} ${esc(it.label)}</span><span class="num" style="font-variant-numeric:tabular-nums;color:${it.kind === 'income' ? 'var(--green)' : '#b42323'}">${m(it.amount)}</span></div>`).join('')}
+    </div></td></tr>`;
+  }
+  async function renderHistory() {
+    const d = await apiGet('/finance/expenses/history?months=' + HIST_MONTHS);
+    const s = d.summary;
+    const kpis = `<div class="kpis">
+      <div class="kpi red"><b>${m(s.totalExpense)}</b><small>סה"כ הוצאות (${HIST_MONTHS} ח׳)</small></div>
+      <div class="kpi"><b>${m(s.avgMonthlyExpense)}</b><small>ממוצע חודשי</small></div>
+      <div class="kpi green"><b>${m(s.totalIncome)}</b><small>סה"כ הכנסות</small></div>
+      <div class="kpi ${s.net < 0 ? 'red' : 'green'}"><b>${m(s.net)}</b><small>נטו</small></div>
+    </div>`;
+    const monthSeg = `<div class="seg" style="max-width:300px">${[3, 6, 12, 24].map((n) => `<button class="${n === HIST_MONTHS ? 'on' : ''}" onclick="FIN.histMonths(${n})">${n}</button>`).join('')}</div>`;
+    // מהחדש לישן בתצוגה
+    const buckets = [...d.buckets].reverse();
+    const rows = buckets.map((b) => {
+      const open = !!HIST_OPEN[b.ym];
+      const head = `<tr class="fin-clk" onclick="FIN.histToggle('${b.ym}')" style="cursor:pointer">
+        <td>${open ? '▾' : '◂'} ${esc(b.label)}</td>
+        <td class="num" style="color:var(--green)">${m(b.income)}</td>
+        <td class="num" style="color:#b42323">${m(b.expense)}</td>
+        <td class="num" style="font-weight:700">${m(b.net)}</td></tr>`;
+      return head + (open ? monthDetailRows(b.items, 4) : '');
+    }).join('');
+    const table = buckets.length ? `<div class="fin-scroll"><table class="fin-tbl"><thead><tr><th>חודש</th><th class="num">הכנסות</th><th class="num">הוצאות</th><th class="num">נטו</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty">אין נתונים היסטוריים</div>';
+    FB().innerHTML = `
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <div><h3 style="margin:0 0 2px">הוצאות אחורה</h3><small style="color:var(--muted)">לחיצה על חודש פותחת פירוט מלא של התנועות</small></div>
+        ${monthSeg}
+      </div>
+      ${kpis}
+      <div class="card">${table}</div>`;
+  }
+  function histMonths(n) { HIST_MONTHS = n; go('finance'); }
+  function histToggle(ym) { HIST_OPEN[ym] = !HIST_OPEN[ym]; go('finance'); }
 
   // ================= רווחיות =================
   async function renderProfit() {
@@ -459,11 +532,28 @@
   }
   async function expenseForm(r) {
     let cats = []; try { cats = await apiGet('/finance/categories'); } catch (e) {}
+    let vends = []; try { vends = await apiGet('/finance/vendors'); } catch (e) {}
     if (!CACHE.clients || !CACHE.clients.length) { try { await loadRefs(); } catch (e) {} }
     const catOpts = `<option value="">— קטגוריה —</option>` + cats.map((c) => `<option value="${c.id}" ${r && r.categoryId === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+    const vendOpts = `<option value="">— ללא ספק —</option>`
+      + vends.map((v) => `<option value="${v.id}" ${r && r.vendorId === v.id ? 'selected' : ''}>${esc(v.name)}</option>`).join('')
+      + `<option value="__new__">+ ספק חדש…</option>`;
     const rec = r ? r.recurring : 'monthly';
+    const trackOnly = !!(r && r.trackOnly);
+    // מקטע קבלות — רק בעריכה (צריך מזהה הוצאה קיים כדי לצרף קובץ)
+    const receiptsSection = r
+      ? `<div class="f"><label>קבלות</label>
+          <div id="fe_receipts_list" style="margin-bottom:6px"><span style="color:var(--muted);font-size:.82rem">טוען…</span></div>
+          <div class="row" style="gap:6px;align-items:center">
+            <input type="file" id="fe_receipt_file" accept="image/*,application/pdf" multiple style="flex:1;min-width:0;font-size:.82rem">
+            <button type="button" class="btn small" onclick="FIN._uploadReceipt('${r.id}')">העלה</button>
+          </div>
+          <p class="hint" style="color:var(--muted);margin:4px 0 0;font-size:.76rem">תמונה או PDF · עד 10MB · נגיש רק לך.</p></div>`
+      : `<p class="hint" style="color:var(--muted);margin:0 0 4px">📎 כדי לצרף קבלה — שמור את ההוצאה ואז פתח אותה שוב לעריכה.</p>`;
     openModal(`<h3>${r ? 'עריכת הוצאה' : 'הוצאה חדשה'}</h3>
-      <div class="f"><label>שם ההוצאה</label><input id="fe_label" value="${r ? esc(r.label) : ''}" placeholder="למשל: מנוי ענן"></div>
+      <div class="f"><label>שירות / מוצר</label><input id="fe_label" value="${r ? esc(r.label) : ''}" placeholder="למשל: Claude, דומיין, אחסון ענן"></div>
+      <div class="f"><label>ספק</label><select id="fe_vendor" onchange="FIN._vendorToggle()">${vendOpts}</select>
+        <input id="fe_vendor_new" placeholder="שם ספק חדש (למשל: Anthropic)" style="display:none;margin-top:6px"></div>
       <div class="grid2">
         <div class="f"><label>סכום (₪)</label><input type="number" id="fe_amt" inputmode="decimal" value="${r ? r.amount : ''}"></div>
         <div class="f"><label>מחזוריות</label><select id="fe_rec" onchange="FIN._expToggle()">
@@ -485,28 +575,96 @@
         <div class="row" style="gap:16px"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fe_cancellable" ${r && r.cancellable ? 'checked' : ''}> ניתן לביטול</label>
           <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fe_essential" ${r && r.essential ? 'checked' : ''}> חיוני</label></div>
       </div>
+      <div class="f" style="background:var(--bg-2);border-radius:10px;padding:9px 11px">
+        <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:0"><input type="checkbox" id="fe_track" ${trackOnly ? 'checked' : ''} style="margin-top:2px">
+          <span>תשתית למעקב בלבד <small style="display:block;color:var(--muted);font-weight:400">מנוי/כלי שאני רק רוצה לדעת שקיים (גם ב-0 ₪) — לא נספר ב-Burn/תחזית.</small></span></label></div>
       <div class="f"><label>שיוך ללקוח (אופציונלי)</label><select id="fe_client">${clientOptions(r ? r.clientId : '')}</select></div>
+      ${receiptsSection}
       <div class="modal-actions">
         <button class="btn primary" onclick="FIN._saveExpense('${r ? r.id : ''}')">שמירה</button>
         ${r ? `<button class="btn ghost" onclick="FIN._delExpense('${r.id}')">מחיקה</button>` : ''}
         <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+    if (r) _renderReceiptsInto(r.id);
   }
   function _expToggle() { const rec = $('fe_rec').value; $('fe_recur').style.display = rec === 'once' ? 'none' : 'block'; }
+  function _vendorToggle() {
+    const isNew = $('fe_vendor').value === '__new__';
+    const inp = $('fe_vendor_new');
+    if (inp) { inp.style.display = isNew ? 'block' : 'none'; if (isNew) inp.focus(); }
+  }
   async function _saveExpense(id) {
     const label = val('fe_label'); const amt = $('fe_amt').value;
     if (!label || amt === '') return toast('חסר שם/סכום', 'bad');
+    // ספק: קיים או חדש (נוצר תוך כדי שמירה)
+    let vendorId = $('fe_vendor') ? $('fe_vendor').value : '';
+    if (vendorId === '__new__') {
+      const vname = val('fe_vendor_new');
+      if (vname) { try { const vr = await apiPost('/finance/vendors', { name: vname }); vendorId = vr.id || ''; } catch (e) { vendorId = ''; } }
+      else vendorId = '';
+    }
     const body = {
       kind: 'expense', label, amount: Number(amt), recurring: $('fe_rec').value,
+      vendorId: vendorId || '',
       categoryId: $('fe_cat').value || '', costType: $('fe_ct').value || '', startDate: $('fe_start').value,
       billingDay: val('fe_bday') || '', renewalDate: val('fe_renew') || '',
       cancellable: $('fe_cancellable') ? $('fe_cancellable').checked : false,
       essential: $('fe_essential') ? $('fe_essential').checked : false,
+      trackOnly: $('fe_track') ? $('fe_track').checked : false,
       clientId: $('fe_client').value || '', status: 'confirmed',
     };
     try { id ? await apiPatch('/finance/cashflow/' + id, body) : await apiPost('/finance/cashflow', body); closeModal(); toast('נשמר ✓'); go('finance'); }
     catch (e) { toast('שגיאה', 'bad'); }
   }
-  async function _delExpense(id) { if (!confirm('למחוק הוצאה?')) return; await apiDel('/finance/cashflow/' + id); closeModal(); toast('נמחק'); go('finance'); }
+  async function _delExpense(id) { if (!confirm('למחוק הוצאה? הקבלות המצורפות יימחקו גם.')) return; await apiDel('/finance/cashflow/' + id); closeModal(); toast('נמחק'); go('finance'); }
+
+  // ---------- קבלות (idea 1) ----------
+  async function _renderReceiptsInto(cfId) {
+    const box = $('fe_receipts_list');
+    if (!box) return;
+    let list = [];
+    try { list = await apiGet('/finance/cashflow/' + cfId + '/receipts'); } catch (e) { box.innerHTML = '<span style="color:#b42323;font-size:.82rem">שגיאה בטעינת קבלות</span>'; return; }
+    if (!list.length) { box.innerHTML = '<span style="color:var(--muted);font-size:.82rem">אין קבלות מצורפות.</span>'; return; }
+    const sizeKb = (n) => n ? Math.max(1, Math.round(n / 1024)) + 'KB' : '';
+    box.innerHTML = list.map((rc) => `<div class="row" style="gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line)">
+      <span style="flex:1;min-width:0;font-size:.83rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(rc.contentType || '').startsWith('image') ? '🖼️' : '📄'} ${esc(rc.filename || 'קבלה')} <small style="color:var(--muted)">${sizeKb(rc.size)}</small></span>
+      <button type="button" class="btn small ghost" onclick="FIN._viewReceipt('${rc.id}')" title="צפייה">👁</button>
+      <button type="button" class="btn small ghost" onclick="FIN._delReceipt('${rc.id}','${cfId}')" title="מחיקה">🗑</button>
+    </div>`).join('');
+  }
+  async function _uploadReceipt(cfId) {
+    const inp = $('fe_receipt_file');
+    if (!inp || !inp.files || !inp.files.length) return toast('בחר קובץ', 'bad');
+    const box = $('fe_receipts_list');
+    if (box) box.innerHTML = '<span style="color:var(--muted);font-size:.82rem">מעלה…</span>';
+    let ok = 0, fail = 0;
+    for (const file of Array.from(inp.files)) {
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const res = await authFetch('/finance/cashflow/' + cfId + '/receipts', { method: 'POST', body: fd });
+        if (res.ok) ok++; else fail++;
+      } catch (e) { fail++; }
+    }
+    inp.value = '';
+    if (ok) toast(`הועלו ${ok} קבלות ✓`);
+    if (fail) toast(`${fail} נכשלו (סוג/גודל?)`, 'bad');
+    await _renderReceiptsInto(cfId);
+  }
+  async function _viewReceipt(id) {
+    try {
+      const res = await authFetch('/finance/receipts/' + id + '/file');
+      if (!res.ok) return toast('שגיאה בפתיחת הקבלה', 'bad');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) { toast('שגיאה', 'bad'); }
+  }
+  async function _delReceipt(id, cfId) {
+    if (!confirm('למחוק את הקבלה?')) return;
+    try { await apiDel('/finance/receipts/' + id); toast('נמחק'); } catch (e) { toast('שגיאה', 'bad'); }
+    await _renderReceiptsInto(cfId);
+  }
 
   // ================= תרחישים (What-if §20) =================
   // טיוטת תרחיש במצב מודול — נשמרת בין רינדורים של הלשונית. Snapshot בלבד, לא נוגע בנתוני אמת.
@@ -641,9 +799,11 @@
   // ---------- חשיפה גלובלית ----------
   window.FIN = {
     scAdd, _scAdd, scRemoveAdj, scMonths, scBase, scNew, scLoad, scSave, scDelete,
-    tab, explain, expFilter, fcMonths, fcScen,
+    tab, explain, expFilter, fcMonths, fcScen, fcToggle,
+    histMonths, histToggle,
     dismissExc, exceptionTask, updateBalance, _saveBalance,
     addIncome, _saveIncome, addExpense, editExpense, _saveExpense, _delExpense, _expToggle,
+    _vendorToggle, _uploadReceipt, _viewReceipt, _delReceipt,
   };
 
   /* ===== תיקון ניווט: שמירת סרגל לשוניות-המשנה גם במסכים ה"ותיקים" =====

@@ -16,3 +16,13 @@ binding = "DB"
 database_name = "agency-hq-db"
 database_id = "81a73754-cd5a-498b-a4d2-79c70d29fa02"
 migrations_dir = "migrations"
+
+# --- אחסון קבצים R2 (קבלות להוצאות) ---
+# bucket פרטי — הגישה לקבצים עוברת דרך ה-API בלבד (מוגן בטוקן מנהל).
+# מושבת עד שמפעילים R2 בחשבון (Dashboard → R2 → Enable) ויוצרים את ה-bucket:
+#   npx wrangler r2 bucket create agency-hq-receipts
+# עד אז הקוד מתפקד בחן: העלאת/צפיית קבלה מחזירה 503 (storage_unavailable),
+# ושאר מסך הכספים עובד רגיל. לאחר ההפעלה — הסירו את ההערה מהבלוק הבא ופרסו מחדש.
+# [[r2_buckets]]
+# binding = "RECEIPTS"
+# bucket_name = "agency-hq-receipts"

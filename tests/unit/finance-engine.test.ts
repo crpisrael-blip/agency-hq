@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_PREFS, FinanceData, buildFlows, monthlyForecast, forecastScenarios,
+  DEFAULT_PREFS, FinanceData, buildFlows, monthlyForecast, monthlyHistory, forecastScenarios,
   dailyForecast, receivables, mrr, fixedMonthlyCosts, clientProfitability,
   businessProfitability, computeExceptions, pipeline, startingBalance, addMonths, dueInMonth,
   simulateScenario, Adjustment,
@@ -266,4 +266,40 @@ test('forecastScenarios מחזיר אופקים ו-3 קווים', () => {
   // אחרי חודש אחד committed: 10000
   assert.equal(fc.horizons[0].committed, 10000);
   assert.ok(fc.committed && fc.realistic && fc.optimistic);
+});
+
+// ---------- תשתית למעקב בלבד (idea 4) ----------
+test('trackOnly לא נספר ב-fixedMonthlyCosts ולא בתחזית', () => {
+  const data = makeData({
+    cashflow: [
+      { id: 'x1', kind: 'expense', label: 'ענן', amount: 1000, recurring: 'monthly', startDate: '2026-01-01', status: 'confirmed', trackOnly: 0 },
+      { id: 'x2', kind: 'expense', label: 'מנוי חינמי', amount: 0, recurring: 'monthly', startDate: '2026-01-01', status: 'confirmed', trackOnly: 1 },
+      { id: 'x3', kind: 'expense', label: 'כלי שסומן תשתית', amount: 500, recurring: 'monthly', startDate: '2026-01-01', status: 'confirmed', trackOnly: 1 },
+    ],
+  });
+  // רק ההוצאה הרגילה (1000) נספרת — לא ה-trackOnly (גם זו שעולה 500)
+  assert.equal(fixedMonthlyCosts(data), 1000);
+  const flows = buildFlows(data);
+  assert.ok(flows.every((f) => f.label !== 'כלי שסומן תשתית'));
+  const fc = monthlyForecast(data, 'committed', 3);
+  assert.equal(fc.buckets[0].expense, 1000);
+});
+
+// ---------- היסטוריה חודשית (idea 2) ----------
+test('monthlyHistory מחזיר חודשים עם פירוט פריטים', () => {
+  const data = makeData({
+    today: '2026-03-15',
+    cashflow: [
+      { id: 'x1', kind: 'expense', label: 'ענן', amount: 1000, recurring: 'monthly', startDate: '2026-01-01', status: 'confirmed' },
+    ],
+  });
+  const h = monthlyHistory(data, 3);
+  assert.equal(h.buckets.length, 3);
+  // מהישן לחדש: 01, 02, 03 — כולם עם הוצאת ענן 1000
+  assert.equal(h.buckets[0].label, '01/26');
+  assert.equal(h.buckets[2].label, '03/26');
+  assert.ok(h.buckets.every((b) => b.expense === 1000));
+  assert.ok(h.buckets[2].items.some((it) => it.label === 'ענן' && it.amount === 1000));
+  assert.equal(h.summary.totalExpense, 3000);
+  assert.equal(h.summary.avgMonthlyExpense, 1000);
 });

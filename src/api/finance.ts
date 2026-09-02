@@ -3,13 +3,13 @@ import { desc, eq } from 'drizzle-orm';
 import {
   cashflow, scenarios, engagements, clients, settings, expenseAllocations,
   opportunities, projects, financialOccurrences, vendors, expenseCategories,
-  financialAlerts, financePreferences, financeBalanceSnapshots,
+  financialAlerts, financePreferences, financeBalanceSnapshots, expenseReceipts,
 } from '../db/schema';
 import { Env, db, uid, now, pick, num, todayIL, logActivity } from './util';
 import { engagementMonthly, engagementSetup } from './engagements';
 import {
   FinanceData, Prefs, DEFAULT_PREFS, ScenarioKind, Adjustment,
-  controlPayload, forecastScenarios, monthlyForecast, dailyForecast, receivables,
+  controlPayload, forecastScenarios, monthlyForecast, monthlyHistory, dailyForecast, receivables,
   clientProfitability, businessProfitability, computeExceptions, pipeline, mrr,
   fixedMonthlyCosts, burnAndRunway, buildFlows, startingBalance, dataQuality, simulateScenario,
 } from '../finance/engine';
@@ -40,10 +40,10 @@ const CF_FIELDS = [
   // Finance Control (0023)
   'vendorId', 'projectId', 'categoryId', 'subcategory', 'costType', 'paymentMethod', 'renewalDate',
   'cancelNoticeDays', 'essential', 'cancellable', 'dueDate', 'actualDate', 'expectedDate', 'externalRef',
-  'sourceType', 'sourceId', 'confidence',
+  'sourceType', 'sourceId', 'confidence', 'trackOnly',
 ];
 const CF_NUM = ['amount', 'billingDay', 'cancelNoticeDays', 'confidence'];
-const CF_BOOL = ['essential', 'cancellable'];
+const CF_BOOL = ['essential', 'cancellable', 'trackOnly'];
 function normalizeCf(data: any) {
   for (const f of CF_NUM) if (data[f] !== undefined) data[f] = data[f] === '' || data[f] == null ? null : num(data[f]);
   for (const f of CF_BOOL) if (data[f] !== undefined) data[f] = data[f] ? 1 : 0;
@@ -158,7 +158,80 @@ financeApp.patch('/cashflow/:id', async (c) => {
 });
 
 financeApp.delete('/cashflow/:id', async (c) => {
-  await db(c).delete(cashflow).where(eq(cashflow.id, c.req.param('id')));
+  const id = c.req.param('id');
+  // מחיקת קבלות משויכות (גם מ-R2) לפני מחיקת ההוצאה — למניעת יתומים
+  const recs = await db(c).select().from(expenseReceipts).where(eq(expenseReceipts.cashflowId, id)).all();
+  if (recs.length && c.env.RECEIPTS) {
+    for (const r of recs) { try { await c.env.RECEIPTS.delete(r.r2Key); } catch { /* best-effort */ } }
+  }
+  if (recs.length) await db(c).delete(expenseReceipts).where(eq(expenseReceipts.cashflowId, id));
+  await db(c).delete(cashflow).where(eq(cashflow.id, id));
+  return c.json({ ok: true });
+});
+
+// ---------- קבלות להוצאה (idea 1) — קובץ ב-R2, מטא-דאטה ב-D1 ----------
+const RECEIPT_MAX_BYTES = 10 * 1024 * 1024; // 10MB
+const RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/gif', 'application/pdf'];
+
+// רשימת קבלות של הוצאה (מטא-דאטה בלבד)
+financeApp.get('/cashflow/:id/receipts', async (c) => {
+  const rows = await db(c).select().from(expenseReceipts)
+    .where(eq(expenseReceipts.cashflowId, c.req.param('id')))
+    .orderBy(desc(expenseReceipts.uploadedAt)).all();
+  return c.json(rows.map((r) => ({
+    id: r.id, filename: r.filename, contentType: r.contentType, size: r.size, uploadedAt: r.uploadedAt,
+  })));
+});
+
+// העלאת קבלה (multipart/form-data, שדה "file")
+financeApp.post('/cashflow/:id/receipts', async (c) => {
+  if (!c.env.RECEIPTS) return c.json({ error: 'storage_unavailable' }, 503);
+  const cfId = c.req.param('id');
+  const exists = (await db(c).select().from(cashflow).where(eq(cashflow.id, cfId)).limit(1))[0];
+  if (!exists) return c.json({ error: 'not_found' }, 404);
+  let form: FormData;
+  try { form = await c.req.formData(); } catch { return c.json({ error: 'invalid_input' }, 400); }
+  const file = form.get('file');
+  if (!file || typeof file === 'string') return c.json({ error: 'no_file' }, 400);
+  const type = (file as File).type || 'application/octet-stream';
+  if (!RECEIPT_TYPES.includes(type)) return c.json({ error: 'unsupported_type' }, 415);
+  const buf = await (file as File).arrayBuffer();
+  if (buf.byteLength > RECEIPT_MAX_BYTES) return c.json({ error: 'too_large' }, 413);
+  if (buf.byteLength === 0) return c.json({ error: 'empty_file' }, 400);
+  const id = uid();
+  const safeName = ((file as File).name || 'receipt').replace(/[^\w.\-֐-׿ ]+/g, '_').slice(0, 120);
+  const key = `receipts/${cfId}/${id}`;
+  await c.env.RECEIPTS.put(key, buf, { httpMetadata: { contentType: type } });
+  await db(c).insert(expenseReceipts).values({
+    id, cashflowId: cfId, r2Key: key, filename: safeName, contentType: type, size: buf.byteLength, uploadedAt: now(),
+  } as any);
+  return c.json({ ok: true, id, filename: safeName, contentType: type, size: buf.byteLength });
+});
+
+// הורדת/צפייה בקובץ הקבלה (מוגן בטוקן מנהל — כמו כל /api). inline לתצוגה בדפדפן.
+financeApp.get('/receipts/:id/file', async (c) => {
+  if (!c.env.RECEIPTS) return c.json({ error: 'storage_unavailable' }, 503);
+  const row = (await db(c).select().from(expenseReceipts).where(eq(expenseReceipts.id, c.req.param('id'))).limit(1))[0];
+  if (!row) return c.json({ error: 'not_found' }, 404);
+  const obj = await c.env.RECEIPTS.get(row.r2Key);
+  if (!obj) return c.json({ error: 'not_found' }, 404);
+  const disp = c.req.query('download') != null ? 'attachment' : 'inline';
+  const fname = encodeURIComponent(row.filename || 'receipt');
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': row.contentType || 'application/octet-stream',
+      'Content-Disposition': `${disp}; filename*=UTF-8''${fname}`,
+      'Cache-Control': 'private, max-age=60',
+    },
+  });
+});
+
+// מחיקת קבלה בודדת
+financeApp.delete('/receipts/:id', async (c) => {
+  const row = (await db(c).select().from(expenseReceipts).where(eq(expenseReceipts.id, c.req.param('id'))).limit(1))[0];
+  if (!row) return c.json({ error: 'not_found' }, 404);
+  if (c.env.RECEIPTS) { try { await c.env.RECEIPTS.delete(row.r2Key); } catch { /* best-effort */ } }
+  await db(c).delete(expenseReceipts).where(eq(expenseReceipts.id, c.req.param('id')));
   return c.json({ ok: true });
 });
 
@@ -430,14 +503,17 @@ financeApp.get('/expenses', async (c) => {
   const data = await loadFinanceData(c);
   const cats = await db(c).select().from(expenseCategories).all();
   const vends = await db(c).select().from(vendors).all();
+  const receiptRows = await db(c).select().from(expenseReceipts).all();
+  const receiptCountOf = (cfId: string) => receiptRows.filter((x: any) => x.cashflowId === cfId).length;
   const catName = (id: string | null) => cats.find((x: any) => x.id === id)?.name || null;
   const vendorName = (id: string | null) => vends.find((x: any) => x.id === id)?.name || null;
   const clientName = (id: string | null) => data.clients.find((x: any) => x.id === id)?.name || null;
   const monthlyOf = (r: any) => (r.recurring === 'monthly' ? num(r.amount) : r.recurring === 'yearly' ? num(r.amount) / 12 : 0);
-  const expenses = data.cashflow.filter((r: any) => r.kind === 'expense').map((r: any) => {
+  const all = data.cashflow.filter((r: any) => r.kind === 'expense').map((r: any) => {
     const allocs = data.allocations.filter((a: any) => a.cashflowId === r.id);
     return {
       ...r,
+      trackOnly: !!r.trackOnly,
       categoryName: catName(r.categoryId) || r.category || null,
       vendorName: vendorName(r.vendorId),
       clientName: clientName(r.clientId),
@@ -445,8 +521,12 @@ financeApp.get('/expenses', async (c) => {
       yearlyEquivalent: Math.round((r.recurring === 'monthly' ? num(r.amount) * 12 : r.recurring === 'yearly' ? num(r.amount) : 0) * 100) / 100,
       allocationCount: allocs.length,
       unallocated: !allocs.length && !r.clientId && !r.projectId,
+      receiptCount: receiptCountOf(r.id),
     };
   });
+  // תשתיות למעקב בלבד (idea 4) — לא נספרות כהוצאה; מוצגות בנפרד
+  const infra = all.filter((e) => e.trackOnly);
+  const expenses = all.filter((e) => !e.trackOnly);
   const recurring = expenses.filter((e) => e.recurring === 'monthly' || e.recurring === 'yearly');
   return c.json({
     currency: data.prefs.currency,
@@ -455,12 +535,23 @@ financeApp.get('/expenses', async (c) => {
       recurringCount: recurring.length,
       unallocatedCount: expenses.filter((e) => e.unallocated && (e.recurring === 'monthly' || e.recurring === 'yearly')).length,
       totalMonthly: Math.round(expenses.reduce((a, e) => a + e.monthlyEquivalent, 0) * 100) / 100,
+      infraCount: infra.length,
     },
     burn: burnAndRunway(data),
     expenses,
+    infra,
     categories: cats,
     vendors: vends,
   });
+});
+
+// ---------- היסטוריית הוצאות (idea 2) — פירוט חודשי לחודשים שחלפו ----------
+// לכל חודש עבר: סכום ההוצאות/הכנסות + פירוט הפריטים שהיו פעילים באותו חודש.
+financeApp.get('/expenses/history', async (c) => {
+  const data = await loadFinanceData(c);
+  const monthsBack = Math.min(36, Math.max(1, num(c.req.query('months'), 12)));
+  const hist = monthlyHistory(data, monthsBack);
+  return c.json({ currency: data.prefs.currency, ...hist });
 });
 
 // ---------- חידושים ומנויים (§9) ----------
