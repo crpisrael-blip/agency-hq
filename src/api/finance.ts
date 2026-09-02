@@ -524,9 +524,11 @@ financeApp.get('/expenses', async (c) => {
       receiptCount: receiptCountOf(r.id),
     };
   });
-  // תשתיות למעקב בלבד (idea 4) — לא נספרות כהוצאה; מוצגות בנפרד
-  const infra = all.filter((e) => e.trackOnly);
-  const expenses = all.filter((e) => !e.trackOnly);
+  // תשתיות למעקב בלבד (idea 4) — לא נספרות כהוצאה; מוצגות בנפרד.
+  // מסומן ידנית (track_only) או הוצאה ב-0 ₪ (מנוי/כלי שלא עולה כרגע) → אוטומטית תשתית.
+  const isInfra = (e: any) => e.trackOnly || num(e.amount) === 0;
+  const infra = all.filter(isInfra);
+  const expenses = all.filter((e) => !isInfra(e));
   const recurring = expenses.filter((e) => e.recurring === 'monthly' || e.recurring === 'yearly');
   return c.json({
     currency: data.prefs.currency,
