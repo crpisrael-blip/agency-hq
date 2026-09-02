@@ -6,3 +6,11 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-XSS-Protection: 1; mode=block
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'
+
+# אפליקציית הניהול: תמיד לאמת מול השרת (ETag) כדי שעדכוני קוד יתפסו מיד ולא ייתקעו במטמון.
+# no-cache אינו "בלי מטמון" — הדפדפן שומר אך מאמת בכל טעינה ומקבל 304 אם לא השתנה (חסכוני).
+/app/*
+  Cache-Control: no-cache
+
+/js/*
+  Cache-Control: no-cache
