@@ -8,7 +8,7 @@ test.describe('לקוחות', () => {
     await page.goto('/app');
     await app.waitReady();
 
-    await app.openTab('לקוחות ומערכות (מלא)');
+    await app.openTab('לקוחות');
     const clients = new ClientsPage(page);
     await clients.open();
 

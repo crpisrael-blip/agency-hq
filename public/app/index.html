@@ -436,7 +436,6 @@ const SECONDARY = [
   ['playbooks','ספריית מתודולוגיה'],
   ['skills','🧩 סקילז'],
   ['tasks','משימות'],
-  ['portfolio','לקוחות ומערכות (מלא)'],
   ['modules','מודולים'],
   ['health','צינור עסקאות'],
   ['dashboard','לוח בקרה (ישן)'],
@@ -449,7 +448,7 @@ const NAV_GROUP = {
   work:'work', projects:'work', project:'work', systems:'work', processes:'work',
   finance:'finance', engagements:'finance', cashflow:'finance', calculator:'finance',
   growth:'growth', ideas:'growth',
-  portfolio:'portfolio',
+  portfolio:'customers',
 };
 function buildNav(){
   const main = PAGES.map(([k,l])=>`<button data-p="${k}" class="${k===CURRENT?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
@@ -527,7 +526,7 @@ RENDER.dashboard=async()=>{
     <div class="sub">תמונת מצב עסקית — ${todayISO()}</div>
 
     <div class="att">
-      <div class="att-item teal" onclick="go('portfolio')"><div class="att-ico">👥</div><div class="att-txt"><span class="n">${k.clientsActive}</span><span class="l">לקוחות פעילים</span></div></div>
+      <div class="att-item teal" onclick="go('customers')"><div class="att-ico">👥</div><div class="att-txt"><span class="n">${k.clientsActive}</span><span class="l">לקוחות פעילים</span></div></div>
       <div class="att-item amber" onclick="go('playbooks')"><div class="att-ico">🧭</div><div class="att-txt"><span class="n">${activeRuns.length}</span><span class="l">מהלכים פעילים</span></div></div>
       <div class="att-item blue" onclick="go('tasks')"><div class="att-ico">📋</div><div class="att-txt"><span class="n">${k.openTasks}</span><span class="l">משימות פתוחות</span></div></div>
       <div class="att-item red" onclick="go('health')"><div class="att-ico">⚠️</div><div class="att-txt"><span class="n">${d.health.red}</span><span class="l">לקוחות בסיכון</span></div></div>
@@ -890,6 +889,8 @@ RENDER.portfolio=async()=>{
   const clients=CACHE.clients, systems=CACHE.systems;
   let leadMap={}; try{ const ls=await apiGet('/leads/summary'); (ls.bySystem||[]).forEach(x=>leadMap[x.systemId]={count:x.count}); }catch(e){}
   let taskMap={}; try{ const ts=await apiGet('/tasks'); ts.forEach(t=>{ if(t.entityType==='system'&&t.entityId&&t.status!=='done') taskMap[t.entityId]=(taskMap[t.entityId]||0)+1; }); }catch(e){}
+  // מדדי CRM לכל לקוח (הזדמנויות פתוחות / פרויקטים פעילים / MRR) — משכבת הארגונים
+  let orgMap={}; try{ (await apiGet('/organizations')).forEach(o=>{ orgMap[o.id]={opps:o.openOpportunities||0,projects:o.activeProjects||0,mrr:o.mrr||0}; }); }catch(e){}
   const byClient={}, internal=[];
   systems.forEach(s=>{ if(s.clientId){ (byClient[s.clientId]=byClient[s.clientId]||[]).push(s); } else internal.push(s); });
   const liveCount=systems.filter(s=>s.status==='live').length;
@@ -916,6 +917,7 @@ RENDER.portfolio=async()=>{
 
   const groupHtml=(c)=>{
     const sys=byClient[c.id]||[], st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
+    const cm=orgMap[c.id]||{}, mrr=cm.mrr||c.mrr||0;
     return `<div class="pf-group" data-s="${esc(c.name+' '+(c.industry||''))}">
       <div class="pf-head" onclick="pfToggle(this)">
         <span class="pf-caret"></span>
@@ -923,8 +925,10 @@ RENDER.portfolio=async()=>{
           <small>${esc(c.industry||'')}${c.industry?' · ':''}${CLIENT_STAGE[c.stage]||c.stage}</small></div>
         <div class="pf-meta">
           <span class="pill p-blue" title="מספר מערכות">🖥️ ${sys.length}</span>
+          ${cm.opps?`<span class="pill p-amber" title="הזדמנויות פתוחות">💡 ${cm.opps}</span>`:''}
+          ${cm.projects?`<span class="pill p-teal" title="פרויקטים פעילים">📁 ${cm.projects}</span>`:''}
           <span class="pill ${st[1]}">${st[0]}</span>
-          <b class="li-val" style="color:var(--accent-2)">${c.mrr?money(c.mrr):''}</b>
+          <b class="li-val" style="color:var(--accent-2)">${mrr?money(mrr):''}</b>
           <button class="btn small ghost" onclick="event.stopPropagation();openClient('${c.id}')" title="פרטים מלאים">פרטים</button>
         </div>
       </div>
