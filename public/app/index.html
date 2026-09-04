@@ -671,49 +671,111 @@ async function delClient(id){
   catch(e){toast(e.message==='has_systems'?'יש מערכות מקושרות':e.message==='has_engagements'?'יש התקשרויות מקושרות':'שגיאה','bad');}
 }
 let CLIENT360=null;
+// כרטיס הלקוח המאוחד — מסך מלא יחיד לכל לקוח, שאליו מגיעים מכל מקום רלוונטי.
+// מאחד את שתי השכבות: /clients/:id (מערכות, מודולים, התקשרויות, מהלכים, מסמכים, משימות)
+// ו-/organizations/:id (אנשי קשר, הזדמנויות, פרויקטים, פעילות) — אותו מזהה לקוח בשתיהן.
 async function openClient(id){
-  const d=await apiGet('/clients/'+id); const c=d.client; CLIENT360=d; const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
-  openModal(`<div class="spread"><h3 style="margin:0">${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</h3><span class="pill ${st[1]}">${st[0]}</span></div>
-    <div class="sub">${esc(c.industry||'')} ${c.contactName?'· '+esc(c.contactName):''} ${c.phone?'· '+esc(c.phone):''}</div>
-    <div class="kpis" style="grid-template-columns:1fr 1fr 1fr">
+  closeModal();
+  CURRENT='client'; document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p==='customers'));
+  $('view').innerHTML='<div class="empty">טוען…</div>';
+  let d, org;
+  try{ [d,org]=await Promise.all([apiGet('/clients/'+id), apiGet('/organizations/'+id).catch(()=>({}))]); }
+  catch(e){ $('view').innerHTML='<div class="empty">שגיאה בטעינת הלקוח</div>'; return; }
+  const c=d.client; CLIENT360=d;
+  const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
+  const contacts=org.contacts||[], opps=org.opportunities||[], projs=org.projects||[], acts=org.activities||[];
+  const openOpps=opps.filter(o=>!['won','lost'].includes(o.stage));
+  const activeProjs=projs.filter(p=>!['completed','paused'].includes(p.status));
+  const openTasks=(d.tasks||[]).filter(t=>t.status!=='done');
+  const card=(inner)=>`<div class="card">${inner}</div>`;
+
+  const contactCard=(c.contactName||c.phone||c.email)?card(`<h3>👤 איש קשר ראשי</h3>
+    <div class="stat-row"><span><b>${esc(c.contactName||'—')}</b>${c.contactRole?' · '+esc(c.contactRole):''}</span></div>
+    ${c.phone?`<div class="stat-row"><span>טלפון</span><span>${esc(c.phone)} · <a href="tel:${esc(c.phone)}" style="color:var(--accent-2)">חיוג</a> · <a href="${waLink(c.phone)}" target="_blank" style="color:var(--accent-2)">וואטסאפ</a></span></div>`:''}
+    ${c.email?`<div class="stat-row"><span>אימייל</span><a href="mailto:${esc(c.email)}" style="color:var(--accent-2)">${esc(c.email)}</a></div>`:''}`):'';
+
+  const contactsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">אנשי קשר${contacts.length?` (${contacts.length})`:''}</h3>
+    <button class="btn ghost small" onclick="BOS.addContact('${id}')">+ איש קשר</button></div>
+    ${contacts.length?contacts.map(ct=>`<div class="stat-row"><span><b>${esc(ct.name)}</b>${ct.isPrimary?' ⭐':''}${ct.isDecisionMaker?' 🎯':''}${ct.role?' · '+esc(ct.role):''}${ct.phone?' · '+esc(ct.phone):''}</span>${(ct.whatsapp||ct.phone)?`<a class="btn small ghost" href="${waLink(ct.whatsapp||ct.phone)}" target="_blank">וואטסאפ</a>`:''}</div>`).join(''):'<div class="muted">—</div>'}`);
+
+  const oppsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">הזדמנויות${openOpps.length?` (${openOpps.length})`:''}</h3>
+    <button class="btn ghost small" onclick="BOS.newOpp('${id}')">+ הזדמנות</button></div>
+    ${opps.length?opps.map(o=>`<div class="list-item" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${LABELS.t('oppStage',o.stage)} · ${o.probability||0}%</small></div>${o.estimatedValue?`<b class="li-val" style="color:var(--accent-2)">${money(o.estimatedValue)}</b>`:''}</div>`).join(''):'<div class="muted">—</div>'}`);
+
+  const projsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">פרויקטים${activeProjs.length?` (${activeProjs.length})`:''}</h3>
+    <button class="btn ghost small" onclick="BOS.newProject('${id}')">+ פרויקט</button></div>
+    ${projs.length?projs.map(p=>`<div class="list-item" onclick="BOS.openProject('${p.id}')"><div class="li-main"><b>${esc(p.title)}</b><small>${LABELS.t('projectStatus',p.status)} · ${p.progress||0}%</small></div>${pill(HEALTH,p.health)}</div>`).join(''):'<div class="muted">—</div>'}`);
+
+  const systemsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מערכות${d.systems.length?` (${d.systems.length})`:''}</h3>
+    <button class="btn ghost small" onclick="systemForm({clientId:'${id}'})">+ מערכת</button></div>
+    ${d.systems.length?d.systems.map(s=>`<div class="stat-row"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}`);
+
+  const modulesCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מודולים מוטמעים${d.modules&&d.modules.length?` (${d.modules.length})`:''}</h3>
+    <button class="btn ghost small" onclick="moduleForm({clientId:'${id}'})">+ מודול</button></div>
+    ${d.modules&&d.modules.length?`<div class="row" style="flex-wrap:wrap;gap:6px">${d.modules.map(m=>`<span class="pill ${m.status==='planned'?'p-amber':m.status==='deprecated'?'p-gray':'p-teal'}" onclick='moduleForm(${j(m)})' style="cursor:pointer" title="${esc(m.description||'')}">${esc(m.name)}</span>`).join('')}</div>`:'<div class="muted">—</div>'}`);
+
+  const engCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">התקשרויות${d.engagements.length?` (${d.engagements.length})`:''}</h3>
+    <button class="btn ghost small" onclick="engagementForm({clientId:'${id}'})">+ התקשרות</button></div>
+    ${d.engagements.length?d.engagements.map(e=>`<div class="stat-row"><span>${esc(e.title)} <span class="tag">${ENG_MODEL[e.model]||e.model}</span></span><b>${money(engMonthly(e))}/ח'</b></div>`).join(''):'<div class="muted">—</div>'}`);
+
+  const tasksCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">📋 משימות${openTasks.length?` (${openTasks.length})`:''}</h3>
+    <button class="btn ghost small" onclick="taskForm({},'${id}','${id}')">+ משימה</button></div>
+    ${(d.tasks&&d.tasks.length)?d.tasks.map(t=>`<div class="stat-row">
+      <span style="cursor:pointer" onclick='taskForm(${j(t)},"","${id}")'>${t.status==='done'?'✅ ':t.priority==='urgent'?'🔴 ':t.priority==='high'?'🟠 ':''}${esc(t.title)}${t.dueDate?` <span class="muted" style="font-size:.82rem">· יעד ${t.dueDate}</span>`:''}</span>
+      ${t.status!=='done'?`<button class="btn teal small" style="flex:none" onclick="advanceClientTask('${t.id}','${t.status==='todo'?'doing':'done'}','${id}')">${t.status==='todo'?'התחל':'סיים'}</button>`:''}
+    </div>`).join(''):'<div class="muted">אין משימות. קבע את הפעולה הבאה מול הלקוח 👆</div>'}`);
+
+  const runsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">🧭 מהלכי מתודולוגיה${d.runs&&d.runs.length?` (${d.runs.length})`:''}</h3>
+    <button class="btn ghost small" onclick="startRunForClient('${id}')">+ מהלך</button></div>
+    ${d.runs&&d.runs.length?d.runs.map(r=>`<div class="run-row" onclick="openRun('${r.id}')">
+      <div class="grow"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+        <div class="hint">${STAGE_LABELS[r.stage]||''}${r.status==='done'?' · הושלם':''}</div>
+        <div class="bar" style="max-width:200px"><span style="width:${r.progress||0}%"></span></div></div>
+      <span class="pill ${r.status==='done'?'p-green':r.progress?'p-amber':'p-gray'}">${r.status==='done'?'✓':(r.progress||0)+'%'}</span>
+    </div>`).join(''):'<div class="muted">אין עדיין מהלכים. פתח את הפורמט המתאים לשלב שבו הלקוח נמצא.</div>'}`);
+
+  const pcCard=card(`<h3>מרכזי רווח${d.ideas.length?` (${d.ideas.length})`:''}</h3>${d.ideas.length?d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><span class="row" style="gap:6px">${i.potentialMonthly?`<b>${money(i.potentialMonthly)}/ח'</b>`:''}<button class="btn small" onclick="BOS.convertPC('${i.id}')">המר להזדמנות</button></span></div>`).join(''):'<div class="muted">—</div>'}`);
+
+  const docsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מסמכים ותוצרים${d.documents&&d.documents.length?` (${d.documents.length})`:''}</h3>
+    <button class="btn ghost small" onclick="docForm({clientId:'${id}'})">+ מסמך</button></div>
+    ${d.documents&&d.documents.length?d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join(''):'<div class="muted">—</div>'}`);
+
+  const notesCard=c.notes?card(`<h3>הערות</h3><div class="muted">${esc(c.notes)}</div>`):'';
+  const actsCard=acts.length?card(`<h3>פעילות אחרונה</h3><ul class="tl">${acts.map(a=>`<li><b>${esc(a.title)}</b><small>${LABELS.t('activityType',a.type)} · ${new Date(a.occurredAt).toLocaleDateString('he-IL')}</small></li>`).join('')}</ul>`):'';
+
+  $('view').innerHTML=`
+    <button class="backbtn" onclick="go('customers')">← חזרה ללקוחות</button>
+    <div class="spread"><h2 style="margin:0">${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</h2><span class="pill ${st[1]}">${st[0]}</span></div>
+    <div class="sub">${esc(c.industry||'')}${c.contactName?' · '+esc(c.contactName):''}${c.phone?' · '+esc(c.phone):''}</div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;margin:12px 0">
+      <button class="btn primary small" onclick='clientForm(${j(c)})'>✏️ עריכה</button>
+      <button class="btn teal small" onclick="taskForm({},'${id}','${id}')">+ משימה</button>
+      <button class="btn ghost small" onclick="BOS.newOpp('${id}')">+ הזדמנות</button>
+      <button class="btn ghost small" onclick="BOS.newProject('${id}')">+ פרויקט</button>
+      <button class="btn ghost small" onclick="engagementForm({clientId:'${id}'})">+ התקשרות</button>
+      <button class="btn ghost small" onclick="systemForm({clientId:'${id}'})">+ מערכת</button>
+      <button class="btn ghost small" onclick="docForm({clientId:'${id}'})">+ מסמך</button>
+      <button class="btn ghost small" onclick="moduleForm({clientId:'${id}'})">+ מודול</button>
+      <button class="btn teal small" onclick="handoffMsg()">📤 הודעת מסירה</button>
+    </div>
+    <div class="kpis">
       <div class="kpi accent"><b>${money(d.mrr)}</b><small>MRR</small></div>
       <div class="kpi"><b>${d.systems.length}</b><small>מערכות</small></div>
       <div class="kpi"><b>${d.engagements.filter(e=>e.status==='active').length}</b><small>התקשרויות פעילות</small></div>
+      <div class="kpi accent"><b>${openOpps.length}</b><small>הזדמנויות פתוחות</small></div>
+      <div class="kpi"><b>${activeProjs.length}</b><small>פרויקטים פעילים</small></div>
     </div>
-    ${(c.contactName||c.phone||c.email)?`<div class="card"><h3>👤 איש קשר</h3>
-      <div class="stat-row"><span><b>${esc(c.contactName||'—')}</b>${c.contactRole?' · '+esc(c.contactRole):''}</span></div>
-      ${c.phone?`<div class="stat-row"><span>טלפון</span><span>${esc(c.phone)} · <a href="tel:${esc(c.phone)}" style="color:var(--accent-2)">חיוג</a> · <a href="${waLink(c.phone)}" target="_blank" style="color:var(--accent-2)">וואטסאפ</a></span></div>`:''}
-      ${c.email?`<div class="stat-row"><span>אימייל</span><a href="mailto:${esc(c.email)}" style="color:var(--accent-2)">${esc(c.email)}</a></div>`:''}
-    </div>`:''}
-    <div class="card"><h3>מערכות</h3>${d.systems.length?d.systems.map(s=>`<div class="stat-row"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}</div>
-    ${d.modules&&d.modules.length?`<div class="card"><h3>מודולים מוטמעים (${d.modules.length})</h3>
-      <div class="row" style="flex-wrap:wrap;gap:6px">${d.modules.map(m=>`<span class="pill ${m.status==='planned'?'p-amber':m.status==='deprecated'?'p-gray':'p-teal'}" onclick='moduleForm(${j(m)})' style="cursor:pointer" title="${esc(m.description||'')}">${esc(m.name)}</span>`).join('')}</div></div>`:''}
-    <div class="card"><h3>התקשרויות</h3>${d.engagements.length?d.engagements.map(e=>`<div class="stat-row"><span>${esc(e.title)} <span class="tag">${ENG_MODEL[e.model]||e.model}</span></span><b>${money(engMonthly(e))}/ח'</b></div>`).join(''):'<div class="muted">—</div>'}</div>
-    ${d.ideas.length?`<div class="card"><h3>מרכזי רווח</h3>${d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><b>${money(i.potentialMonthly)}/ח'</b></div>`).join('')}</div>`:''}
-    <div class="card"><div class="spread" style="margin-bottom:6px"><h3 style="margin:0">📋 משימות${d.tasks&&d.tasks.filter(t=>t.status!=='done').length?` (${d.tasks.filter(t=>t.status!=='done').length})`:''}</h3>
-      <button class="btn ghost small" onclick="taskForm({},'${id}','${id}')">+ משימה</button></div>
-      ${d.tasks&&d.tasks.length?d.tasks.map(t=>`<div class="stat-row">
-        <span style="cursor:pointer" onclick='taskForm(${j(t)},"","${id}")'>${t.status==='done'?'✅ ':t.priority==='urgent'?'🔴 ':t.priority==='high'?'🟠 ':''}${esc(t.title)}${t.dueDate?` <span class="muted" style="font-size:.82rem">· יעד ${t.dueDate}</span>`:''}</span>
-        ${t.status!=='done'?`<button class="btn teal small" style="flex:none" onclick="advanceClientTask('${t.id}','${t.status==='todo'?'doing':'done'}','${id}')">${t.status==='todo'?'התחל':'סיים'}</button>`:''}
-      </div>`).join(''):'<div class="muted">אין משימות. קבע את הפעולה הבאה מול הלקוח 👆</div>'}</div>
-    <div class="card"><div class="spread" style="margin-bottom:6px"><h3 style="margin:0">🧭 מהלכי מתודולוגיה${d.runs&&d.runs.length?` (${d.runs.length})`:''}</h3>
-      <button class="btn ghost small" onclick="startRunForClient('${id}')">+ מהלך</button></div>
-      ${d.runs&&d.runs.length?d.runs.map(r=>`<div class="run-row" onclick="openRun('${r.id}')">
-        <div class="grow"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
-          <div class="hint">${STAGE_LABELS[r.stage]||''}${r.status==='done'?' · הושלם':''}</div>
-          <div class="bar" style="max-width:200px"><span style="width:${r.progress||0}%"></span></div></div>
-        <span class="pill ${r.status==='done'?'p-green':r.progress?'p-amber':'p-gray'}">${r.status==='done'?'✓':(r.progress||0)+'%'}</span>
-      </div>`).join(''):'<div class="muted">אין עדיין מהלכים. פתח את הפורמט המתאים לשלב שבו הלקוח נמצא.</div>'}</div>
-    ${d.documents&&d.documents.length?`<div class="card"><h3>מסמכים ותוצרים (${d.documents.length})</h3>${d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join('')}</div>`:''}
-    ${c.notes?`<div class="card"><h3>הערות</h3><div class="muted">${esc(c.notes)}</div></div>`:''}
-    <div class="modal-actions"><button class="btn primary" onclick='clientForm(${j(c)})'>עריכה</button>
-      <button class="btn teal" onclick="taskForm({},'${id}','${id}')">+ משימה</button>
-      <button class="btn teal" onclick="closeModal();engagementForm({clientId:'${id}'})">+ התקשרות</button>
-      <button class="btn ghost" onclick="closeModal();systemForm({clientId:'${id}'})">+ מערכת</button>
-      <button class="btn ghost" onclick="closeModal();docForm({clientId:'${id}'})">+ מסמך</button>
-      <button class="btn ghost" onclick="moduleForm({clientId:'${id}'})">+ מודול</button>
-      <button class="btn teal" onclick="handoffMsg()">📤 הודעת מסירה</button>
-      <button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+    <div class="grid2" style="align-items:start">
+      ${contactCard}${contactsCard}
+      ${oppsCard}${projsCard}
+      ${systemsCard}${modulesCard}
+      ${engCard}${tasksCard}
+      ${pcCard}${docsCard}
+    </div>
+    ${runsCard}
+    ${notesCard}
+    ${actsCard}`;
+  window.scrollTo(0,0);
 }
 // ---------- הודעת מסירה ללקוח ----------
 function handoffMsg(){
@@ -2316,8 +2378,9 @@ async function advanceTask(id,status){ await apiPatch('/tasks/'+id,{status}); to
 // תווית ישות שאליה משימה משויכת (מלבד לקוח, שנבחר מרשימה)
 const ENTITY_LABEL={client:'👤 לקוח',system:'🖥️ מערכת',engagement:'🤝 התקשרות',process:'⚙️ תהליך',profit_center:'📈 מרכז רווח',project:'📁 פרויקט'};
 const entityLabel=(t)=>ENTITY_LABEL[t]||t||'';
-// t=משימה לעריכה · presetClientId=לקוח לבחירה מראש (משימה חדשה מכרטיס לקוח) · returnClientId=חזרה לכרטיס לקוח לאחר שמירה · returnKind='client' (מודאל) / 'org' (מסך לקוחות BOS)
-function reopenClientCard(id,kind){ if(kind==='org'&&window.BOS&&BOS.openOrg) BOS.openOrg(id); else openClient(id); }
+// t=משימה לעריכה · presetClientId=לקוח לבחירה מראש (משימה חדשה מכרטיס לקוח) · returnClientId=חזרה לכרטיס הלקוח המאוחד לאחר שמירה
+// returnKind נשמר לתאימות לאחור (כל היעדים מובילים כעת לאותו כרטיס מאוחד)
+function reopenClientCard(id){ openClient(id); }
 async function taskForm(t={},presetClientId='',returnClientId='',returnKind='client'){
   let clients=[]; try{ clients=await apiGet('/clients'); }catch(e){}
   const linkedType=t.entityType||'';

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { desc, eq, and } from 'drizzle-orm';
 import {
   clients, contacts, opportunities, projects, engagements,
-  systems, documents, activities, profitCenters, tasks,
+  systems, documents, activities, profitCenters,
 } from '../db/schema';
 import { Env, db, uid, now, pick, num } from './util';
 import { engagementMonthly } from './engagements';
@@ -79,15 +79,11 @@ organizationsApp.get('/:id', async (c) => {
     d.select().from(activities).where(eq(activities.organizationId, id)).orderBy(desc(activities.occurredAt)).limit(50).all(),
   ]);
   const growth = await d.select().from(profitCenters).where(eq(profitCenters.clientId, id)).all();
-  // משימות מקושרות ללקוח (organizationId = clients.id בשכבת ההתאמה)
-  const linkedTasks = await d.select().from(tasks)
-    .where(and(eq(tasks.entityType, 'client'), eq(tasks.entityId, id)))
-    .orderBy(desc(tasks.createdAt)).all();
   const mrr = eng.filter((e) => e.status === 'active').reduce((a, e) => a + engagementMonthly(e), 0);
   return c.json({
     organization: { ...org, status: normStatus(org.status) },
     contacts: cts, opportunities: opps, projects: projs, engagements: eng,
-    systems: sys, documents: docs, activities: acts, growth, tasks: linkedTasks, mrr,
+    systems: sys, documents: docs, activities: acts, growth, mrr,
   });
 });
 

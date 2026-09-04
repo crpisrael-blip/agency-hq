@@ -47,20 +47,6 @@
     return `<div class="card"><h3>מתודולוגיה</h3>${rows}</div>`;
   }
 
-  // כרטיס משימות ללקוח (מסך לקוחות BOS) — מנקז את המשימות המקושרות + כפתור "+ משימה".
-  // משתמש בטופס המשימה הגלובלי (taskForm) עם returnKind='org' כדי לחזור למסך הזה אחרי שמירה.
-  function orgTasksCard(orgId, tasksArr) {
-    const ts = tasksArr || [];
-    const open = ts.filter((t) => t.status !== 'done');
-    const rows = ts.length ? ts.map((t) => `<div class="list-item">
-        <div class="li-main" style="cursor:pointer" onclick='taskForm(${j(t)},"","${orgId}","org")'><b>${t.status === 'done' ? '✅ ' : t.priority === 'urgent' ? '🔴 ' : t.priority === 'high' ? '🟠 ' : ''}${esc(t.title)}</b>${t.dueDate ? `<small class="${t.status !== 'done' && overdue(t.dueDate) ? 'warn-row' : ''}">יעד: ${fmt(t.dueDate)}</small>` : ''}</div>
-        ${t.status !== 'done' ? `<button class="btn teal small" onclick="BOS.advOrgTask('${t.id}','${t.status === 'todo' ? 'doing' : 'done'}','${orgId}')">${t.status === 'todo' ? 'התחל' : 'סיים'}</button>` : '<span class="pill p-green">✓</span>'}
-      </div>`).join('') : '<div class="empty">אין משימות. קבע את הפעולה הבאה מול הלקוח 👆</div>';
-    return `<div class="card"><div class="spread" style="margin-bottom:6px"><h3 style="margin:0">📋 משימות${open.length ? ` (${open.length})` : ''}</h3>
-      <button class="btn ghost small" onclick="taskForm({},'${orgId}','${orgId}','org')">+ משימה</button></div>${rows}</div>`;
-  }
-  async function advOrgTask(id, status, orgId) { try { await apiPatch('/tasks/' + id, { status }); openOrg(orgId); } catch (e) { toast('שגיאה', 'bad'); } }
-
   // גישה ל-state ניווט משני (טאב פעיל לכל קבוצה)
   const TAB = {};
   function tabBar(group, tabs, active) {
@@ -280,35 +266,10 @@
       <div class="card"><h3>פעילות</h3><ul class="tl">${acts}</ul></div>`;
   }
 
-  /* =========================== כרטיס ארגון 360 =========================== */
-  async function openOrg(id) {
-    CURRENT = 'organization'; document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.p === 'customers'));
-    V().innerHTML = '<div class="empty">טוען…</div>';
-    const d = await apiGet('/organizations/' + id);
-    const o = d.organization;
-    const contactRows = d.contacts.map((ct) => `<div class="list-item"><div class="li-main"><b>${esc(ct.name)}${ct.isPrimary ? ' ⭐' : ''}${ct.isDecisionMaker ? ' 🎯' : ''}</b><small>${esc(ct.role || '')} ${ct.phone ? '· ' + esc(ct.phone) : ''}</small></div>${ct.whatsapp || ct.phone ? `<a class="btn small ghost" href="${waLink(ct.whatsapp || ct.phone)}" target="_blank">וואטסאפ</a>` : ''}</div>`).join('') || '<div class="empty">—</div>';
-    const oppRows = d.opportunities.map((op) => `<div class="list-item" onclick="BOS.openOpp('${op.id}')"><div class="li-main"><b>${esc(op.title)}</b><small>${H('oppStage', op.stage)} · ${op.probability || 0}%</small></div>${op.estimatedValue ? `<b class="li-val" style="color:var(--accent-2)">${money(op.estimatedValue)}</b>` : ''}</div>`).join('') || '<div class="empty">—</div>';
-    const projRows = d.projects.map((p) => `<div class="list-item" onclick="BOS.openProject('${p.id}')"><div class="li-main"><b>${esc(p.title)}</b><small>${H('projectStatus', p.status)} · ${p.progress || 0}%</small></div>${healthPill(p.health)}</div>`).join('') || '<div class="empty">—</div>';
-    const acts = d.activities.map((a) => `<li><b>${esc(a.title)}</b><small>${H('activityType', a.type)} · ${new Date(a.occurredAt).toLocaleDateString('he-IL')}</small></li>`).join('') || '<li class="empty">—</li>';
-    const stLbl = H('orgStatus', o.status);
-    V().innerHTML = `
-      <button class="backbtn" onclick="go('customers')">← חזרה ללקוחות</button>
-      <div class="spread"><div><h2 style="margin:0 0 3px">${esc(o.name)}</h2><small style="color:var(--muted)">${esc(o.industry || '')}</small></div><span class="pill p-green">${stLbl}</span></div>
-      <div class="kpis">
-        <div class="kpi green"><b>${d.mrr ? money(d.mrr) : '—'}</b><small>MRR</small></div>
-        <div class="kpi accent"><b>${d.opportunities.filter((x) => !['won', 'lost'].includes(x.stage)).length}</b><small>הזדמנויות פתוחות</small></div>
-        <div class="kpi"><b>${d.projects.filter((x) => !['completed', 'paused'].includes(x.status)).length}</b><small>פרויקטים פעילים</small></div>
-        <div class="kpi"><b>${d.systems.length}</b><small>מערכות</small></div>
-      </div>
-      <div class="grid2" style="align-items:start">
-        <div class="card"><h3>אנשי קשר</h3>${contactRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.addContact('${id}')">+ איש קשר</button></div>
-        <div class="card"><h3>הזדמנויות</h3>${oppRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.newOpp('${id}')">+ הזדמנות</button></div>
-        <div class="card"><h3>פרויקטים</h3>${projRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.newProject('${id}')">+ פרויקט</button></div>
-        <div class="card"><h3>צמיחה</h3>${d.growth.length ? d.growth.map((g) => `<div class="list-item"><div class="li-main"><b>${esc(g.title)}</b></div><button class="btn small" onclick="BOS.convertPC('${g.id}')">המר להזדמנות</button></div>`).join('') : '<div class="empty">—</div>'}</div>
-      </div>
-      ${orgTasksCard(id, d.tasks)}
-      <div class="card"><h3>פעילות אחרונה</h3><ul class="tl">${acts}</ul></div>`;
-  }
+  /* =========================== כרטיס לקוח מאוחד ===========================
+   * אין עוד כרטיס ארגון נפרד — openOrg מנתב לכרטיס הלקוח היחיד (openClient
+   * שב-index.html, מסך מלא), כדי שיהיה כרטיס אחד לכל לקוח מכל מקום רלוונטי. */
+  async function openOrg(id) { return window.openClient(id); }
 
   /* =========================== פעולות / טפסים =========================== */
   const fInput = (id, label, val = '', type = 'text') => `<div class="f"><label>${label}</label><input id="${id}" type="${type}" value="${esc(val)}"></div>`;
@@ -403,7 +364,7 @@
     newProposal, _newProposal, propStatus, _propStatus, propToEngagement,
     setOppStage, saveOppNA, convertToProject,
     setProjStatus, setProjHealth, saveProj, addMilestone, _addMilestone, msToggle,
-    addChange, _addChange, convertPC, delSub, advOrgTask,
+    addChange, _addChange, convertPC, delSub,
   };
 
   // אם האפליקציה כבר מוצגת ועומדים על מסך BOS — רענון לאחר טעינת המודול
