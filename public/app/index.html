@@ -690,6 +690,12 @@ async function openClient(id){
       <div class="row" style="flex-wrap:wrap;gap:6px">${d.modules.map(m=>`<span class="pill ${m.status==='planned'?'p-amber':m.status==='deprecated'?'p-gray':'p-teal'}" onclick='moduleForm(${j(m)})' style="cursor:pointer" title="${esc(m.description||'')}">${esc(m.name)}</span>`).join('')}</div></div>`:''}
     <div class="card"><h3>התקשרויות</h3>${d.engagements.length?d.engagements.map(e=>`<div class="stat-row"><span>${esc(e.title)} <span class="tag">${ENG_MODEL[e.model]||e.model}</span></span><b>${money(engMonthly(e))}/ח'</b></div>`).join(''):'<div class="muted">—</div>'}</div>
     ${d.ideas.length?`<div class="card"><h3>מרכזי רווח</h3>${d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><b>${money(i.potentialMonthly)}/ח'</b></div>`).join('')}</div>`:''}
+    <div class="card"><div class="spread" style="margin-bottom:6px"><h3 style="margin:0">📋 משימות${d.tasks&&d.tasks.filter(t=>t.status!=='done').length?` (${d.tasks.filter(t=>t.status!=='done').length})`:''}</h3>
+      <button class="btn ghost small" onclick="taskForm({},'${id}','${id}')">+ משימה</button></div>
+      ${d.tasks&&d.tasks.length?d.tasks.map(t=>`<div class="stat-row">
+        <span style="cursor:pointer" onclick='taskForm(${j(t)},"","${id}")'>${t.status==='done'?'✅ ':t.priority==='urgent'?'🔴 ':t.priority==='high'?'🟠 ':''}${esc(t.title)}${t.dueDate?` <span class="muted" style="font-size:.82rem">· יעד ${t.dueDate}</span>`:''}</span>
+        ${t.status!=='done'?`<button class="btn teal small" style="flex:none" onclick="advanceClientTask('${t.id}','${t.status==='todo'?'doing':'done'}','${id}')">${t.status==='todo'?'התחל':'סיים'}</button>`:''}
+      </div>`).join(''):'<div class="muted">אין משימות. קבע את הפעולה הבאה מול הלקוח 👆</div>'}</div>
     <div class="card"><div class="spread" style="margin-bottom:6px"><h3 style="margin:0">🧭 מהלכי מתודולוגיה${d.runs&&d.runs.length?` (${d.runs.length})`:''}</h3>
       <button class="btn ghost small" onclick="startRunForClient('${id}')">+ מהלך</button></div>
       ${d.runs&&d.runs.length?d.runs.map(r=>`<div class="run-row" onclick="openRun('${r.id}')">
@@ -701,6 +707,7 @@ async function openClient(id){
     ${d.documents&&d.documents.length?`<div class="card"><h3>מסמכים ותוצרים (${d.documents.length})</h3>${d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join('')}</div>`:''}
     ${c.notes?`<div class="card"><h3>הערות</h3><div class="muted">${esc(c.notes)}</div></div>`:''}
     <div class="modal-actions"><button class="btn primary" onclick='clientForm(${j(c)})'>עריכה</button>
+      <button class="btn teal" onclick="taskForm({},'${id}','${id}')">+ משימה</button>
       <button class="btn teal" onclick="closeModal();engagementForm({clientId:'${id}'})">+ התקשרות</button>
       <button class="btn ghost" onclick="closeModal();systemForm({clientId:'${id}'})">+ מערכת</button>
       <button class="btn ghost" onclick="closeModal();docForm({clientId:'${id}'})">+ מסמך</button>
@@ -2281,39 +2288,67 @@ async function launchGate(clientId,stage){
 
 // ---------- משימות ----------
 RENDER.tasks=async()=>{
-  const list=await apiGet('/tasks');
+  // כל המשימות מכל הסוגים מתנקזות לכאן, ממוינות לפי תזמון הטיפול (תאריך יעד)
+  const [list,clients]=await Promise.all([apiGet('/tasks'),apiGet('/clients').catch(()=>[])]);
+  const cmap={}; clients.forEach(c=>cmap[c.id]=c.name);
+  const linkTag=(t)=>{
+    if(t.entityType==='client') return '<span class="tag">👤 '+esc(cmap[t.entityId]||'לקוח')+'</span>';
+    if(t.entityType) return '<span class="tag">'+esc(entityLabel(t.entityType))+'</span>';
+    return '<span class="tag muted">כללי</span>';
+  };
+  // מיון לפי יעד: הקרוב/הדחוף קודם, ללא-תאריך בסוף, שובר-שוויון לפי מועד יצירה
+  const byDue=(a,b)=>{ const x=a.dueDate||'9999-99-99', y=b.dueDate||'9999-99-99'; return x<y?-1:x>y?1:(b.createdAt||0)-(a.createdAt||0); };
   const cols=[['todo','לביצוע'],['doing','בעבודה'],['done','הושלם']];
   $('view').innerHTML=`
-    <div class="spread"><div><h2>משימות</h2><div class="sub">${list.filter(t=>t.status!=='done').length} פתוחות</div></div>
+    <div class="spread"><div><h2>משימות</h2><div class="sub">${list.filter(t=>t.status!=='done').length} פתוחות · ממוינות לפי תזמון</div></div>
       <button class="btn primary" onclick="taskForm()">+ משימה</button></div>
     <div class="grid3">
-      ${cols.map(([k,label])=>{const items=list.filter(t=>t.status===k);return `
+      ${cols.map(([k,label])=>{const items=list.filter(t=>t.status===k).sort(byDue);return `
         <div class="card"><h3>${label} <span class="muted">(${items.length})</span></h3>
           ${items.map(t=>`<div class="list-item" onclick='taskForm(${j(t)})'>
-            <div class="li-main"><b>${t.priority==='urgent'?'🔴 ':t.priority==='high'?'🟠 ':''}${esc(t.title)}</b><small>${t.dueDate?'יעד: '+t.dueDate:''}</small></div>
+            <div class="li-main"><b>${t.priority==='urgent'?'🔴 ':t.priority==='high'?'🟠 ':''}${esc(t.title)}</b><small>${linkTag(t)}${t.dueDate?` · <span class="${k!=='done'&&t.dueDate<todayISO()?'warn-row':''}">יעד: ${t.dueDate}</span>`:''}</small></div>
             ${k!=='done'?`<button class="btn teal small" onclick="event.stopPropagation();advanceTask('${t.id}','${k==='todo'?'doing':'done'}')">${k==='todo'?'התחל':'סיים'}</button>`:'✓'}
           </div>`).join('')||'<div class="empty">—</div>'}
         </div>`;}).join('')}
     </div>`;
 };
 async function advanceTask(id,status){ await apiPatch('/tasks/'+id,{status}); toast('עודכן'); go('tasks'); }
-function taskForm(t={}){
+// תווית ישות שאליה משימה משויכת (מלבד לקוח, שנבחר מרשימה)
+const ENTITY_LABEL={client:'👤 לקוח',system:'🖥️ מערכת',engagement:'🤝 התקשרות',process:'⚙️ תהליך',profit_center:'📈 מרכז רווח',project:'📁 פרויקט'};
+const entityLabel=(t)=>ENTITY_LABEL[t]||t||'';
+// t=משימה לעריכה · presetClientId=לקוח לבחירה מראש (משימה חדשה מכרטיס לקוח) · returnClientId=חזרה לכרטיס לקוח לאחר שמירה
+async function taskForm(t={},presetClientId='',returnClientId=''){
+  let clients=[]; try{ clients=await apiGet('/clients'); }catch(e){}
+  const linkedType=t.entityType||'';
+  const clientLinkable=!linkedType||linkedType==='client';
+  const curClient=linkedType==='client'?(t.entityId||''):(presetClientId||'');
+  const linkField=clientLinkable
+    ? `<div class="f"><label>שייך ל…</label><select id="f_client"><option value="">— כללי (חיים / בית התוכנה) —</option>${clients.map(cl=>`<option value="${cl.id}" ${cl.id===curClient?'selected':''}>${esc(cl.name)}</option>`).join('')}</select></div>`
+    : `<div class="f"><label>משויך ל</label><input value="${esc(entityLabel(linkedType))}" disabled></div>`;
   openModal(`<h3>${t.id?'עריכת משימה':'משימה חדשה'}</h3>
     <div class="f"><label>כותרת *</label><input id="f_title" value="${esc(t.title||'')}"></div>
+    ${linkField}
     <div class="f3"><div class="f"><label>סטטוס</label><select id="f_status">${opts({todo:'לביצוע',doing:'בעבודה',done:'הושלם'},t.status||'todo')}</select></div>
       <div class="f"><label>עדיפות</label><select id="f_priority">${opts({low:'נמוכה',normal:'רגילה',high:'גבוהה',urgent:'דחוף'},t.priority||'normal')}</select></div>
-      <div class="f"><label>יעד</label><input type="date" id="f_dueDate" value="${esc(t.dueDate||'')}"></div></div>
+      <div class="f"><label>יעד (תזמון)</label><input type="date" id="f_dueDate" value="${esc(t.dueDate||'')}"></div></div>
     <div class="f"><label>פרטים</label><textarea id="f_details" rows="2">${esc(t.details||'')}</textarea></div>
-    <div class="modal-actions"><button class="btn primary" onclick="saveTask('${t.id||''}')">שמירה</button>
+    <div class="modal-actions"><button class="btn primary" onclick="saveTask('${t.id||''}','${returnClientId||''}')">שמירה</button>
       <button class="btn ghost" onclick="closeModal()">ביטול</button>
-      ${t.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delTask('${t.id}')">מחיקה</button>`:''}</div>`);
+      ${t.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delTask('${t.id}','${returnClientId||''}')">מחיקה</button>`:''}</div>`);
 }
-async function saveTask(id){
+async function saveTask(id,returnClientId){
   const body={title:val('f_title'),status:val('f_status'),priority:val('f_priority'),dueDate:val('f_dueDate'),details:val('f_details')};
   if(!body.title){toast('חסרה כותרת','bad');return;}
-  try{ id?await apiPatch('/tasks/'+id,body):await apiPost('/tasks',body); closeModal(); toast('נשמר'); go('tasks'); }catch(e){toast('שגיאה','bad');}
+  const sel=$('f_client'); // קיים רק למשימות ניתנות-לשיוך-לקוח (כללי או לקוח)
+  if(sel){ const cid=sel.value; body.entityType=cid?'client':null; body.entityId=cid||null; }
+  try{
+    id?await apiPatch('/tasks/'+id,body):await apiPost('/tasks',body);
+    closeModal(); toast('נשמר');
+    if(returnClientId) openClient(returnClientId); else go('tasks');
+  }catch(e){toast('שגיאה','bad');}
 }
-async function delTask(id){ if(!confirm('למחוק?'))return; await apiDel('/tasks/'+id); closeModal(); toast('נמחק'); go('tasks'); }
+async function delTask(id,returnClientId){ if(!confirm('למחוק?'))return; await apiDel('/tasks/'+id); closeModal(); toast('נמחק'); if(returnClientId) openClient(returnClientId); else go('tasks'); }
+async function advanceClientTask(id,status,clientId){ try{ await apiPatch('/tasks/'+id,{status}); openClient(clientId); }catch(e){ toast('שגיאה','bad'); } }
 
 // ============ מאגר סקילז (ECC) ============
 const SK_CATS=[["backend","Backend, API ושרת","🔧"],["db","בסיסי נתונים","🗄️"],["testing","בדיקות ואיכות קוד","🧪"],["devops","העלאה לאוויר ותשתית","🚀"],["security","אבטחה","🛡️"],["frontend","מסכים, עיצוב ואנימציה","🎨"],["langs","שפות תכנות ותקני-קוד","💬"],["ai","בינה מלאכותית וסוכנים","🤖"],["orch","עבודה של כמה סוכנים יחד","🕸️"],["planning","תכנון, מוצר והתמצאות","🗺️"],["business","עסקי, פיננסי וגיוס","💼"],["content","תוכן, שיווק ורשתות","📣"],["video","וידאו ומדיה","🎬"],["research","מחקר, נתונים וידע","🔬"],["ecc","תשתית ECC והגדרות","⚙️"],["network","רשת ותקשורת","🌐"],["domains","תחומים ייעודיים","🧩"]];

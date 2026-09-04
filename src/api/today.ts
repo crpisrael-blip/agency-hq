@@ -32,7 +32,9 @@ todayApp.get('/', async (c) => {
   const activeOpps = opps.filter((o) => ACTIVE_STAGES.includes(o.stage));
 
   // --- דורש טיפול ---
+  // רק לידים פתוחים שעדיין דורשים טיפול — ליד שהומר ללקוח או נסגר (won/lost) יורד מהרשימה
   const newLeads = lds
+    .filter((l) => !l.convertedClientId && l.status !== 'won' && l.status !== 'lost')
     .filter((l) => new Date(l.createdAt).getTime() >= Date.now() - 7 * 864e5)
     .slice(0, 10)
     .map((l) => ({ id: l.id, name: l.name, source: l.source, createdAt: l.createdAt }));
