@@ -17,13 +17,16 @@ test('כרטיס לקוח מאוחד נפתח מ"לקוחות" בלי שגיאו
   await page.goto('/app');
   await app.waitReady();
 
-  // יצירת לקוח דרך מסך "לקוחות ומערכות (מלא)"
-  await app.openTab('לקוחות ומערכות (מלא)');
+  // הניווט הראשי "לקוחות" מציג את הרשימה המאוחדת היחידה (אקורדיון + חיפוש)
+  await app.openTab('לקוחות');
   const clients = new ClientsPage(page);
   await clients.open();
+  await expect(page.locator('#pfS')).toBeVisible(); // תיבת החיפוש של הרשימה המאוחדת
   const name = `כרטיס E2E ${Date.now()}`;
   await clients.createClient(name);
   await expect(app.toast(/נשמר/)).toBeVisible();
+  await expect(clients.row(name)).toBeVisible();
+  await page.screenshot({ path: 'test-results/unified-list.png', fullPage: true });
 
   // פתיחת הכרטיס המאוחד דרך כפתור "פרטים" בשורת הלקוח (openClient — הכרטיס היחיד)
   await clients.row(name).getByRole('button', { name: 'פרטים' }).click();

@@ -131,15 +131,11 @@
       (rows.length ? `<div class="card">${rows.map((l) => `<div class="list-item"><div class="li-main"><b>${esc(l.name || 'ליד')}</b><small>${esc(l.source || '')} · ${esc(l.note || '')}</small></div></div>`).join('')}</div>` : '<div class="empty">אין לידים ממערכות</div>');
   }
 
-  /* =========================== לקוחות (Organizations) =========================== */
-  RENDER.customers = async () => {
-    const rows = await apiGet('/organizations');
-    const stPill = (st) => { const c = st === 'customer' ? 'p-green' : st === 'former_customer' ? 'p-red' : st === 'paused' ? 'p-gray' : 'p-amber'; return `<span class="pill ${c}">${H('orgStatus', st)}</span>`; };
-    V().innerHTML = `<div class="spread"><h2 style="margin:0">לקוחות</h2><button class="btn small" onclick="BOS.newOrg()">+ ארגון</button></div>
-      ${rows.length ? `<div class="card">${rows.map((o) => `<div class="list-item" onclick="BOS.openOrg('${o.id}')">
-        <div class="li-main"><b>${esc(o.name)}</b><small>${esc(o.industry || '')}${o.openOpportunities ? ` · ${o.openOpportunities} הזדמנויות` : ''}${o.activeProjects ? ` · ${o.activeProjects} פרויקטים` : ''}</small></div>
-        <div class="row" style="gap:7px">${o.mrr ? `<b class="li-val" style="color:var(--accent-2)">${money(o.mrr)}</b>` : ''}${stPill(o.status)}</div></div>`).join('')}</div>` : '<div class="empty">אין ארגונים עדיין</div>'}`;
-  };
+  /* =========================== לקוחות =========================== *
+   * רשימת לקוחות אחת בלבד — הניווט הראשי "לקוחות" מנתב לרשימה המאוחדת
+   * (RENDER.portfolio ב-index.html): אקורדיון לקוחות+מערכות, חיפוש, מדדי CRM,
+   * ופתיחת כרטיס הלקוח המאוחד. אין עוד רשימת ארגונים נפרדת. */
+  RENDER.customers = (...a) => RENDER.portfolio(...a);
 
   /* =========================== עבודה =========================== */
   RENDER.work = async () => {
