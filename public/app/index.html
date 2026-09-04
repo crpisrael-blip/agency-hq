@@ -2316,8 +2316,9 @@ async function advanceTask(id,status){ await apiPatch('/tasks/'+id,{status}); to
 // תווית ישות שאליה משימה משויכת (מלבד לקוח, שנבחר מרשימה)
 const ENTITY_LABEL={client:'👤 לקוח',system:'🖥️ מערכת',engagement:'🤝 התקשרות',process:'⚙️ תהליך',profit_center:'📈 מרכז רווח',project:'📁 פרויקט'};
 const entityLabel=(t)=>ENTITY_LABEL[t]||t||'';
-// t=משימה לעריכה · presetClientId=לקוח לבחירה מראש (משימה חדשה מכרטיס לקוח) · returnClientId=חזרה לכרטיס לקוח לאחר שמירה
-async function taskForm(t={},presetClientId='',returnClientId=''){
+// t=משימה לעריכה · presetClientId=לקוח לבחירה מראש (משימה חדשה מכרטיס לקוח) · returnClientId=חזרה לכרטיס לקוח לאחר שמירה · returnKind='client' (מודאל) / 'org' (מסך לקוחות BOS)
+function reopenClientCard(id,kind){ if(kind==='org'&&window.BOS&&BOS.openOrg) BOS.openOrg(id); else openClient(id); }
+async function taskForm(t={},presetClientId='',returnClientId='',returnKind='client'){
   let clients=[]; try{ clients=await apiGet('/clients'); }catch(e){}
   const linkedType=t.entityType||'';
   const clientLinkable=!linkedType||linkedType==='client';
@@ -2332,11 +2333,11 @@ async function taskForm(t={},presetClientId='',returnClientId=''){
       <div class="f"><label>עדיפות</label><select id="f_priority">${opts({low:'נמוכה',normal:'רגילה',high:'גבוהה',urgent:'דחוף'},t.priority||'normal')}</select></div>
       <div class="f"><label>יעד (תזמון)</label><input type="date" id="f_dueDate" value="${esc(t.dueDate||'')}"></div></div>
     <div class="f"><label>פרטים</label><textarea id="f_details" rows="2">${esc(t.details||'')}</textarea></div>
-    <div class="modal-actions"><button class="btn primary" onclick="saveTask('${t.id||''}','${returnClientId||''}')">שמירה</button>
+    <div class="modal-actions"><button class="btn primary" onclick="saveTask('${t.id||''}','${returnClientId||''}','${returnKind}')">שמירה</button>
       <button class="btn ghost" onclick="closeModal()">ביטול</button>
-      ${t.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delTask('${t.id}','${returnClientId||''}')">מחיקה</button>`:''}</div>`);
+      ${t.id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delTask('${t.id}','${returnClientId||''}','${returnKind}')">מחיקה</button>`:''}</div>`);
 }
-async function saveTask(id,returnClientId){
+async function saveTask(id,returnClientId,returnKind){
   const body={title:val('f_title'),status:val('f_status'),priority:val('f_priority'),dueDate:val('f_dueDate'),details:val('f_details')};
   if(!body.title){toast('חסרה כותרת','bad');return;}
   const sel=$('f_client'); // קיים רק למשימות ניתנות-לשיוך-לקוח (כללי או לקוח)
@@ -2344,11 +2345,11 @@ async function saveTask(id,returnClientId){
   try{
     id?await apiPatch('/tasks/'+id,body):await apiPost('/tasks',body);
     closeModal(); toast('נשמר');
-    if(returnClientId) openClient(returnClientId); else go('tasks');
+    if(returnClientId) reopenClientCard(returnClientId,returnKind); else go('tasks');
   }catch(e){toast('שגיאה','bad');}
 }
-async function delTask(id,returnClientId){ if(!confirm('למחוק?'))return; await apiDel('/tasks/'+id); closeModal(); toast('נמחק'); if(returnClientId) openClient(returnClientId); else go('tasks'); }
-async function advanceClientTask(id,status,clientId){ try{ await apiPatch('/tasks/'+id,{status}); openClient(clientId); }catch(e){ toast('שגיאה','bad'); } }
+async function delTask(id,returnClientId,returnKind){ if(!confirm('למחוק?'))return; await apiDel('/tasks/'+id); closeModal(); toast('נמחק'); if(returnClientId) reopenClientCard(returnClientId,returnKind); else go('tasks'); }
+async function advanceClientTask(id,status,clientId,returnKind){ try{ await apiPatch('/tasks/'+id,{status}); reopenClientCard(clientId,returnKind||'client'); }catch(e){ toast('שגיאה','bad'); } }
 
 // ============ מאגר סקילז (ECC) ============
 const SK_CATS=[["backend","Backend, API ושרת","🔧"],["db","בסיסי נתונים","🗄️"],["testing","בדיקות ואיכות קוד","🧪"],["devops","העלאה לאוויר ותשתית","🚀"],["security","אבטחה","🛡️"],["frontend","מסכים, עיצוב ואנימציה","🎨"],["langs","שפות תכנות ותקני-קוד","💬"],["ai","בינה מלאכותית וסוכנים","🤖"],["orch","עבודה של כמה סוכנים יחד","🕸️"],["planning","תכנון, מוצר והתמצאות","🗺️"],["business","עסקי, פיננסי וגיוס","💼"],["content","תוכן, שיווק ורשתות","📣"],["video","וידאו ומדיה","🎬"],["research","מחקר, נתונים וידע","🔬"],["ecc","תשתית ECC והגדרות","⚙️"],["network","רשת ותקשורת","🌐"],["domains","תחומים ייעודיים","🧩"]];

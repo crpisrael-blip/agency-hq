@@ -47,6 +47,20 @@
     return `<div class="card"><h3>מתודולוגיה</h3>${rows}</div>`;
   }
 
+  // כרטיס משימות ללקוח (מסך לקוחות BOS) — מנקז את המשימות המקושרות + כפתור "+ משימה".
+  // משתמש בטופס המשימה הגלובלי (taskForm) עם returnKind='org' כדי לחזור למסך הזה אחרי שמירה.
+  function orgTasksCard(orgId, tasksArr) {
+    const ts = tasksArr || [];
+    const open = ts.filter((t) => t.status !== 'done');
+    const rows = ts.length ? ts.map((t) => `<div class="list-item">
+        <div class="li-main" style="cursor:pointer" onclick='taskForm(${j(t)},"","${orgId}","org")'><b>${t.status === 'done' ? '✅ ' : t.priority === 'urgent' ? '🔴 ' : t.priority === 'high' ? '🟠 ' : ''}${esc(t.title)}</b>${t.dueDate ? `<small class="${t.status !== 'done' && overdue(t.dueDate) ? 'warn-row' : ''}">יעד: ${fmt(t.dueDate)}</small>` : ''}</div>
+        ${t.status !== 'done' ? `<button class="btn teal small" onclick="BOS.advOrgTask('${t.id}','${t.status === 'todo' ? 'doing' : 'done'}','${orgId}')">${t.status === 'todo' ? 'התחל' : 'סיים'}</button>` : '<span class="pill p-green">✓</span>'}
+      </div>`).join('') : '<div class="empty">אין משימות. קבע את הפעולה הבאה מול הלקוח 👆</div>';
+    return `<div class="card"><div class="spread" style="margin-bottom:6px"><h3 style="margin:0">📋 משימות${open.length ? ` (${open.length})` : ''}</h3>
+      <button class="btn ghost small" onclick="taskForm({},'${orgId}','${orgId}','org')">+ משימה</button></div>${rows}</div>`;
+  }
+  async function advOrgTask(id, status, orgId) { try { await apiPatch('/tasks/' + id, { status }); openOrg(orgId); } catch (e) { toast('שגיאה', 'bad'); } }
+
   // גישה ל-state ניווט משני (טאב פעיל לכל קבוצה)
   const TAB = {};
   function tabBar(group, tabs, active) {
@@ -292,6 +306,7 @@
         <div class="card"><h3>פרויקטים</h3>${projRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.newProject('${id}')">+ פרויקט</button></div>
         <div class="card"><h3>צמיחה</h3>${d.growth.length ? d.growth.map((g) => `<div class="list-item"><div class="li-main"><b>${esc(g.title)}</b></div><button class="btn small" onclick="BOS.convertPC('${g.id}')">המר להזדמנות</button></div>`).join('') : '<div class="empty">—</div>'}</div>
       </div>
+      ${orgTasksCard(id, d.tasks)}
       <div class="card"><h3>פעילות אחרונה</h3><ul class="tl">${acts}</ul></div>`;
   }
 
@@ -388,7 +403,7 @@
     newProposal, _newProposal, propStatus, _propStatus, propToEngagement,
     setOppStage, saveOppNA, convertToProject,
     setProjStatus, setProjHealth, saveProj, addMilestone, _addMilestone, msToggle,
-    addChange, _addChange, convertPC, delSub,
+    addChange, _addChange, convertPC, delSub, advOrgTask,
   };
 
   // אם האפליקציה כבר מוצגת ועומדים על מסך BOS — רענון לאחר טעינת המודול
