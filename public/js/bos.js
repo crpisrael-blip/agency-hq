@@ -174,30 +174,12 @@
     TAB.sales = 'leads'; go('sales');
   }
 
-  /* =========================== לקוחות (Organizations) =========================== */
-  RENDER.customers = async () => {
-    const view = TAB.customers || 'active';
-    const [rows, arch] = await Promise.all([
-      apiGet('/organizations'),
-      apiGet('/organizations?view=archived').catch(() => []),
-    ]);
-    const list = view === 'archived' ? arch : rows;
-    const stPill = (st) => { const c = st === 'customer' ? 'p-green' : st === 'former_customer' ? 'p-red' : st === 'paused' ? 'p-gray' : 'p-amber'; return `<span class="pill ${c}">${H('orgStatus', st)}</span>`; };
-    const rowActions = (o) => view === 'archived'
-      ? `<button class="btn small ghost" onclick="event.stopPropagation();BOS.restoreOrg('${o.id}')" title="שחזר מהארכיון">♻︎</button><button class="btn small ghost" onclick="event.stopPropagation();BOS.deleteOrg('${o.id}','${esc(o.name).replace(/'/g, '')}')" title="מחיקה לצמיתות">🗑</button>`
-      : `<button class="btn small ghost" onclick="event.stopPropagation();BOS.archiveOrg('${o.id}')" title="העבר לארכיון">🗄</button>`;
-    const item = (o) => `<div class="list-item" onclick="BOS.openOrg('${o.id}')">
-        <div class="li-main"><b>${esc(o.name)}</b><small>${esc(o.industry || '')}${o.openOpportunities ? ` · ${o.openOpportunities} הזדמנויות` : ''}${o.activeProjects ? ` · ${o.activeProjects} פרויקטים` : ''}</small></div>
-        <div class="row" style="gap:7px;align-items:center">${o.mrr ? `<b class="li-val" style="color:var(--accent-2)">${money(o.mrr)}</b>` : ''}${stPill(o.status)}${rowActions(o)}</div></div>`;
-    const toggle = `<div class="tabs2" style="margin-bottom:12px">
-        <button class="${view === 'active' ? 'on' : ''}" onclick="BOS.tab('customers','active')">פעילים <span class="cnt">${rows.length}</span></button>
-        <button class="${view === 'archived' ? 'on' : ''}" onclick="BOS.tab('customers','archived')">ארכיון <span class="cnt">${arch.length}</span></button>
-      </div>`;
-    V().innerHTML = `<div class="spread"><h2 style="margin:0">לקוחות</h2><button class="btn small" onclick="BOS.newOrg()">+ ארגון</button></div>
-      ${toggle}
-      ${list.length ? `<div class="card">${list.map(item).join('')}</div>`
-        : `<div class="empty">${view === 'archived' ? 'הארכיון ריק' : 'אין ארגונים עדיין'}</div>`}`;
-  };
+  /* =========================== לקוחות =========================== *
+   * רשימת לקוחות אחת בלבד — הניווט הראשי "לקוחות" מנתב לרשימה המאוחדת
+   * (RENDER.portfolio ב-index.html): אקורדיון לקוחות+מערכות, חיפוש, מדדי CRM,
+   * ארכיון (פעילים/ארכיון + העבר/שחזר/מחק), ופתיחת כרטיס הלקוח המאוחד.
+   * פעולות הארכיון (archiveOrg/restoreOrg/deleteOrg) נשמרות כאן ונקראות מהרשימה המאוחדת. */
+  RENDER.customers = (...a) => RENDER.portfolio(...a);
 
   async function archiveOrg(id) { try { await apiPatch('/organizations/' + id, { archived: 1 }); toast('הועבר לארכיון ✓'); } catch (e) { toast('שגיאה', 'bad'); } go('customers'); }
   async function restoreOrg(id) { try { await apiPatch('/organizations/' + id, { archived: 0 }); toast('שוחזר ✓'); } catch (e) { toast('שגיאה', 'bad'); } go('customers'); }
@@ -340,34 +322,10 @@
       <div class="card"><h3>פעילות</h3><ul class="tl">${acts}</ul></div>`;
   }
 
-  /* =========================== כרטיס ארגון 360 =========================== */
-  async function openOrg(id) {
-    CURRENT = 'organization'; document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.p === 'customers'));
-    V().innerHTML = '<div class="empty">טוען…</div>';
-    const d = await apiGet('/organizations/' + id);
-    const o = d.organization;
-    const contactRows = d.contacts.map((ct) => `<div class="list-item"><div class="li-main"><b>${esc(ct.name)}${ct.isPrimary ? ' ⭐' : ''}${ct.isDecisionMaker ? ' 🎯' : ''}</b><small>${esc(ct.role || '')} ${ct.phone ? '· ' + esc(ct.phone) : ''}</small></div>${ct.whatsapp || ct.phone ? `<a class="btn small ghost" href="${waLink(ct.whatsapp || ct.phone)}" target="_blank">וואטסאפ</a>` : ''}</div>`).join('') || '<div class="empty">—</div>';
-    const oppRows = d.opportunities.map((op) => `<div class="list-item" onclick="BOS.openOpp('${op.id}')"><div class="li-main"><b>${esc(op.title)}</b><small>${H('oppStage', op.stage)} · ${op.probability || 0}%</small></div>${op.estimatedValue ? `<b class="li-val" style="color:var(--accent-2)">${money(op.estimatedValue)}</b>` : ''}</div>`).join('') || '<div class="empty">—</div>';
-    const projRows = d.projects.map((p) => `<div class="list-item" onclick="BOS.openProject('${p.id}')"><div class="li-main"><b>${esc(p.title)}</b><small>${H('projectStatus', p.status)} · ${p.progress || 0}%</small></div>${healthPill(p.health)}</div>`).join('') || '<div class="empty">—</div>';
-    const acts = d.activities.map((a) => `<li><b>${esc(a.title)}</b><small>${H('activityType', a.type)} · ${new Date(a.occurredAt).toLocaleDateString('he-IL')}</small></li>`).join('') || '<li class="empty">—</li>';
-    const stLbl = H('orgStatus', o.status);
-    V().innerHTML = `
-      <button class="backbtn" onclick="go('customers')">← חזרה ללקוחות</button>
-      <div class="spread"><div><h2 style="margin:0 0 3px">${esc(o.name)}</h2><small style="color:var(--muted)">${esc(o.industry || '')}</small></div><span class="pill p-green">${stLbl}</span></div>
-      <div class="kpis">
-        <div class="kpi green"><b>${d.mrr ? money(d.mrr) : '—'}</b><small>MRR</small></div>
-        <div class="kpi accent"><b>${d.opportunities.filter((x) => !['won', 'lost'].includes(x.stage)).length}</b><small>הזדמנויות פתוחות</small></div>
-        <div class="kpi"><b>${d.projects.filter((x) => !['completed', 'paused'].includes(x.status)).length}</b><small>פרויקטים פעילים</small></div>
-        <div class="kpi"><b>${d.systems.length}</b><small>מערכות</small></div>
-      </div>
-      <div class="grid2" style="align-items:start">
-        <div class="card"><h3>אנשי קשר</h3>${contactRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.addContact('${id}')">+ איש קשר</button></div>
-        <div class="card"><h3>הזדמנויות</h3>${oppRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.newOpp('${id}')">+ הזדמנות</button></div>
-        <div class="card"><h3>פרויקטים</h3>${projRows}<button class="btn small ghost" style="margin-top:8px" onclick="BOS.newProject('${id}')">+ פרויקט</button></div>
-        <div class="card"><h3>צמיחה</h3>${d.growth.length ? d.growth.map((g) => `<div class="list-item"><div class="li-main"><b>${esc(g.title)}</b></div><button class="btn small" onclick="BOS.convertPC('${g.id}')">המר להזדמנות</button></div>`).join('') : '<div class="empty">—</div>'}</div>
-      </div>
-      <div class="card"><h3>פעילות אחרונה</h3><ul class="tl">${acts}</ul></div>`;
-  }
+  /* =========================== כרטיס לקוח מאוחד ===========================
+   * אין עוד כרטיס ארגון נפרד — openOrg מנתב לכרטיס הלקוח היחיד (openClient
+   * שב-index.html, מסך מלא), כדי שיהיה כרטיס אחד לכל לקוח מכל מקום רלוונטי. */
+  async function openOrg(id) { return window.openClient(id); }
 
   /* =========================== פעולות / טפסים =========================== */
   const fInput = (id, label, val = '', type = 'text') => `<div class="f"><label>${label}</label><input id="${id}" type="${type}" value="${esc(val)}"></div>`;
