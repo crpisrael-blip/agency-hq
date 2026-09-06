@@ -2124,18 +2124,44 @@ async function quoteDelete(id){
   catch(e){ toast('שגיאה במחיקה','bad'); }
 }
 
+// ---- בורר הרכבת תהליך: מצב + בחירה + מטמון ערכות ----
+let COMPOSE=false;            // מצב "הרכבת תהליך" פעיל (מציג צ׳קבוקסים)
+let PB_SELECT=new Set();      // מזהי הפורמטים שסומנו בבורר
+let KITS_CACHE=[];            // ערכות התהליך
+
 RENDER.playbooks=async()=>{
-  const [list,runs]=await Promise.all([apiGet('/playbooks'),apiGet('/playbooks/runs')]);
-  PB_CACHE=list;
+  const [list,runs,kits]=await Promise.all([apiGet('/playbooks'),apiGet('/playbooks/runs'),apiGet('/playbooks/kits').catch(()=>[])]);
+  PB_CACHE=list; KITS_CACHE=kits;
+  const pbTitle={}; list.forEach(p=>pbTitle[p.id]=p.title);
   const activeRuns=runs.filter(r=>r.status==='active');
   const byStage={}; list.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
   const stages=STAGE_ORDER.filter(s=>byStage[s]);
+  const sel=PB_SELECT;
   $('view').innerHTML=`
     <div class="spread"><div><h2>מתודולוגיה ORT-TECH</h2>
       <div class="sub">תבניות המתודולוגיה לכל שלב בעבודה עם לקוח. בחר פורמט, החל על לקוח — ותקבל מהלך חי עם מעקב.</div></div>
-      <div class="row"><button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
+      <div class="row"><button class="btn ${COMPOSE?'primary':'teal'}" onclick="toggleCompose()">${COMPOSE?'✕ סגירת הרכבה':'🧩 הרכבת תהליך'}</button>
+        <button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
         <button class="btn teal" onclick="quoteForm()">📄 הצעת מחיר</button>
         <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
+    ${COMPOSE?`<div class="card" style="border:1px solid var(--teal,#0d9488);background:#f0fdfa">
+      <div class="spread"><div><b>🧩 מצב הרכבת תהליך</b>
+        <div class="hint">סמן את הפורמטים הנכונים ללקוח מכל השלבים — ואז הרכב אותם למהלכים חיים בבת אחת, או שמור כערכה לשימוש חוזר.</div></div>
+        <button class="btn ghost small" onclick="clearSelect()">ניקוי בחירה</button></div></div>`:''}
+    <div class="card"><div class="spread" style="margin-bottom:8px"><h3 style="margin:0">🧰 ערכות תהליך <span class="muted">(${kits.length})</span></h3>
+      <div class="row"><button class="btn ghost small" onclick="reseedKits()" title="החזרת ערכות ברירת המחדל">↻ שחזור</button>
+        <button class="btn ghost small" onclick="kitForm()">+ ערכה</button></div></div>
+      ${kits.length?`<div class="grid2">${kits.slice().sort((a,b)=>(a.sort||0)-(b.sort||0)).map(k=>{
+        const ids=(()=>{try{return JSON.parse(k.playbookIds||'[]')}catch{return[]}})();
+        return `<div class="list-item" style="align-items:flex-start">
+          <div class="li-main"><b>🧰 ${esc(k.title)}</b>
+            <small>${k.projectType?esc(k.projectType)+' · ':''}${ids.length} פורמטים${k.builtin?'':' · שלי'}</small>
+            ${k.summary?`<div class="hint">${esc(k.summary)}</div>`:''}
+            <div class="hint" style="margin-top:4px">${ids.map(id=>esc(pbTitle[id]||id)).join(' · ')||'ריק'}</div></div>
+          <div class="row" style="gap:6px"><button class="btn primary small" onclick="applyKitForm('${k.id}')">החל על לקוח →</button>
+            <button class="btn ghost small" onclick="kitForm('${k.id}')">עריכה</button></div>
+        </div>`;}).join('')}</div>`:'<div class="hint">אין ערכות עדיין. סמן פורמטים במצב הרכבה ולחץ "שמור כערכה", או הוסף ערכה ידנית.</div>'}
+    </div>
     <div class="card"><div class="spread" style="margin-bottom:8px"><h3 style="margin:0">📄 הצעות מחיר</h3>
       <button class="btn ghost small" onclick="quoteForm()">+ הצעה חדשה</button></div>
       <div id="quotesList"><div class="muted hint">טוען…</div></div></div>
@@ -2151,15 +2177,37 @@ RENDER.playbooks=async()=>{
     ${stages.map(s=>`
       <div class="card">
         <h3 style="margin:0 0 8px">${STAGE_EMOJI[s]} ${STAGE_LABELS[s]||s}</h3>
-        ${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0)).map(p=>`
-          <div class="list-item" onclick="openPlaybook('${p.id}')">
-            <div class="li-main"><b>${esc(p.title)}</b><small>${esc(p.summary||'')}</small></div>
-            <div class="row" style="gap:6px">${pill(PB_KIND,p.kind)}${p.builtin?'':'<span class="pill p-gray">שלי</span>'}</div>
-          </div>`).join('')}
+        ${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0)).map(p=>{
+          const on=sel.has(p.id);
+          return COMPOSE
+            ? `<div class="list-item${on?' on':''}" style="cursor:pointer${on?';background:#f0fdfa':''}" onclick="togglePbSelect('${p.id}')">
+                <div class="row" style="gap:8px;align-items:flex-start">
+                  <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation();togglePbSelect('${p.id}')" style="margin-top:3px">
+                  <div class="li-main"><b>${esc(p.title)}</b><small>${esc(p.summary||'')}</small></div></div>
+                <div class="row" style="gap:6px">${pill(PB_KIND,p.kind)}${p.builtin?'':'<span class="pill p-gray">שלי</span>'}</div>
+              </div>`
+            : `<div class="list-item" onclick="openPlaybook('${p.id}')">
+                <div class="li-main"><b>${esc(p.title)}</b><small>${esc(p.summary||'')}</small></div>
+                <div class="row" style="gap:6px">${pill(PB_KIND,p.kind)}${p.builtin?'':'<span class="pill p-gray">שלי</span>'}</div>
+              </div>`;
+        }).join('')}
       </div>`).join('')}
-    </div>`;
+    </div>
+    ${COMPOSE?`<div style="height:70px"></div>
+      <div id="composeBar" style="position:fixed;inset-inline:0;bottom:0;background:#fff;border-top:1px solid #e5e7eb;box-shadow:0 -4px 16px rgba(0,0,0,.08);padding:12px 16px;z-index:50">
+        <div class="spread" style="max-width:1100px;margin:0 auto">
+          <b>${sel.size} פורמטים נבחרו</b>
+          <div class="row" style="gap:8px">
+            <button class="btn ghost" ${sel.size?'':'disabled'} onclick="saveAsKitForm()">💾 שמירה כערכה</button>
+            <button class="btn primary" ${sel.size?'':'disabled'} onclick="applyBatchForm()">הרכבת תהליך ללקוח →</button>
+          </div></div></div>`:''}`;
   loadQuotesList();
 };
+
+/* ---- בורר: מצב הרכבה ובחירה ---- */
+function toggleCompose(){ COMPOSE=!COMPOSE; if(!COMPOSE) PB_SELECT.clear(); go('playbooks'); }
+function clearSelect(){ PB_SELECT.clear(); go('playbooks'); }
+function togglePbSelect(id){ PB_SELECT.has(id)?PB_SELECT.delete(id):PB_SELECT.add(id); go('playbooks'); }
 function openPlaybook(id){
   const p=PB_CACHE.find(x=>x.id===id); if(!p)return;
   const secs=JSON.parse(p.sections||'[]');
@@ -2224,6 +2272,83 @@ async function savePlaybook(id){
 }
 async function delPlaybook(id){ if(!confirm('למחוק פורמט זה? מהלכים שנוצרו ממנו יימחקו גם.'))return; await apiDel('/playbooks/'+id); closeModal(); toast('נמחק'); go('playbooks'); }
 async function reseedPlaybooks(){ try{ const r=await apiPost('/playbooks/reseed'); toast(r.added?`שוחזרו ${r.added} תבניות`:'כל התבניות קיימות'); go('playbooks'); }catch(e){toast('שגיאה','bad');} }
+
+/* ================= הרכבת תהליך: החלה מרובה + ערכות ================= */
+// החלת הבחירה מהבורר על לקוח → יוצר מהלך לכל פורמט שנבחר
+async function applyBatchForm(){
+  if(!PB_SELECT.size){toast('לא נבחרו פורמטים','bad');return;}
+  await loadRefs();
+  const ids=[...PB_SELECT];
+  const names=ids.map(id=>PB_CACHE.find(p=>p.id===id)?.title||id);
+  openModal(`<h3>הרכבת תהליך — ${ids.length} פורמטים</h3>
+    <div class="sub" style="margin-bottom:10px">ייווצר מהלך חי לכל פורמט. פורמט שכבר נפתח ללקוח לא יוכפל.</div>
+    <div class="hint" style="margin-bottom:12px">${names.map(esc).join(' · ')}</div>
+    <div class="f2"><div class="f"><label>לקוח</label><select id="f_clientId" onchange="syncBatchSys()">${clientOptions('')}</select></div>
+      <div class="f"><label>מערכת (אופציונלי)</label><select id="f_systemId">${systemOptions('','')}</select></div></div>
+    <div class="modal-actions"><button class="btn primary" onclick="doApplyBatch()">יצירת המהלכים</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+}
+function syncBatchSys(){ $('f_systemId').innerHTML=systemOptions('',val('f_clientId')); }
+async function doApplyBatch(){
+  const body={ids:[...PB_SELECT],clientId:val('f_clientId')||null,systemId:val('f_systemId')||null};
+  try{ const r=await apiPost('/playbooks/apply-batch',body);
+    closeModal();
+    toast(`נוצרו ${r.createdCount} מהלכים${r.skippedCount?` · ${r.skippedCount} כבר קיימים`:''} ✓`);
+    COMPOSE=false; PB_SELECT.clear(); go('playbooks');
+  }catch(e){ toast('שגיאה','bad'); }
+}
+// שמירת הבחירה מהבורר כערכה חדשה
+function saveAsKitForm(){ kitForm(null,[...PB_SELECT]); }
+
+/* ---- CRUD ערכות ---- */
+function kitForm(id,presetIds){
+  const k=id?(KITS_CACHE.find(x=>x.id===id)||{}):{};
+  let ids=presetIds||(()=>{try{return JSON.parse(k.playbookIds||'[]')}catch{return[]}})();
+  const byStage={}; PB_CACHE.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
+  const chooser=STAGE_ORDER.filter(s=>byStage[s]).map(s=>
+    `<div style="margin-bottom:8px"><b style="font-size:.85rem">${STAGE_EMOJI[s]||''} ${STAGE_LABELS[s]||s}</b>
+      ${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0)).map(p=>`
+        <label class="row" style="gap:6px;margin:2px 12px;font-size:.85rem;cursor:pointer">
+          <input type="checkbox" value="${p.id}" ${ids.includes(p.id)?'checked':''}> ${esc(p.title)}</label>`).join('')}
+    </div>`).join('');
+  openModal(`<h3>${id?'עריכת ערכה':'ערכת תהליך חדשה'}</h3>
+    <div class="f2"><div class="f"><label>שם הערכה *</label><input id="k_title" value="${esc(k.title||'')}"></div>
+      <div class="f"><label>סוג פרויקט</label><input id="k_type" value="${esc(k.projectType||'')}" placeholder="אתר תדמית / מערכת ניהול…"></div></div>
+    <div class="f"><label>תיאור (שורה אחת)</label><input id="k_summary" value="${esc(k.summary||'')}"></div>
+    <div class="f"><label>פורמטים בערכה</label>
+      <div id="kitChooser" style="max-height:280px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;padding:8px">${chooser||'<div class="hint">אין פורמטים</div>'}</div></div>
+    <div class="modal-actions"><button class="btn primary" onclick="saveKit('${id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${id?`<button class="btn danger" style="margin-inline-start:auto" onclick="delKit('${id}')">מחיקה</button>`:''}</div>`, true);
+}
+async function saveKit(id){
+  const title=val('k_title'); if(!title){toast('חסר שם','bad');return;}
+  const ids=[...document.querySelectorAll('#kitChooser input:checked')].map(i=>i.value);
+  const body={title,projectType:val('k_type'),summary:val('k_summary'),playbookIds:ids};
+  try{ id?await apiPatch('/playbooks/kits/'+id,body):await apiPost('/playbooks/kits',body);
+    closeModal(); toast('נשמר ✓'); go('playbooks'); }catch(e){toast('שגיאה','bad');}
+}
+async function delKit(id){ if(!confirm('למחוק ערכה זו? (המהלכים שנוצרו ממנה יישארו)'))return; await apiDel('/playbooks/kits/'+id); closeModal(); toast('נמחק'); go('playbooks'); }
+async function reseedKits(){ try{ const r=await apiPost('/playbooks/kits/reseed'); toast(r.added?`שוחזרו ${r.added} ערכות`:'כל הערכות קיימות'); go('playbooks'); }catch(e){toast('שגיאה','bad');} }
+
+// החלת ערכה שלמה על לקוח
+async function applyKitForm(id){
+  const k=KITS_CACHE.find(x=>x.id===id); if(!k)return;
+  await loadRefs();
+  const ids=(()=>{try{return JSON.parse(k.playbookIds||'[]')}catch{return[]}})();
+  openModal(`<h3>החלת ערכה: ${esc(k.title)}</h3>
+    <div class="sub" style="margin-bottom:10px">${ids.length} פורמטים → מהלך חי לכל אחד. פורמט שכבר נפתח ללקוח לא יוכפל.</div>
+    <div class="f2"><div class="f"><label>לקוח</label><select id="f_clientId" onchange="syncBatchSys()">${clientOptions('')}</select></div>
+      <div class="f"><label>מערכת (אופציונלי)</label><select id="f_systemId">${systemOptions('','')}</select></div></div>
+    <div class="modal-actions"><button class="btn primary" onclick="doApplyKit('${id}')">יצירת המהלכים</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`);
+}
+async function doApplyKit(id){
+  const body={clientId:val('f_clientId')||null,systemId:val('f_systemId')||null};
+  try{ const r=await apiPost('/playbooks/kits/'+id+'/apply',body);
+    closeModal(); toast(`נוצרו ${r.createdCount} מהלכים${r.skippedCount?` · ${r.skippedCount} כבר קיימים`:''} ✓`); go('playbooks');
+  }catch(e){ toast('שגיאה','bad'); }
+}
 
 async function applyForm(id){
   await loadRefs();

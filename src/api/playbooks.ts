@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { asc, desc, eq } from 'drizzle-orm';
-import { playbooks, playbookRuns, clients, systems } from '../db/schema';
+import { playbooks, playbookRuns, clients, systems, processKits } from '../db/schema';
 import { Env, db, uid, now, pick, todayIL } from './util';
-import { STAGES, DEFAULT_PLAYBOOKS } from './playbook-seed';
+import { STAGES, DEFAULT_PLAYBOOKS, DEFAULT_KITS } from './playbook-seed';
 
 const STAGE_LABEL: Record<string, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.label]));
 
@@ -62,6 +62,50 @@ async function seedDefaults(c: any) {
   return missing.length;
 }
 
+/** ערכי מהלך חדש מתוך פורמט (snapshot של הסעיפים) — משותף להחלה בודדת/מרובה */
+function runValues(pb: any, opts: { clientId?: string | null; systemId?: string | null; title?: string }) {
+  return {
+    id: uid(),
+    playbookId: pb.id,
+    title: opts.title ? String(opts.title) : pb.title,
+    stage: pb.stage,
+    kind: pb.kind,
+    clientId: opts.clientId || null,
+    systemId: opts.systemId || null,
+    status: 'active',
+    sections: pb.sections,
+    doc: pb.kind === 'checklist' ? null : pb.body,
+    checked: '{}',
+    answers: '{}',
+    notes: null,
+    progress: 0,
+    createdAt: now(),
+  } as any;
+}
+
+/** מזריע את ערכות התהליך של ברירת המחדל שחסרות (אידמפוטנטי) */
+async function seedKits(c: any) {
+  const d = db(c);
+  const existing = await d.select({ id: processKits.id }).from(processKits).all();
+  const have = new Set(existing.map((r) => r.id));
+  const missing = DEFAULT_KITS.filter((k) => !have.has(k.id));
+  const t = now();
+  for (const k of missing) {
+    await d.insert(processKits).values({
+      id: k.id,
+      title: k.title,
+      projectType: k.projectType ?? null,
+      summary: k.summary ?? null,
+      playbookIds: JSON.stringify(k.playbookIds ?? []),
+      sort: k.sort ?? 0,
+      builtin: 1,
+      createdAt: t,
+      updatedAt: null,
+    } as any);
+  }
+  return missing.length;
+}
+
 // ---------- מטא: שלבי מסע המוצר ----------
 playbooksApp.get('/meta', (c) => c.json({ stages: STAGES }));
 
@@ -103,25 +147,44 @@ playbooksApp.post('/autolaunch', async (c) => {
   if (!pb) return c.json({ created: false, reason: 'no_template' });
   const runs = await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, clientId)).all();
   if (runs.some((r) => r.playbookId === pbId)) return c.json({ created: false, reason: 'exists' });
-  const runId = uid();
-  await d.insert(playbookRuns).values({
-    id: runId,
-    playbookId: pb.id,
-    title: pb.title,
-    stage: pb.stage,
-    kind: pb.kind,
-    clientId,
-    systemId: null,
-    status: 'active',
-    sections: pb.sections,
-    doc: pb.kind === 'checklist' ? null : pb.body,
-    checked: '{}',
-    answers: '{}',
-    notes: null,
-    progress: 0,
-    createdAt: now(),
-  } as any);
-  return c.json({ created: true, id: runId, title: pb.title });
+  const values = runValues(pb, { clientId });
+  await d.insert(playbookRuns).values(values);
+  return c.json({ created: true, id: values.id, title: pb.title });
+});
+
+/**
+ * הרכבת תהליך: יוצר מהלך חי לכל פורמט ברשימה. אידמפוטנטי לפי לקוח —
+ * פורמט שכבר נפתח ללקוח מדולג (לא מכפיל), כמו autolaunch. מהלך כללי (בלי לקוח)
+ * תמיד נוצר. משותף להחלה מרובה (הבורר) ולהחלת ערכת תהליך.
+ */
+async function applyPlaybookIds(d: any, ids: string[], clientId: string | null, systemId: string | null) {
+  const all = await d.select().from(playbooks).all();
+  const byId = new Map<string, any>(all.map((p: any) => [p.id, p] as [string, any]));
+  const existing = clientId
+    ? new Set((await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, clientId)).all()).map((r: any) => r.playbookId))
+    : new Set<string | null>();
+  const created: { id: string; title: string }[] = [];
+  const skipped: string[] = [];
+  for (const pid of ids) {
+    const pb = byId.get(pid);
+    if (!pb) { skipped.push(pid); continue; }
+    if (clientId && existing.has(pid)) { skipped.push(pid); continue; }
+    const values = runValues(pb, { clientId, systemId });
+    await d.insert(playbookRuns).values(values);
+    created.push({ id: values.id, title: pb.title });
+  }
+  return { created, skipped };
+}
+
+/**
+ * החלה מרובה — מרכיב תהליך ללקוח מכמה פורמטים בבת אחת (הבורר במסך המתודולוגיה).
+ */
+playbooksApp.post('/apply-batch', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const ids: string[] = Array.isArray(body.ids) ? body.ids.filter((x: any) => typeof x === 'string') : [];
+  if (!ids.length) return c.json({ error: 'no_playbooks' }, 400);
+  const { created, skipped } = await applyPlaybookIds(db(c), ids, body.clientId || null, body.systemId || null);
+  return c.json({ ok: true, created, createdCount: created.length, skippedCount: skipped.length });
 });
 
 playbooksApp.post('/', async (c) => {
@@ -237,27 +300,9 @@ playbooksApp.post('/:id/apply', async (c) => {
   const rows = await db(c).select().from(playbooks).where(eq(playbooks.id, id)).limit(1);
   const pb = rows[0];
   if (!pb) return c.json({ error: 'not_found' }, 404);
-  const runId = uid();
-  await db(c)
-    .insert(playbookRuns)
-    .values({
-      id: runId,
-      playbookId: pb.id,
-      title: body.title ? String(body.title) : pb.title,
-      stage: pb.stage,
-      kind: pb.kind,
-      clientId: body.clientId || null,
-      systemId: body.systemId || null,
-      status: 'active',
-      sections: pb.sections,
-      doc: pb.kind === 'checklist' ? null : pb.body,
-      checked: '{}',
-      answers: '{}',
-      notes: null,
-      progress: 0,
-      createdAt: now(),
-    } as any);
-  return c.json({ ok: true, id: runId });
+  const values = runValues(pb, { clientId: body.clientId, systemId: body.systemId, title: body.title });
+  await db(c).insert(playbookRuns).values(values);
+  return c.json({ ok: true, id: values.id });
 });
 
 playbooksApp.patch('/runs/:id', async (c) => {
@@ -285,4 +330,63 @@ playbooksApp.patch('/runs/:id', async (c) => {
 playbooksApp.delete('/runs/:id', async (c) => {
   await db(c).delete(playbookRuns).where(eq(playbookRuns.id, c.req.param('id')));
   return c.json({ ok: true });
+});
+
+// ---------- ערכות תהליך (בחירות מומלצות לפי סוג פרויקט) ----------
+const KIT_FIELDS = ['title', 'projectType', 'summary', 'playbookIds', 'sort'];
+
+playbooksApp.get('/kits', async (c) => {
+  const d = db(c);
+  let rows = await d.select().from(processKits).orderBy(asc(processKits.sort)).all();
+  if (rows.length === 0) {
+    await seedKits(c);
+    rows = await d.select().from(processKits).orderBy(asc(processKits.sort)).all();
+  }
+  return c.json(rows);
+});
+
+// שחזור ערכות ברירת המחדל שנמחקו
+playbooksApp.post('/kits/reseed', async (c) => {
+  const added = await seedKits(c);
+  return c.json({ ok: true, added });
+});
+
+playbooksApp.post('/kits', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  if (!body.title) return c.json({ error: 'invalid_input' }, 400);
+  const data: any = pick(body, KIT_FIELDS);
+  if (data.playbookIds !== undefined) data.playbookIds = asJson(data.playbookIds, '[]');
+  const id = uid();
+  await db(c)
+    .insert(processKits)
+    .values({ id, ...data, title: String(body.title), builtin: 0, createdAt: now() } as any);
+  return c.json({ ok: true, id });
+});
+
+playbooksApp.patch('/kits/:id', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const data: any = pick(body, KIT_FIELDS);
+  if (data.playbookIds !== undefined) data.playbookIds = asJson(data.playbookIds, '[]');
+  data.updatedAt = now();
+  await db(c).update(processKits).set(data).where(eq(processKits.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+playbooksApp.delete('/kits/:id', async (c) => {
+  await db(c).delete(processKits).where(eq(processKits.id, c.req.param('id')));
+  return c.json({ ok: true });
+});
+
+// החלת ערכה שלמה על לקוח → יוצר מהלך חי לכל פורמט בערכה (אידמפוטנטי לפי לקוח)
+playbooksApp.post('/kits/:id/apply', async (c) => {
+  const d = db(c);
+  const kit = (await d.select().from(processKits).where(eq(processKits.id, c.req.param('id'))).limit(1))[0];
+  if (!kit) return c.json({ error: 'not_found' }, 404);
+  const body = await c.req.json().catch(() => ({} as any));
+  let ids: string[] = [];
+  try { ids = JSON.parse(kit.playbookIds || '[]'); } catch { ids = []; }
+  ids = ids.filter((x) => typeof x === 'string');
+  if (!ids.length) return c.json({ error: 'empty_kit' }, 400);
+  const { created, skipped } = await applyPlaybookIds(d, ids, body.clientId || null, body.systemId || null);
+  return c.json({ ok: true, created, createdCount: created.length, skippedCount: skipped.length });
 });

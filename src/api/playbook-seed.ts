@@ -1240,3 +1240,93 @@ ORT-TECH אינה מוכרת תוכנה כנקודת מוצא. היא מזהה �
     ],
   },
 ];
+
+/* =========================================================================
+ * ערכות תהליך — בחירות מומלצות של פורמטים לכל סוג פרויקט.
+ * זה ה"מרשם": במקום לבחור ידנית מכל המבחר בכל פעם, מחילים ערכה מוכנה על
+ * הלקוח ומכוונים ממנה. כל ערכה ניתנת לעריכה, שכפול ומחיקה מהמסך.
+ * ה-ids חייבים להתקיים ב-DEFAULT_PLAYBOOKS למעלה (אחרת מדולגים בהחלה).
+ * ========================================================================= */
+export type SeedKit = {
+  id: string;
+  title: string;
+  projectType: string;
+  summary: string;
+  playbookIds: string[];
+  sort: number;
+};
+
+export const DEFAULT_KITS: SeedKit[] = [
+  {
+    id: 'kit_marketing_site',
+    title: 'אתר תדמית / דף נחיתה',
+    projectType: 'אתר תדמית',
+    summary: 'פרויקט תוכן קצר — אפיון רזה, הצעה, בנייה, QA ועלייה לאוויר.',
+    sort: 10,
+    playbookIds: [
+      'pb_discovery_call',
+      'pb_proposal_sow',
+      'pb_proposal_pricing',
+      'pb_build_dod',
+      'pb_quality_qa',
+      'pb_launch_golive',
+      'pb_handoff_kit',
+    ],
+  },
+  {
+    id: 'kit_mgmt_system',
+    title: 'מערכת ניהול (SaaS / פנים־ארגונית)',
+    projectType: 'מערכת ניהול',
+    summary: 'התהליך המלא — אפיון עומק, אדריכלות, אבטחה ודין, מסירה ותחזוקה.',
+    sort: 20,
+    playbookIds: [
+      'pb_discovery_call',
+      'pb_discovery_onepager',
+      'pb_proposal_sow',
+      'pb_proposal_contract',
+      'pb_proposal_pricing',
+      'pb_design_adr',
+      'pb_design_datamodel',
+      'pb_build_dod',
+      'pb_quality_qa',
+      'pb_security_privacy_il',
+      'pb_security_review',
+      'pb_launch_golive',
+      'pb_handoff_kit',
+      'pb_care_sla',
+    ],
+  },
+  {
+    id: 'kit_ecommerce',
+    title: 'חנות / איקומרס',
+    projectType: 'חנות אונליין',
+    summary: 'דגש על אינטגרציות (תשלום/מלאי), אבטחת נתונים, QA ועלייה.',
+    sort: 30,
+    playbookIds: [
+      'pb_discovery_call',
+      'pb_proposal_sow',
+      'pb_proposal_pricing',
+      'pb_design_datamodel',
+      'pb_design_integration',
+      'pb_build_dod',
+      'pb_quality_qa',
+      'pb_security_privacy_il',
+      'pb_launch_golive',
+      'pb_handoff_kit',
+      'pb_care_sla',
+    ],
+  },
+  {
+    id: 'kit_advisory_retainer',
+    title: 'ליווי וייעוץ (ריטיינר)',
+    projectType: 'ריטיינר',
+    summary: 'מערכת מנוהלת או ליווי מתמשך — SLA, ביקורת חודשית וצמיחה.',
+    sort: 40,
+    playbookIds: [
+      'pb_care_sla',
+      'pb_ort_review',
+      'pb_advisory_qbr',
+      'pb_growth_campaigns',
+    ],
+  },
+];
