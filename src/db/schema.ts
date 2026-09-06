@@ -42,6 +42,7 @@ export const clients = sqliteTable('clients', {
   tags: text('tags'),
   notes: text('notes'),
   isSelf: integer('is_self').default(0),      // 1 = העסק שלי (ORT-TECH) — לידים שלו מנוהלים כ-CRM מלא
+  archived: integer('archived').default(0),   // 1 = בארכיון (מוסתר ממסך הלקוחות, ניתן לשחזור/מחיקה)
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at'),
 });
@@ -343,6 +344,23 @@ export const leads = sqliteTable('leads', {
   handledAt: integer('handled_at'),
   followUpAt: integer('follow_up_at'),   // תאריך חזרה ללקוח (follow-up)
   convertedClientId: text('converted_client_id'), // הלקוח שנוצר מהליד — מונע המרה כפולה
+  createdAt: integer('created_at').notNull(),
+});
+
+// הצעות מחיר שנוצרו — לצפייה והדפסה חוזרת
+export const quotes = sqliteTable('quotes', {
+  id: text('id').primaryKey(),
+  quoteNo: text('quote_no'),
+  clientId: text('client_id'),
+  clientName: text('client_name'),
+  title: text('title'),
+  items: text('items'),
+  subtotal: real('subtotal'),
+  vatPct: real('vat_pct'),
+  total: real('total'),
+  terms: text('terms'),
+  notes: text('notes'),
+  validUntil: text('valid_until'),
   createdAt: integer('created_at').notNull(),
 });
 

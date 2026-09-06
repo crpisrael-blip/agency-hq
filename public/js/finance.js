@@ -134,15 +134,17 @@
     ['cashflow', 'תזרים'], ['forecast', 'תחזית'], ['scenarios', 'תרחישים'], ['profitability', 'רווחיות'],
     ['overview', 'סקירה'], ['engagements', 'התקשרויות'], ['calculator', 'מחשבון'],
   ];
-  function tabbar() {
-    return `<div class="tabs2">${TABS.map(([k, l]) => `<button class="${k === FIN_TAB ? 'on' : ''}" onclick="FIN.tab('${k}')">${l}</button>`).join('')}</div>`;
+  function tabbar(active) {
+    active = active || FIN_TAB;
+    return `<div class="tabs2">${TABS.map(([k, l]) => `<button class="${k === active ? 'on' : ''}" onclick="FIN.tab('${k}')">${l}</button>`).join('')}</div>`;
   }
 
+  // לשוניות המפנות למסכים ותיקים (מסך מלא). מטופלות דרך עטיפת go שמחזירה את הסרגל.
+  const LEGACY_FIN = { cashflow: 1, engagements: 1, calculator: 1 };
+
   RENDER.finance = async () => {
+    if (LEGACY_FIN[FIN_TAB]) return go(FIN_TAB); // go העטוף מזריק בחזרה את סרגל הכספים
     V().innerHTML = tabbar() + '<div id="finBody"><div class="empty">טוען…</div></div>';
-    if (FIN_TAB === 'cashflow') return go('cashflow');
-    if (FIN_TAB === 'engagements') return go('engagements');
-    if (FIN_TAB === 'calculator') return go('calculator');
     try {
       if (FIN_TAB === 'income') return await renderIncome();
       if (FIN_TAB === 'expenses') return await renderExpenses();
@@ -802,6 +804,40 @@
     dismissExc, exceptionTask, updateBalance, _saveBalance,
     addIncome, _saveIncome, addExpense, editExpense, _saveExpense, _delExpense, _expToggle,
     _vendorToggle, _uploadReceipt, _viewReceipt, _delReceipt,
+  };
+
+  /* ===== תיקון ניווט: שמירת סרגל לשוניות-המשנה גם במסכים ה"ותיקים" =====
+   * cashflow/engagements/calculator (כספים) ו-systems/processes (עבודה) הם מסכים עצמאיים
+   * שכותבים ל-#view ובכך מוחקים את סרגל הלשוניות של הקבוצה — מה שגרם ל"מלכודת" (אי-אפשר
+   * לנווט חזרה בין מסכי הכספים/העבודה). עוטפים את go: אחרי רינדור מסך-ילד מזריקים מחדש את
+   * סרגל הלשוניות של הקבוצה בראש התצוגה. פתרון עצמאי — ללא שינוי המסכים הוותיקים. */
+  const CHILD_GROUP = { cashflow: 'finance', engagements: 'finance', calculator: 'finance', systems: 'work', processes: 'work' };
+  const WORK_TABS = [['projects', 'פרויקטים'], ['systems', 'מערכות'], ['processes', 'תהליכים']];
+  function subTabBar(group, active) {
+    if (group === 'finance') return tabbar(active);
+    if (group === 'work') return `<div class="tabs2">${WORK_TABS.map(([k, l]) => `<button class="${k === active ? 'on' : ''}" onclick="BOS.tab('work','${k}')">${l}</button>`).join('')}</div>`;
+    return '';
+  }
+  const _origGo = window.go;
+  window.go = function (page) {
+    const group = CHILD_GROUP[page];
+    if (!group) return _origGo(page);
+    // משכפל את התנהגות go המקורית עבור מסך-ילד, ומזריק את סרגל הלשוניות לאחר הרינדור
+    CURRENT = page;
+    const navKey = (typeof NAV_GROUP !== 'undefined' && NAV_GROUP[page]) || group;
+    document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.p === navKey));
+    V().innerHTML = '<div class="empty">טוען…</div>';
+    let ret;
+    try { ret = (RENDER[page] || (() => {}))(); } catch (e) { ret = null; }
+    Promise.resolve(ret).then(() => {
+      if (CURRENT !== page || !V().firstChild) return;            // המשתמש ניווט בינתיים
+      if (document.querySelector('#view > .tabs2')) return;        // כבר קיים סרגל
+      const holder = document.createElement('div');
+      holder.innerHTML = subTabBar(group, page);
+      if (holder.firstElementChild) V().insertBefore(holder.firstElementChild, V().firstChild);
+    }).catch(() => {});
+    window.scrollTo(0, 0);
+    return ret;
   };
 
   // רענון אם עומדים על מסך הכספים בזמן טעינת המודול

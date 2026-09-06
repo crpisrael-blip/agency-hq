@@ -15,7 +15,7 @@ import { engagementMonthly } from './engagements';
 export const organizationsApp = new Hono<Env>();
 
 // שדות ארגון מותרים (ללא stage!)
-const ORG_FIELDS = ['name', 'industry', 'size', 'website', 'status', 'health', 'tags', 'notes'];
+const ORG_FIELDS = ['name', 'industry', 'size', 'website', 'status', 'health', 'tags', 'notes', 'archived'];
 const CONTACT_FIELDS = ['name', 'role', 'phone', 'whatsapp', 'email', 'isDecisionMaker', 'isPrimary', 'notes'];
 
 /** נרמול סטטוס legacy → אוצר מילים BOS (לתצוגה בלבד) */
@@ -25,15 +25,20 @@ function normStatus(s: string | null): string {
   return s || 'prospect';
 }
 
-// רשימת ארגונים + סיכומים עסקיים
+// רשימת ארגונים + סיכומים עסקיים.
+// ברירת מחדל: רק פעילים. ?view=archived = רק ארכיון · ?view=all = הכל.
 organizationsApp.get('/', async (c) => {
   const d = db(c);
-  const [orgs, allOpps, allProjects, allEng] = await Promise.all([
+  const view = c.req.query('view') || 'active';
+  const [allOrgs, allOpps, allProjects, allEng] = await Promise.all([
     d.select().from(clients).orderBy(desc(clients.createdAt)).all(),
     d.select().from(opportunities).all(),
     d.select().from(projects).all(),
     d.select().from(engagements).all(),
   ]);
+  const orgs = view === 'all' ? allOrgs
+    : view === 'archived' ? allOrgs.filter((o) => num((o as any).archived) === 1)
+      : allOrgs.filter((o) => num((o as any).archived) !== 1);
   const out = orgs.map((o) => {
     const opps = allOpps.filter((x) => x.organizationId === o.id);
     const openOpps = opps.filter((x) => !['won', 'lost'].includes(x.stage));

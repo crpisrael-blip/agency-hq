@@ -257,34 +257,42 @@
     renderList();
   }
 
+  let initInProgress = false; // מונע מרוץ: init היא async, בלי דגל סינכרוני שתי קריאות מקבילות עוברות את השומר ויוצרות שתי בועות
   async function init() {
-    if (document.getElementById('fb-bubble')) return;
+    if (document.getElementById('fb-bubble') || initInProgress) return;
     if (!localStorage.getItem(TOKEN_KEY)) return;
-    try { items = await api(''); } catch (e) { return; } // אין הרשאה — לא מציגים
+    initInProgress = true;
+    try {
+      try { items = await api(''); } catch (e) { return; } // אין הרשאה — לא מציגים
+      if (document.getElementById('fb-bubble')) return; // בדיקה חוזרת אחרי ה-await (belt & suspenders)
 
-    if (!document.getElementById('fb-style')) {
-      const style = document.createElement('style');
-      style.id = 'fb-style';
-      style.textContent = css;
-      document.head.appendChild(style);
+      if (!document.getElementById('fb-style')) {
+        const style = document.createElement('style');
+        style.id = 'fb-style';
+        style.textContent = css;
+        document.head.appendChild(style);
+      }
+      const b = document.createElement('button');
+      b.id = 'fb-bubble';
+      b.innerHTML = '💡<span id="fb-badge" style="display:none"></span>';
+      b.title = 'בועת הרעיונות (גרור להזזה)';
+      document.body.appendChild(b);
+      applySavedPos(b, POS_KEY, {});
+      draggable(b, b, POS_KEY, togglePanel);
+      badge();
+
+      addEventListener('resize', () => {
+        clampToViewport(document.getElementById('fb-bubble'), POS_KEY);
+        clampToViewport(document.getElementById('fb-panel'), PANEL_POS_KEY);
+      });
+    } finally {
+      initInProgress = false;
     }
-    const b = document.createElement('button');
-    b.id = 'fb-bubble';
-    b.innerHTML = '💡<span id="fb-badge" style="display:none"></span>';
-    b.title = 'בועת הרעיונות (גרור להזזה)';
-    document.body.appendChild(b);
-    applySavedPos(b, POS_KEY, {});
-    draggable(b, b, POS_KEY, togglePanel);
-    badge();
-
-    addEventListener('resize', () => {
-      clampToViewport(document.getElementById('fb-bubble'), POS_KEY);
-      clampToViewport(document.getElementById('fb-panel'), PANEL_POS_KEY);
-    });
   }
 
   window.ideaBubbleInit = init;
   window.ideaBubbleDestroy = () => {
+    initInProgress = false;
     ['fb-bubble', 'fb-panel'].forEach((id) => document.getElementById(id)?.remove());
   };
 
