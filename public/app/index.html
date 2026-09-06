@@ -725,7 +725,8 @@ async function openClient(id){
     </div>`).join(''):'<div class="muted">אין משימות. קבע את הפעולה הבאה מול הלקוח 👆</div>'}`);
 
   const runsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">🧭 מהלכי מתודולוגיה${d.runs&&d.runs.length?` (${d.runs.length})`:''}</h3>
-    <button class="btn ghost small" onclick="startRunForClient('${id}')">+ מהלך</button></div>
+    <div class="row" style="gap:6px"><button class="btn teal small" onclick="composeForClient('${id}')">🧩 הרכבת תהליך</button>
+      <button class="btn ghost small" onclick="startRunForClient('${id}')">+ מהלך</button></div></div>
     ${d.runs&&d.runs.length?d.runs.map(r=>`<div class="run-row" onclick="openRun('${r.id}')">
       <div class="grow"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
         <div class="hint">${STAGE_LABELS[r.stage]||''}${r.status==='done'?' · הושלם':''}</div>
@@ -2347,6 +2348,43 @@ async function doApplyKit(id){
   const body={clientId:val('f_clientId')||null,systemId:val('f_systemId')||null};
   try{ const r=await apiPost('/playbooks/kits/'+id+'/apply',body);
     closeModal(); toast(`נוצרו ${r.createdCount} מהלכים${r.skippedCount?` · ${r.skippedCount} כבר קיימים`:''} ✓`); go('playbooks');
+  }catch(e){ toast('שגיאה','bad'); }
+}
+
+/* ---- הרכבת תהליך מתוך כרטיס הלקוח (הלקוח קבוע) ---- */
+async function composeForClient(clientId){
+  if(!PB_CACHE.length) PB_CACHE=await apiGet('/playbooks');
+  if(!KITS_CACHE.length) KITS_CACHE=await apiGet('/playbooks/kits').catch(()=>[]);
+  const name=CLIENT360&&CLIENT360.client&&CLIENT360.client.id===clientId?CLIENT360.client.name:'';
+  const byStage={}; PB_CACHE.forEach(p=>{(byStage[p.stage]=byStage[p.stage]||[]).push(p);});
+  const chooser=STAGE_ORDER.filter(s=>byStage[s]).map(s=>
+    `<div style="margin-bottom:8px"><b style="font-size:.85rem">${STAGE_EMOJI[s]||''} ${STAGE_LABELS[s]||s}</b>
+      ${byStage[s].sort((a,b)=>(a.sort||0)-(b.sort||0)).map(p=>`
+        <label class="row" style="gap:6px;margin:2px 12px;font-size:.85rem;cursor:pointer">
+          <input type="checkbox" value="${p.id}"> ${esc(p.title)}</label>`).join('')}
+    </div>`).join('');
+  const kitRow=KITS_CACHE.slice().sort((a,b)=>(a.sort||0)-(b.sort||0))
+    .map(k=>`<button type="button" class="btn ghost small" onclick="composePreset('${k.id}')">🧰 ${esc(k.title)}</button>`).join('');
+  openModal(`<h3>🧩 הרכבת תהליך${name?' — '+esc(name):''}</h3>
+    <div class="sub" style="margin-bottom:10px">בחר ערכה מוכנה כנקודת פתיחה או סמן פורמטים ידנית, ואז צור מהלכים. פורמט שכבר נפתח ללקוח לא יוכפל.</div>
+    <div class="f"><label>ערכות מוכנות (לחיצה מסמנת את הפורמטים)</label>
+      <div class="row" style="flex-wrap:wrap;gap:6px">${kitRow||'<span class="hint">אין ערכות</span>'}</div></div>
+    <div class="f"><label>פורמטים</label>
+      <div id="cfChooser" style="max-height:300px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;padding:8px">${chooser||'<div class="hint">אין פורמטים</div>'}</div></div>
+    <div class="modal-actions"><button class="btn primary" onclick="doComposeForClient('${clientId}')">צור מהלכים</button>
+      <button class="btn ghost" onclick="openClient('${clientId}')">ביטול</button></div>`, true);
+}
+function composePreset(kitId){
+  const k=KITS_CACHE.find(x=>x.id===kitId); if(!k)return;
+  let ids=[]; try{ids=JSON.parse(k.playbookIds||'[]')}catch{ids=[]}
+  document.querySelectorAll('#cfChooser input[type=checkbox]').forEach(i=>{ i.checked=ids.includes(i.value); });
+  toast('סומנו '+ids.length+' פורמטים');
+}
+async function doComposeForClient(clientId){
+  const ids=[...document.querySelectorAll('#cfChooser input:checked')].map(i=>i.value);
+  if(!ids.length){toast('לא נבחרו פורמטים','bad');return;}
+  try{ const r=await apiPost('/playbooks/apply-batch',{clientId,ids});
+    closeModal(); toast(`נוצרו ${r.createdCount} מהלכים${r.skippedCount?` · ${r.skippedCount} כבר קיימים`:''} ✓`); openClient(clientId);
   }catch(e){ toast('שגיאה','bad'); }
 }
 
