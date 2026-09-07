@@ -443,6 +443,22 @@ export const playbookRuns = sqliteTable('playbook_runs', {
   completedAt: integer('completed_at'),
 });
 
+/**
+ * ערכת תהליך = בחירה שמורה של מספר פורמטים מהמתודולוגיה, המרכיבים יחד תהליך
+ * שלם ללקוח מסוג מסוים. מחילים ערכה על לקוח → נוצר מהלך חי לכל פורמט בערכה.
+ */
+export const processKits = sqliteTable('process_kits', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  projectType: text('project_type'),                 // סוג הפרויקט שהערכה מתאימה לו
+  summary: text('summary'),                           // שורה אחת: למי ומתי
+  playbookIds: text('playbook_ids').notNull().default('[]'), // JSON: ["pb_...",...] לפי הסדר
+  sort: integer('sort').notNull().default(0),
+  builtin: integer('builtin').notNull().default(0),   // 1 = ערכת ברירת מחדל
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+});
+
 // מעקב שימוש בסקילז של ECC לפי מערכת/פרויקט
 export const skillUsage = sqliteTable('skill_usage', {
   id: text('id').primaryKey(),
@@ -631,6 +647,7 @@ export type Process = typeof processes.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type Playbook = typeof playbooks.$inferSelect;
 export type PlaybookRun = typeof playbookRuns.$inferSelect;
+export type ProcessKit = typeof processKits.$inferSelect;
 export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;
 export type ExpenseReceipt = typeof expenseReceipts.$inferSelect;
 export type SkillUsage = typeof skillUsage.$inferSelect;
