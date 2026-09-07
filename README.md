@@ -45,7 +45,7 @@
 > באובייקט `SITE` בראש `public/site.js` — נקודת עריכה אחת.
 >
 > **קישור הדומיין** `ort-tech.co.il` לפרויקט ה-Pages מתבצע בלוח הבקרה של Cloudflare
-> (Workers & Pages → agency-hq → Custom domains), לא בקוד. הפריסה עצמה רצה מ-`main` בלבד (`.github/workflows/deploy.yml`).
+> (Workers & Pages → agency-hq → Custom domains), לא בקוד. הפריסה רצה מענף ברירת המחדל (`claude/business-management-system-s59kpk`) ומ-`main` (`.github/workflows/deploy.yml`).
 
 כל הטפסים מזינים את אותו webhook לידים (`/api/hook/lead`) עם `source` שונה לכל עמוד, כך שבדשבורד
 רואים בפאנל **לידים לפי מקור** מאיפה הגיע כל ליד.
@@ -104,7 +104,7 @@ npm run dev                    # http://localhost:8790
 
 ## עדכונים
 
-כל דחיפה ל-`main` ב-GitHub מריצה את `.github/workflows/deploy.yml`: בדיקת טיפוסים → מיגרציות על ה-D1 החי → פריסה ל-Cloudflare Pages. המיגרציות רצות תמיד לפני הפריסה, כדי שקוד חדש לא יפגוש סכמה ישנה.
+כל דחיפה לענף ברירת המחדל (`claude/business-management-system-s59kpk`) או ל-`main` ב-GitHub מריצה את `.github/workflows/deploy.yml`: בדיקת טיפוסים → מיגרציות על ה-D1 החי → פריסה ל-Cloudflare Pages. המיגרציות רצות תמיד לפני הפריסה, כדי שקוד חדש לא יפגוש סכמה ישנה. כך שמיזוג PR לענף העבודה עולה לאוויר אוטומטית, בלי צורך בקידום ידני ל-`main`.
 
 ### הגדרה חד-פעמית
 

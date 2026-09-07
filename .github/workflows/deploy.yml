@@ -2,7 +2,9 @@ name: Deploy to Cloudflare Pages
 
 on:
   push:
-    branches: [main]
+    # פריסה רצה גם מענף ברירת המחדל (שאליו ממוזגות כל ה-PRs) וגם מ-main.
+    # כך מיזוג לענף העבודה עולה לאוויר אוטומטית — בלי צורך בקידום ידני ל-main.
+    branches: [main, claude/business-management-system-s59kpk]
   workflow_dispatch:
 
 concurrency:
