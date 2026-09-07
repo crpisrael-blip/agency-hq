@@ -361,6 +361,8 @@ export const quotes = sqliteTable('quotes', {
   terms: text('terms'),
   notes: text('notes'),
   validUntil: text('valid_until'),
+  runId: text('run_id'),                 // מהלך מתודולוגיה שהושלם ומקושר להצעה (נספח)
+  runTitle: text('run_title'),           // שם המהלך המקושר (snapshot לתצוגה)
   createdAt: integer('created_at').notNull(),
 });
 

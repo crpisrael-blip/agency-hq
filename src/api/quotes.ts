@@ -34,6 +34,8 @@ quotesApp.post('/', async (c) => {
     terms: b.terms ? String(b.terms).slice(0, 500) : null,
     notes: b.notes ? String(b.notes).slice(0, 800) : null,
     validUntil: b.validUntil ? String(b.validUntil).slice(0, 10) : null,
+    runId: b.runId ? String(b.runId).slice(0, 64) : null,
+    runTitle: b.runTitle ? String(b.runTitle).slice(0, 200) : null,
     createdAt: now(),
   };
   await db(c).insert(quotes).values(row);
