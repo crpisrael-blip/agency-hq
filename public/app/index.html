@@ -148,6 +148,16 @@
   .pb-item .pb-check{border-bottom:0;padding-bottom:4px}
   /* בטופס השאלה נשארת קריאה גם אחרי מענה — הסימון עובר לתיבה ולתשובה */
   .pb-item .pb-check.on b{opacity:1;text-decoration:none}
+  .pb-head{display:flex;align-items:flex-start;gap:8px}
+  .pb-head .pb-check{flex:1;min-width:0}
+  .pb-na{flex:none;margin-top:9px;font-size:.72rem;font-weight:700;color:var(--muted);
+    background:var(--bg-2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;
+    cursor:pointer;white-space:nowrap;transition:.15s}
+  .pb-na:hover{border-color:var(--accent);color:var(--accent)}
+  .pb-na.on{background:var(--muted);color:#fff;border-color:var(--muted)}
+  .pb-item.na{opacity:.62}
+  .pb-item.na .pb-check b{text-decoration:line-through}
+  .na-note{font-size:.8rem;color:var(--muted);font-style:italic;padding:2px 2px 6px}
   .pb-answer{width:100%;margin:0 0 4px;padding:9px 11px;font-size:.88rem;line-height:1.55;
     background:var(--bg-2);border:1px solid var(--line);border-radius:10px;color:var(--txt);resize:vertical}
   .pb-answer:focus{outline:none;border-color:var(--accent)}
@@ -1978,6 +1988,7 @@ let PB_CACHE=[], PBSECS=[], RUN=null;
 async function quoteForm(){
   let cls=(CACHE.clients&&CACHE.clients.length)?CACHE.clients:[];
   if(!cls.length){ try{ cls=await apiGet('/clients'); }catch(e){} }
+  cls=cls.filter(c=>Number(c.archived)!==1); // לא מציגים לקוחות מהארכיון ברשימת ההצעה
   const inp='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
   const validDefault=new Date(Date.now()+14*86400e3).toISOString().slice(0,10);
   openModal(
@@ -2434,14 +2445,14 @@ async function openRun(id){
   closeModal();
   let r; try{ r=await apiGet('/playbooks/runs/'+id); }catch(e){ toast('המהלך לא נמצא','bad'); go('playbooks'); return; }
   CURRENT='playbooks'; document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p==='playbooks'));
-  RUN={...r,_checked:JSON.parse(r.checked||'{}'),_answers:JSON.parse(r.answers||'{}')};
+  RUN={...r,_checked:JSON.parse(r.checked||'{}'),_answers:JSON.parse(r.answers||'{}'),_na:JSON.parse(r.na||'{}')};
   drawRun(); window.scrollTo(0,0);
 }
 function drawRun(){
   const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
-  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked, ans=RUN._answers;
+  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked, ans=RUN._answers, na=RUN._na||(RUN._na={});
   let total=0,done=0,filled=0;
-  secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{total++; if(ck[si+'-'+ii])done++; if(String(ans[si+'-'+ii]||'').trim())filled++;}));
+  secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{const k=si+'-'+ii; if(na[k])return; total++; if(ck[k])done++; if(String(ans[k]||'').trim())filled++;}));
   const prog=isDoc?(RUN.status==='done'?100:0):(total?Math.round(done/total*100):0);
   const counter=isDoc?'מסמך למילוי':`${done}/${total} · ${prog}% · ${filled} תשובות`;
   $('view').innerHTML=`
@@ -2463,13 +2474,18 @@ function drawRun(){
       <textarea id="runDoc" class="pb-answer" rows="24" style="font-size:.87rem" placeholder="גוף המסמך…" onchange="saveRunDoc()">${esc(RUN.doc||'')}</textarea></div>`
     :(secs.map((s,si)=>`<div class="card">
       <h3>${esc(s.title||'')}</h3>
-      ${(s.items||[]).map((it,ii)=>{const key=si+'-'+ii,on=!!ck[key],a=ans[key]||'';return `
-        <div class="pb-item${on?' on':''}">
-          <label class="pb-check${on?' on':''}">
-            <input type="checkbox" ${on?'checked':''} onchange="toggleRun('${key}',this.checked)">
-            <span><b>${esc(it.label||'')}</b>${it.hint?`<span class="hint">${esc(it.hint)}</span>`:''}</span></label>
-          <textarea class="pb-answer" id="ans_${key}" rows="${a?Math.min(8,a.split('\n').length+1):2}" placeholder="התשובה שלי…"
-            oninput="RUN._answers['${key}']=this.value" onchange="saveRunAnswer('${key}')">${esc(a)}</textarea>
+      ${(s.items||[]).map((it,ii)=>{const key=si+'-'+ii,isna=!!na[key],on=!isna&&!!ck[key],a=ans[key]||'';return `
+        <div class="pb-item${on?' on':''}${isna?' na':''}">
+          <div class="pb-head">
+            <label class="pb-check${on?' on':''}">
+              <input type="checkbox" ${on?'checked':''} ${isna?'disabled':''} onchange="toggleRun('${key}',this.checked)">
+              <span><b>${esc(it.label||'')}</b>${it.hint?`<span class="hint">${esc(it.hint)}</span>`:''}</span></label>
+            <button type="button" class="pb-na${isna?' on':''}" onclick="toggleRunNA('${key}')"
+              title="סמן כלא רלוונטי — לא ייכלל בהדפסה ולא ייספר באחוז">${isna?'לא רלוונטי ✓':'לא רלוונטי'}</button>
+          </div>
+          ${isna?'<div class="na-note">— סומן כלא רלוונטי, לא ייכלל בטופס ובאחוז —</div>'
+            :`<textarea class="pb-answer" id="ans_${key}" rows="${a?Math.min(8,a.split('\n').length+1):2}" placeholder="התשובה שלי…"
+              oninput="RUN._answers['${key}']=this.value" onchange="saveRunAnswer('${key}')">${esc(a)}</textarea>`}
         </div>`;}).join('')}
     </div>`).join('')||'<div class="empty">לפורמט הזה אין פריטים</div>')}
     <div class="card"><h3>הערות כלליות</h3>
@@ -2483,7 +2499,7 @@ function grabRunInputs(){
 }
 /** שומר את כל מצב המהלך (תמיד הכל, כדי שכלום שהוקלד לא ילך לאיבוד) */
 async function saveRun(extra){
-  const payload={checked:RUN._checked,answers:RUN._answers,notes:RUN.notes||'',...(extra||{})};
+  const payload={checked:RUN._checked,answers:RUN._answers,na:RUN._na||{},notes:RUN.notes||'',...(extra||{})};
   if(RUN.doc!=null) payload.doc=RUN.doc;
   try{ const r=await apiPatch('/playbooks/runs/'+RUN.id,payload); if(r.progress!==undefined) RUN.progress=r.progress; return true; }
   catch(e){ toast('שגיאה בשמירה','bad'); return false; }
@@ -2491,6 +2507,15 @@ async function saveRun(extra){
 async function toggleRun(key,on){
   grabRunInputs();
   RUN._checked[key]=on; if(!on) delete RUN._checked[key];
+  drawRun();
+  await saveRun();
+}
+/** סימון "לא רלוונטי" — הפריט לא נספר באחוז ולא מודפס; מבטל סימון בוצע אם היה */
+async function toggleRunNA(key){
+  grabRunInputs();
+  RUN._na=RUN._na||{};
+  if(RUN._na[key]){ delete RUN._na[key]; }
+  else { RUN._na[key]=true; delete RUN._checked[key]; }
   drawRun();
   await saveRun();
 }
@@ -2545,8 +2570,8 @@ async function saveRunFormDoc(){
 function runRenderPrint(){
   grabRunInputs();
   const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
-  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked||{}, ans=RUN._answers||{};
-  let total=0,done=0; secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{total++; if(ck[si+'-'+ii])done++;}));
+  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked||{}, ans=RUN._answers||{}, na=RUN._na||{};
+  let total=0,done=0; secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{const k=si+'-'+ii; if(na[k])return; total++; if(ck[k])done++;}));
   const prog=isDoc?(RUN.status==='done'?100:0):(total?Math.round(done/total*100):0);
   const nl=s=>esc(s||'').replace(/\n/g,'<br>');
   const metaBits=[
@@ -2563,12 +2588,14 @@ function runRenderPrint(){
   } else {
     body=secs.map((s,si)=>{
       const rows=(s.items||[]).map((it,ii)=>{
-        const key=si+'-'+ii, on=!!ck[key], a=String(ans[key]||'').trim();
+        const key=si+'-'+ii;
+        if(na[key])return ''; // "לא רלוונטי" — לא מודפס
+        const on=!!ck[key], a=String(ans[key]||'').trim();
         return '<div class="mrun-item"><div class="mrun-q"><span class="mk">'+(on?'✓':'○')+'</span>'+esc(it.label||'')+
           (it.hint?'<span class="mrun-hint">'+esc(it.hint)+'</span>':'')+'</div>'+
           '<div class="mrun-a'+(a?'':' empty')+'">'+(a?nl(a):'טרם נענה')+'</div></div>';
       }).join('');
-      return '<div class="mrun-sec"><h2>'+esc(s.title||'')+'</h2>'+rows+'</div>';
+      return rows.trim()?'<div class="mrun-sec"><h2>'+esc(s.title||'')+'</h2>'+rows+'</div>':'';
     }).join('')||'<div class="mrun-a empty">אין תוכן להצגה</div>';
   }
   const notes=String(RUN.notes||'').trim();

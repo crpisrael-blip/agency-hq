@@ -9,7 +9,7 @@ const STAGE_LABEL: Record<string, string> = Object.fromEntries(STAGES.map((s) =>
 export const playbooksApp = new Hono<Env>();
 
 const PB_FIELDS = ['stage', 'title', 'summary', 'kind', 'sections', 'body', 'tags', 'sort'];
-const RUN_FIELDS = ['title', 'status', 'checked', 'answers', 'doc', 'notes', 'clientId', 'systemId'];
+const RUN_FIELDS = ['title', 'status', 'checked', 'answers', 'na', 'doc', 'notes', 'clientId', 'systemId'];
 
 const asJson = (v: any, fallback: string) =>
   v === undefined ? undefined : typeof v === 'string' ? v : JSON.stringify(v ?? JSON.parse(fallback));
@@ -18,16 +18,19 @@ const asJson = (v: any, fallback: string) =>
  * מחשב אחוז השלמה מתוך צילום הסעיפים ומפת הסימונים.
  * למהלך מסוג תבנית אין פריטים — הוא נמדד בסימון ידני כהושלם.
  */
-function calcProgress(sectionsRaw: string, checkedRaw: string): number {
+function calcProgress(sectionsRaw: string, checkedRaw: string, naRaw?: string): number {
   try {
     const sections = JSON.parse(sectionsRaw || '[]');
     const checked = JSON.parse(checkedRaw || '{}');
+    const na = JSON.parse(naRaw || '{}');
     let total = 0;
     let done = 0;
     sections.forEach((s: any, si: number) =>
       (s.items || []).forEach((_: any, ii: number) => {
+        const key = `${si}-${ii}`;
+        if (na[key]) return; // פריט "לא רלוונטי" — לא נספר במונה ובמכנה
         total++;
-        if (checked[`${si}-${ii}`]) done++;
+        if (checked[key]) done++;
       })
     );
     return total ? Math.round((done / total) * 100) : 0;
@@ -255,6 +258,7 @@ function buildForm(run: any): string {
   const sections = JSON.parse(run.sections || '[]');
   const answers = JSON.parse(run.answers || '{}');
   const checked = JSON.parse(run.checked || '{}');
+  const na = JSON.parse(run.na || '{}');
   const meta = [
     run.clientName ? `**לקוח:** ${run.clientName}` : null,
     run.systemName ? `**מערכת:** ${run.systemName}` : null,
@@ -273,14 +277,17 @@ function buildForm(run: any): string {
     return out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
   }
   sections.forEach((s: any, si: number) => {
-    out.push(`## ${s.title || ''}`, '');
+    // אוספים תחילה את הפריטים הרלוונטיים; סעיף שכולו "לא רלוונטי" לא מודפס כלל
+    const lines: string[] = [];
     (s.items || []).forEach((it: any, ii: number) => {
       const key = `${si}-${ii}`;
+      if (na[key]) return; // "לא רלוונטי" — לא מודפס ולא נספר
       const ans = String(answers[key] ?? '').trim();
-      out.push(`**${checked[key] ? '✓' : '○'} ${it.label || ''}**`);
-      out.push(ans ? ans.split('\n').map((l: string) => l.trim()).join('\n') : '_(טרם נענה)_');
-      out.push('');
+      lines.push(`**${checked[key] ? '✓' : '○'} ${it.label || ''}**`);
+      lines.push(ans ? ans.split('\n').map((l: string) => l.trim()).join('\n') : '_(טרם נענה)_');
+      lines.push('');
     });
+    if (lines.length) out.push(`## ${s.title || ''}`, '', ...lines);
   });
   const notes = String(run.notes || '').trim();
   if (notes) out.push('## הערות', '', notes, '');
@@ -311,12 +318,14 @@ playbooksApp.patch('/runs/:id', async (c) => {
   const data: any = pick(body, RUN_FIELDS);
   if (data.checked !== undefined) data.checked = asJson(data.checked, '{}');
   if (data.answers !== undefined) data.answers = asJson(data.answers, '{}');
+  if (data.na !== undefined) data.na = asJson(data.na, '{}');
   const cur = (await db(c).select().from(playbookRuns).where(eq(playbookRuns.id, id)).limit(1))[0];
   if (!cur) return c.json({ error: 'not_found' }, 404);
   const checkedRaw = data.checked !== undefined ? data.checked : cur.checked;
+  const naRaw = data.na !== undefined ? data.na : (cur as any).na;
   const status = data.status || cur.status;
-  // תבנית מסמך נמדדת בסימון ידני; צ׳ק־ליסט לפי הפריטים שסומנו
-  data.progress = cur.kind === 'template' ? (status === 'done' ? 100 : 0) : calcProgress(cur.sections, checkedRaw);
+  // תבנית מסמך נמדדת בסימון ידני; צ׳ק־ליסט לפי הפריטים שסומנו (למעט "לא רלוונטי")
+  data.progress = cur.kind === 'template' ? (status === 'done' ? 100 : 0) : calcProgress(cur.sections, checkedRaw, naRaw);
   if (data.status === 'done' || (data.progress === 100 && cur.status === 'active')) {
     data.status = data.status || 'done';
     data.completedAt = now();
