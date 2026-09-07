@@ -424,7 +424,7 @@
       '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
       "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}" +
       '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:24px}' +
-      '.logo-crop{width:264px;height:60px;overflow:hidden;position:relative}.logo-crop img{width:369px;position:absolute;left:-48px;top:-82px}' +
+      '.logo-crop{display:flex;align-items:center;justify-content:flex-end}.logo-crop img{height:54px;width:auto;display:block}' +
       '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}' +
       'h1{font-size:24px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:13px}' +
       '.to{margin:18px 0 4px;font-size:15px}.subject{font-size:16px;font-weight:700;margin-bottom:4px}' +

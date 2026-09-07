@@ -2053,8 +2053,8 @@ function quoteRenderPrint(q){
     '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
     "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}"+
     '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:24px}'+
-    '.logo-crop{width:264px;height:60px;overflow:hidden;position:relative}'+
-    '.logo-crop img{width:369px;position:absolute;left:-48px;top:-82px}'+
+    '.logo-crop{display:flex;align-items:center;justify-content:flex-end}'+
+    '.logo-crop img{height:54px;width:auto;display:block}'+
     '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}'+
     'h1{font-size:26px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:13px}'+
     '.to{margin:18px 0 4px;font-size:15px}.subject{font-size:16px;font-weight:700;margin-bottom:16px}'+
@@ -2450,6 +2450,7 @@ function drawRun(){
       <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${counter}</div></div>
       <div class="row">${RUN.status==='done'?'<span class="pill p-green">הושלם ✓</span>':`<button class="btn teal" onclick="finishRun()">סימון כהושלם</button>`}
         <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
+        <button class="btn ghost" onclick="runRenderPrint()" title="הפקת PDF על דף לוגו ORT-TECH — מוכן להדפסה או לצירוף להצעת מחיר">🖨️ הפקת PDF</button>
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
     <div class="hint" style="margin-bottom:12px">${isDoc
@@ -2535,6 +2536,69 @@ async function saveRunFormDoc(){
       category:'spec',source:'other',notes:runFormText()});
     toast('נשמר במרכז המסמכים ✓'); closeModal();
   }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
+
+// מפיק PDF ממותג על דף הלוגו לכל תוצר מתודולוגיה (שאלות+תשובות / מסמך) — מוכן לצירוף להצעת מחיר
+function runRenderPrint(){
+  grabRunInputs();
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
+  const secs=JSON.parse(RUN.sections||'[]'); const ck=RUN._checked||{}, ans=RUN._answers||{};
+  let total=0,done=0; secs.forEach((s,si)=>(s.items||[]).forEach((_,ii)=>{total++; if(ck[si+'-'+ii])done++;}));
+  const prog=isDoc?(RUN.status==='done'?100:0):(total?Math.round(done/total*100):0);
+  const nl=s=>esc(s||'').replace(/\n/g,'<br>');
+  const metaBits=[
+    RUN.clientName?'לקוח: '+esc(RUN.clientName):'',
+    RUN.systemName?'מערכת: '+esc(RUN.systemName):'',
+    STAGE_LABELS[RUN.stage]?'שלב: '+STAGE_LABELS[RUN.stage]:'',
+    'תאריך: '+new Date().toLocaleDateString('he-IL'),
+    isDoc?'':('התקדמות: '+prog+'%'),
+    RUN.status==='done'?'הושלם ✓':''
+  ].filter(Boolean).join(' · ');
+  let body;
+  if(isDoc){
+    body='<div class="mrun-doc">'+(String(RUN.doc||'').trim()?nl(RUN.doc):'<span class="mrun-a empty">— המסמך ריק —</span>')+'</div>';
+  } else {
+    body=secs.map((s,si)=>{
+      const rows=(s.items||[]).map((it,ii)=>{
+        const key=si+'-'+ii, on=!!ck[key], a=String(ans[key]||'').trim();
+        return '<div class="mrun-item"><div class="mrun-q"><span class="mk">'+(on?'✓':'○')+'</span>'+esc(it.label||'')+
+          (it.hint?'<span class="mrun-hint">'+esc(it.hint)+'</span>':'')+'</div>'+
+          '<div class="mrun-a'+(a?'':' empty')+'">'+(a?nl(a):'טרם נענה')+'</div></div>';
+      }).join('');
+      return '<div class="mrun-sec"><h2>'+esc(s.title||'')+'</h2>'+rows+'</div>';
+    }).join('')||'<div class="mrun-a empty">אין תוכן להצגה</div>';
+  }
+  const notes=String(RUN.notes||'').trim();
+  if(notes) body+='<div class="mrun-sec"><h2>הערות</h2><div class="mrun-a">'+nl(notes)+'</div></div>';
+  const logoUrl=location.origin+'/ort-tech-logo.png';
+  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>'+esc(RUN.title)+'</title><style>'+
+    '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
+    "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}"+
+    '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:20px}'+
+    '.logo-crop{display:flex;align-items:center;justify-content:flex-end}.logo-crop img{height:54px;width:auto;display:block}'+
+    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}'+
+    'h1{font-size:23px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:12.5px}'+
+    '.mrun-sec{margin-top:16px;break-inside:avoid}'+
+    '.mrun-sec>h2{font-size:15px;color:#0f7a5c;border-bottom:1px solid #e3dccf;padding-bottom:4px;margin-bottom:8px}'+
+    '.mrun-item{margin:0 0 9px;break-inside:avoid}'+
+    '.mrun-q{font-weight:700;font-size:13.5px}.mrun-q .mk{color:#0f7a5c;margin-inline-end:5px;font-weight:900}'+
+    '.mrun-hint{font-weight:400;color:#6b7a8d;font-size:11.5px;margin-inline-start:6px}'+
+    '.mrun-a{font-size:13px;margin-top:2px;white-space:pre-wrap}.mrun-a.empty{color:#9aa7b5;font-style:italic}'+
+    '.mrun-doc{font-size:13.5px;white-space:pre-wrap}'+
+    '.foot{margin-top:30px;border-top:1px solid #e3dccf;padding-top:9px;font-size:11.5px;color:#6b7a8d;display:flex;justify-content:space-between}'+
+    '@media print{body{padding:20px 26px}}'+
+    '</style></head><body>'+
+    '<div class="hdr">'+
+      '<div><h1>'+esc(RUN.title)+'</h1><div class="meta">'+metaBits+'</div></div>'+
+      '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="ORT-TECH"></div>'+
+      '<div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div>'+
+    '</div>'+
+    body+
+    '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+
+    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},450)}</scr'+'ipt>'+
+    '</body></html>';
+  const w=window.open(URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),'_blank');
+  if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
 }
 
 // ---------- בריאות מסירה ----------
