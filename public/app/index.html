@@ -2043,19 +2043,22 @@ function quoteRenderPrint(q){
   const sub=Number(q.subtotal)|| items.reduce((a,x)=>a+Number(x.amt||0),0);
   const vatAmt=sub*vatPct/100;
   const total=Number(q.total)||sub+vatAmt;
-  const fmt=n=>'₪'+Number(n).toLocaleString('he-IL',{maximumFractionDigits:0});
+  const fmt=n=>'<span class="ltr">₪'+Number(n).toLocaleString('he-IL',{maximumFractionDigits:0})+'</span>';
   const created=new Date(q.createdAt||Date.now());
   const qnum=q.quoteNo||'';
   const client=q.clientName||'', title=q.title||'', terms=q.terms||'', notes=q.notes||'';
   const validStr=q.validUntil? new Date(q.validUntil+'T12:00:00').toLocaleDateString('he-IL') : '';
   const logoUrl=location.origin+'/ort-tech-logo.png';
-  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>הצעת מחיר '+qnum+'</title><style>'+
+  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>הצעת מחיר '+qnum+'</title>'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet"><style>'+
     '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
-    "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}"+
+    '.ltr{direction:ltr;unicode-bidi:isolate}'+
+    "body{font-family:'Heebo','Assistant','Arial Hebrew','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.7;background:#fff}"+
     '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:24px}'+
     '.logo-crop{display:flex;align-items:center;justify-content:flex-end}'+
     '.logo-crop img{height:54px;width:auto;display:block}'+
-    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}'+
+    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px;direction:ltr;unicode-bidi:isolate}'+
     'h1{font-size:26px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:13px}'+
     '.to{margin:18px 0 4px;font-size:15px}.subject{font-size:16px;font-weight:700;margin-bottom:16px}'+
     'table{width:100%;border-collapse:collapse;margin-bottom:6px}'+
@@ -2072,7 +2075,7 @@ function quoteRenderPrint(q){
     '@media print{body{padding:20px 26px}}'+
     '</style></head><body>'+
     '<div class="hdr">'+
-      '<div><h1>הצעת מחיר</h1><div class="meta">מס\' '+qnum+' · תאריך: '+created.toLocaleDateString('he-IL')+'</div></div>'+
+      '<div><h1>הצעת מחיר</h1><div class="meta">מס\' <span class="ltr">'+qnum+'</span> · תאריך: <span class="ltr">'+created.toLocaleDateString('he-IL')+'</span></div></div>'+
       '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="ORT-TECH"></div>'+
       '<div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div>'+
     '</div>'+
@@ -2094,7 +2097,7 @@ function quoteRenderPrint(q){
       '<div class="line">חתימת הלקוח ואישור ההצעה</div>'+
     '</div>'+
     '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+
-    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},400)}</scr'+'ipt>'+
+    '<scr'+'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr'+'ipt>'+
     '</body></html>';
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const w=window.open(URL.createObjectURL(blob),'_blank');
@@ -2550,7 +2553,7 @@ function runRenderPrint(){
     RUN.clientName?'לקוח: '+esc(RUN.clientName):'',
     RUN.systemName?'מערכת: '+esc(RUN.systemName):'',
     STAGE_LABELS[RUN.stage]?'שלב: '+STAGE_LABELS[RUN.stage]:'',
-    'תאריך: '+new Date().toLocaleDateString('he-IL'),
+    'תאריך: <span class="ltr">'+new Date().toLocaleDateString('he-IL')+'</span>',
     isDoc?'':('התקדמות: '+prog+'%'),
     RUN.status==='done'?'הושלם ✓':''
   ].filter(Boolean).join(' · ');
@@ -2571,12 +2574,15 @@ function runRenderPrint(){
   const notes=String(RUN.notes||'').trim();
   if(notes) body+='<div class="mrun-sec"><h2>הערות</h2><div class="mrun-a">'+nl(notes)+'</div></div>';
   const logoUrl=location.origin+'/ort-tech-logo.png';
-  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>'+esc(RUN.title)+'</title><style>'+
+  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(RUN.title)+'</title>'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet"><style>'+
     '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
-    "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}"+
+    '.ltr{direction:ltr;unicode-bidi:isolate}'+
+    "body{font-family:'Heebo','Assistant','Arial Hebrew','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.7;background:#fff}"+
     '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:20px}'+
     '.logo-crop{display:flex;align-items:center;justify-content:flex-end}.logo-crop img{height:54px;width:auto;display:block}'+
-    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}'+
+    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px;direction:ltr;unicode-bidi:isolate}'+
     'h1{font-size:23px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:12.5px}'+
     '.mrun-sec{margin-top:16px;break-inside:avoid}'+
     '.mrun-sec>h2{font-size:15px;color:#0f7a5c;border-bottom:1px solid #e3dccf;padding-bottom:4px;margin-bottom:8px}'+
@@ -2595,7 +2601,7 @@ function runRenderPrint(){
     '</div>'+
     body+
     '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+
-    '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print()},450)}</scr'+'ipt>'+
+    '<scr'+'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr'+'ipt>'+
     '</body></html>';
   const w=window.open(URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),'_blank');
   if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }

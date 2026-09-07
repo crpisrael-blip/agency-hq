@@ -410,7 +410,7 @@
     } catch (e) { toast('שגיאה בהפקת המסמך', 'bad'); }
   }
   function proposalRenderPrint(p, opp, org) {
-    const f = (n) => '₪' + Number(n || 0).toLocaleString('he-IL', { maximumFractionDigits: 0 });
+    const f = (n) => '<span class="ltr">₪' + Number(n || 0).toLocaleString('he-IL', { maximumFractionDigits: 0 }) + '</span>';
     const created = new Date(p.createdAt || Date.now());
     const client = (org && org.name) || '', subject = (opp && opp.title) || '';
     const validStr = p.validUntil ? new Date(p.validUntil + 'T12:00:00').toLocaleDateString('he-IL') : '';
@@ -420,12 +420,15 @@
     if (Number(p.oneTimeValue)) bill.push(['הקמה (חד-פעמי)', f(p.oneTimeValue), '50% מקדמה']);
     if (Number(p.monthlyValue)) bill.push(['חודשי / ריטיינר', f(p.monthlyValue) + ' /ח׳', 'לפי יום חיוב']);
     const sec = (title, body) => body && String(body).trim() ? `<div class="sec"><b>${title}</b>${nl(body)}</div>` : '';
-    const html = '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>הצעה ותיחום עבודה — ' + esc(subject) + '</title><style>' +
+    const html = '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>הצעה ותיחום עבודה — ' + esc(subject) + '</title>' +
+      '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet"><style>' +
       '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
-      "body{font-family:'Heebo','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.65;background:#fff}" +
+      '.ltr{direction:ltr;unicode-bidi:isolate}' +
+      "body{font-family:'Heebo','Assistant','Arial Hebrew','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.7;background:#fff}" +
       '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:24px}' +
       '.logo-crop{display:flex;align-items:center;justify-content:flex-end}.logo-crop img{height:54px;width:auto;display:block}' +
-      '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px}' +
+      '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px;direction:ltr;unicode-bidi:isolate}' +
       'h1{font-size:24px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:13px}' +
       '.to{margin:18px 0 4px;font-size:15px}.subject{font-size:16px;font-weight:700;margin-bottom:4px}' +
       'table{width:100%;border-collapse:collapse;margin:8px 0 2px}' +
@@ -437,7 +440,7 @@
       '.sig .line{width:210px;border-top:1.5px solid #16202e;padding-top:5px;text-align:center;font-size:12.5px;color:#3d4b5e}' +
       '.foot{margin-top:30px;border-top:1px solid #e3dccf;padding-top:9px;font-size:11.5px;color:#6b7a8d;display:flex;justify-content:space-between}' +
       '@media print{body{padding:20px 26px}}</style></head><body>' +
-      '<div class="hdr"><div><h1>הצעה ותיחום עבודה</h1><div class="meta">גרסה ' + (p.version || 1) + ' · תאריך: ' + created.toLocaleDateString('he-IL') + (validStr ? ' · בתוקף עד ' + validStr : '') + '</div></div>' +
+      '<div class="hdr"><div><h1>הצעה ותיחום עבודה</h1><div class="meta">גרסה <span class="ltr">' + (p.version || 1) + '</span> · תאריך: <span class="ltr">' + created.toLocaleDateString('he-IL') + '</span>' + (validStr ? ' · בתוקף עד <span class="ltr">' + validStr + '</span>' : '') + '</div></div>' +
       '<div><div class="logo-crop"><img src="' + logoUrl + '" alt="ORT-TECH"></div><div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div></div>' +
       '<div class="to">לכבוד: <b>' + esc(client) + '</b></div>' +
       (subject ? '<div class="subject">הנדון: ' + esc(subject) + '</div>' : '') +
@@ -452,7 +455,7 @@
       '<div class="sec"><b>תנאים</b>שינויי היקף מתומחרים בנפרד ומאושרים בכתב. בעלות על הקוד/הנתונים עוברת ללקוח עם השלמת התשלום. תמיכה לפי מסמך SLA נפרד.</div>' +
       '<div class="sig"><div><div style="font-weight:700">בברכה,</div><div>ORT-TECH · פתרונות תפעול חכמים לעסק שלך</div></div><div class="line">חתימת הלקוח ואישור ההצעה</div></div>' +
       '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>' +
-      '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print()},400)}</scr' + 'ipt></body></html>';
+      '<scr' + 'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr' + 'ipt></body></html>';
     const w = window.open(URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' })), '_blank');
     if (!w) toast('המסמך מוכן אך הדפדפן חסם חלון קופץ', 'bad');
   }
