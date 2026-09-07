@@ -1985,19 +1985,23 @@ async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await api
 // ---------- מתודולוגיה (פלייבוק) ----------
 let PB_CACHE=[], PBSECS=[], RUN=null;
 // ---------- הצעת מחיר על דף לוגו (PDF דרך הדפסה) ----------
-async function quoteForm(){
+async function quoteForm(pre){
+  pre=pre||{};
   let cls=(CACHE.clients&&CACHE.clients.length)?CACHE.clients:[];
   if(!cls.length){ try{ cls=await apiGet('/clients'); }catch(e){} }
   cls=cls.filter(c=>Number(c.archived)!==1); // לא מציגים לקוחות מהארכיון ברשימת ההצעה
+  try{ QUOTE_RUNS=(await apiGet('/playbooks/runs')).filter(r=>r.status==='done'); }catch(e){ QUOTE_RUNS=[]; } // מהלכים שהושלמו לצירוף
   const inp='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
   const validDefault=new Date(Date.now()+14*86400e3).toISOString().slice(0,10);
   openModal(
     '<h3 style="margin:0 0 4px">📄 הצעת מחיר</h3>'+
     '<div class="muted" style="font-size:.88rem;margin-bottom:14px">מלא את הפרטים — ייפתח דף הצעה ממותג עם הלוגו, מוכן להדפסה או לשמירה כ-PDF (בחלון ההדפסה: יעד → שמירה כ-PDF).</div>'+
     '<div class="f2">'+
-      '<div class="f"><label>לקוח</label><select id="q_client" style="'+inp+'"><option value="">— בחר מהרשימה —</option>'+cls.map(c=>'<option value="'+esc(c.name)+'">'+esc(c.name)+'</option>').join('')+'</select></div>'+
+      '<div class="f"><label>לקוח</label><select id="q_client" onchange="quoteSyncRuns()" style="'+inp+'"><option value="">— בחר מהרשימה —</option>'+cls.map(c=>'<option value="'+esc(c.id)+'"'+(c.id===(pre.clientId||'')?' selected':'')+'>'+esc(c.name)+'</option>').join('')+'</select></div>'+
       '<div class="f"><label>או שם חופשי</label><input id="q_client_free" placeholder="שם הלקוח / העסק" style="'+inp+'"></div>'+
     '</div>'+
+    '<div class="f" style="margin-top:10px"><label>צרף מתודולוגיה שהושלמה (אופציונלי)</label><select id="q_run" style="'+inp+'"><option value="">— ללא —</option></select>'+
+      '<div class="muted" style="font-size:.8rem;margin-top:3px">מהלך שהושלם של הלקוח הנבחר — יצורף כנספח להצעה.</div></div>'+
     '<div class="f" style="margin-top:10px"><label>נושא ההצעה</label><input id="q_title" placeholder="לדוגמה: מערכת ניהול לקליניקה" style="'+inp+'"></div>'+
     '<div class="f" style="margin-top:10px"><label>פריטים</label><div id="qItems"></div>'+
       '<button class="btn ghost small" onclick="quoteAddRow()">+ הוסף שורה</button></div>'+
@@ -2010,6 +2014,17 @@ async function quoteForm(){
     '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn primary" onclick="quoteBuild()">📄 הפק PDF</button></div>'
   , true);
   quoteAddRow(); quoteAddRow();
+  quoteSyncRuns(pre.runId||'');
+}
+/** ממלא את רשימת המהלכים שהושלמו לפי הלקוח הנבחר בטופס ההצעה */
+function quoteSyncRuns(preselect){
+  const sel=$('q_run'); if(!sel)return;
+  const cid=($('q_client')||{}).value||'';
+  if(!cid){ sel.innerHTML='<option value="">— בחר לקוח מהרשימה כדי לצרף מהלך —</option>'; return; }
+  const keep=(typeof preselect==='string'&&preselect)?preselect:sel.value;
+  const list=(QUOTE_RUNS||[]).filter(r=>r.clientId===cid);
+  if(!list.length){ sel.innerHTML='<option value="">— אין מהלך שהושלם ללקוח זה —</option>'; return; }
+  sel.innerHTML='<option value="">— ללא —</option>'+list.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===keep?' selected':'')+'>'+esc(r.title)+'</option>').join('');
 }
 function quoteAddRow(){
   const box=$('qItems'); if(!box)return;
@@ -2022,8 +2037,13 @@ function quoteAddRow(){
 }
 // אוסף את נתוני הטופס, שומר ל-DB, ומפיק את דף ההדפסה
 async function quoteBuild(){
-  const client=val('q_client_free')||val('q_client');
+  const selC=$('q_client'); const cid=(selC&&selC.value)||'';
+  const freeName=val('q_client_free');
+  const client=freeName||(cid&&selC.options[selC.selectedIndex]?selC.options[selC.selectedIndex].text:'');
   if(!client){ toast('חסר שם לקוח','bad'); return; }
+  const clientId=freeName?null:(cid||null);
+  const selR=$('q_run'); const runId=(selR&&selR.value)||null;
+  const runTitle=runId&&selR.options[selR.selectedIndex]?selR.options[selR.selectedIndex].text:null;
   const items=[...document.querySelectorAll('#qItems .q-item')].map(r=>({
     desc:(r.querySelector('.qi-desc')||{}).value?.trim()||'',
     amt:Number((r.querySelector('.qi-amt')||{}).value||0)
@@ -2035,8 +2055,9 @@ async function quoteBuild(){
   const now=new Date();
   const q={
     quoteNo:'ORT-'+now.toISOString().slice(2,10).replace(/-/g,'')+'-'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0'),
-    clientName:client, title:val('q_title'), items, vatPct, subtotal, total,
-    terms:val('q_terms'), notes:val('q_notes'), validUntil:val('q_valid')||null, createdAt:now.getTime()
+    clientId, clientName:client, title:val('q_title'), items, vatPct, subtotal, total,
+    terms:val('q_terms'), notes:val('q_notes'), validUntil:val('q_valid')||null,
+    runId, runTitle, createdAt:now.getTime()
   };
   closeModal();
   quoteRenderPrint(q);
@@ -2103,6 +2124,7 @@ function quoteRenderPrint(q){
     (validStr?'<div class="sec"><b>תוקף</b>ההצעה בתוקף עד '+validStr+'.</div>':'')+
     (terms?'<div class="sec"><b>תנאי תשלום</b>'+esc(terms)+'</div>':'')+
     (notes?'<div class="sec"><b>הערות</b>'+esc(notes).replace(/\n/g,'<br>')+'</div>':'')+
+    (q.runTitle?'<div class="sec"><b>נספח מצורף</b>מצורף מסמך המתודולוגיה: '+esc(q.runTitle)+' (מסמך נפרד).</div>':'')+
     '<div class="sig">'+
       '<div><div style="font-weight:700">בברכה,</div><div>ORT-TECH · פתרונות תפעול חכמים לעסק שלך</div></div>'+
       '<div class="line">חתימת הלקוח ואישור ההצעה</div>'+
@@ -2117,6 +2139,7 @@ function quoteRenderPrint(q){
 
 // רשימת ההצעות שנשמרו (מוצגת במסך המתודולוגיה)
 let QUOTES_CACHE=[];
+let QUOTE_RUNS=[]; // מהלכי מתודולוגיה שהושלמו — לצירוף להצעת מחיר
 async function loadQuotesList(){
   const box=$('quotesList'); if(!box)return;
   try{
@@ -2125,8 +2148,9 @@ async function loadQuotesList(){
     const fmt=n=>'₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:0});
     box.innerHTML=QUOTES_CACHE.map(q=>
       '<div class="list-item"><div class="li-main"><b>'+esc(q.clientName||'—')+'</b>'+
-        '<small>'+(q.title?esc(q.title)+' · ':'')+esc(q.quoteNo||'')+' · '+new Date(q.createdAt).toLocaleDateString('he-IL')+'</small></div>'+
+        '<small>'+(q.title?esc(q.title)+' · ':'')+esc(q.quoteNo||'')+' · '+new Date(q.createdAt).toLocaleDateString('he-IL')+(q.runTitle?' · 🔗 '+esc(q.runTitle):'')+'</small></div>'+
         '<div class="row" style="gap:6px;align-items:center"><b>'+fmt(q.total)+'</b>'+
+          (q.runId?'<button class="btn ghost small" onclick="event.stopPropagation();runRenderPrintById(\''+q.runId+'\')" title="הפקת נספח המתודולוגיה המקושר">📎</button>':'')+
           '<button class="btn ghost small" onclick="event.stopPropagation();quoteReopen(\''+q.id+'\')" title="פתח והדפס שוב">🖨️</button>'+
           '<button class="btn danger small" onclick="event.stopPropagation();quoteDelete(\''+q.id+'\')" title="מחק">🗑</button></div></div>'
     ).join('');
@@ -2465,6 +2489,7 @@ function drawRun(){
       <div class="row">${RUN.status==='done'?'<span class="pill p-green">הושלם ✓</span>':`<button class="btn teal" onclick="finishRun()">סימון כהושלם</button>`}
         <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
         <button class="btn ghost" onclick="runRenderPrint()" title="הפקת PDF על דף לוגו ORT-TECH — מוכן להדפסה או לצירוף להצעת מחיר">🖨️ הפקת PDF</button>
+        ${(RUN.status==='done'&&RUN.clientId)?`<button class="btn teal" onclick="quoteFromCurrentRun()" title="צור הצעת מחיר ללקוח, מקושרת למהלך שהושלם">📄 הצעת מחיר</button>`:''}
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
     <div class="hint" style="margin-bottom:12px">${isDoc
@@ -2565,6 +2590,17 @@ async function saveRunFormDoc(){
     toast('נשמר במרכז המסמכים ✓'); closeModal();
   }catch(e){ toast('שגיאה בשמירה','bad'); }
 }
+
+// טוען מהלך לפי מזהה ומפיק את ה-PDF הממותג שלו (נספח להצעת מחיר, מרשימת ההצעות)
+async function runRenderPrintById(id){
+  try{
+    const r=await apiGet('/playbooks/runs/'+id);
+    RUN={...r,_checked:JSON.parse(r.checked||'{}'),_answers:JSON.parse(r.answers||'{}'),_na:JSON.parse(r.na||'{}')};
+    runRenderPrint();
+  }catch(e){ toast('המהלך המקושר לא נמצא','bad'); }
+}
+// פותח טופס הצעת מחיר מקושר למהלך הנוכחי (מכפתור במהלך שהושלם)
+function quoteFromCurrentRun(){ quoteForm({clientId:RUN.clientId,runId:RUN.id}); }
 
 // מפיק PDF ממותג על דף הלוגו לכל תוצר מתודולוגיה (שאלות+תשובות / מסמך) — מוכן לצירוף להצעת מחיר
 function runRenderPrint(){
