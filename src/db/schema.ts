@@ -436,6 +436,7 @@ export const playbookRuns = sqliteTable('playbook_runs', {
   doc: text('doc'),                                   // מהלך מסוג תבנית: המסמך שממלאים
   checked: text('checked').notNull().default('{}'),    // JSON: { "s-i": true }
   answers: text('answers').notNull().default('{}'),    // JSON: { "s-i": "התשובה שכתבתי" }
+  na: text('na').notNull().default('{}'),              // JSON: { "s-i": true } — סומן "לא רלוונטי" (לא נספר, לא מודפס)
   notes: text('notes'),
   progress: integer('progress').notNull().default(0),  // 0-100
   createdAt: integer('created_at').notNull(),
