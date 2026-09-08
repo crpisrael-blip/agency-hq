@@ -4,7 +4,7 @@ import { AppShell } from '../pages/AppShell';
 // ניווט ראשי BOS: תווית לשונית → אלמנט מזהה במסך
 type Check = [label: string, assert: (page: import('@playwright/test').Page) => Promise<void>];
 const TABS: Check[] = [
-  ['היום', async (p) => { await expect(p.getByRole('heading', { name: /^היום$/ })).toBeVisible(); }],
+  ['היום', async (p) => { await expect(p.getByRole('heading', { name: /^העסק היום$/ })).toBeVisible(); }],
   ['מכירות', async (p) => { await expect(p.locator('.tabs2 button', { hasText: 'הזדמנויות' })).toBeVisible(); }],
   ['לקוחות', async (p) => { await expect(p.getByRole('heading', { name: /^לקוחות$/ })).toBeVisible(); }],
   ['עבודה', async (p) => { await expect(p.locator('.tabs2 button', { hasText: 'פרויקטים' })).toBeVisible(); }],

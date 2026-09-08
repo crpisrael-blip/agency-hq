@@ -23,7 +23,7 @@ export class AppShell {
   async waitReady() {
     await expect(this.app).toBeVisible();
     await expect(this.nav.getByRole('button').first()).toBeVisible();
-    await expect(this.page.getByRole('heading', { name: 'היום', exact: true })).toBeVisible();
+    await expect(this.page.getByRole('heading', { name: 'העסק היום', exact: true })).toBeVisible();
   }
 
   /**
