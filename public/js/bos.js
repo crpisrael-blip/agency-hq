@@ -116,15 +116,15 @@
     const attn = [];
     const sec = (title, items, render) => {
       items = safe(items);
-      if (items.length) attn.push(\`<div class="attn-sec"><h4>\${title} <span class="cnt">\${items.length}</span></h4>\${items.slice(0,4).map(render).join('')}</div>\`);
+      if (items.length) attn.push(`<div class="attn-sec"><h4>${title} <span class="cnt">${items.length}</span></h4>${items.slice(0,4).map(render).join('')}</div>`);
     };
-    sec('לידים חדשים', n.newLeads, (l) => \`<div class="list-item" onclick="BOS.handleLead('\${l.id}')"><div class="li-main"><b>\${esc(l.name || 'ליד')}</b><small>\${esc(l.source || '')}</small></div><span class="pill p-amber">טיפול ›</span></div>\`);
-    sec('הזדמנויות ללא פעולה הבאה', n.oppsNoNextAction, (o) => \`<div class="list-item warn-row" onclick="BOS.openOpp('\${o.id}')"><div class="li-main"><b>\${esc(o.title)}</b><small>\${esc(o.organizationName)} · \${H('oppStage', o.stage)}</small></div><span class="pill p-red">חסר פעולה</span></div>\`);
-    sec('מעקבים באיחור', n.overdueFollowups, (o) => \`<div class="list-item" onclick="BOS.openOpp('\${o.id}')"><div class="li-main"><b>\${esc(o.title)}</b><small>\${esc(o.organizationName)} · \${esc(o.nextAction || '')}</small></div><span class="pill p-red">\${fmt(o.nextActionDate)}</span></div>\`);
-    sec('הצעות ממתינות', n.waitingProposals, (p) => \`<div class="list-item" onclick="BOS.openOpp('\${p.opportunityId}')"><div class="li-main"><b>\${esc(p.opportunityTitle)} · v\${p.version}</b><small>\${esc(p.organizationName)}</small></div>\${hp('proposalStatus', p.status)}</div>\`);
-    sec('פרויקטים בסיכון', n.projectsAtRisk, (p) => \`<div class="list-item" onclick="BOS.openProject('\${p.id}')"><div class="li-main"><b>\${esc(p.title)}</b><small>\${esc(p.organizationName)} · \${H('projectStatus', p.status)}</small></div>\${healthPill(p.health)}</div>\`);
-    sec('משימות באיחור', n.overdueTasks, (t) => \`<div class="list-item" onclick="go('tasks')"><div class="li-main"><b>\${esc(t.title)}</b></div><span class="pill p-red">\${fmt(t.dueDate)}</span></div>\`);
-    sec('אבני דרך קרובות', n.upcomingMilestones, (m) => \`<div class="list-item" onclick="BOS.openProject('\${m.projectId}')"><div class="li-main"><b>\${esc(m.title)}</b></div><span class="pill p-amber">\${fmt(m.dueDate)}</span></div>\`);
+    sec('לידים חדשים', n.newLeads, (l) => `<div class="list-item" onclick="BOS.handleLead('${l.id}')"><div class="li-main"><b>${esc(l.name || 'ליד')}</b><small>${esc(l.source || '')}</small></div><span class="pill p-amber">טיפול ›</span></div>`);
+    sec('הזדמנויות ללא פעולה הבאה', n.oppsNoNextAction, (o) => `<div class="list-item warn-row" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${esc(o.organizationName)} · ${H('oppStage', o.stage)}</small></div><span class="pill p-red">חסר פעולה</span></div>`);
+    sec('מעקבים באיחור', n.overdueFollowups, (o) => `<div class="list-item" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${esc(o.organizationName)} · ${esc(o.nextAction || '')}</small></div><span class="pill p-red">${fmt(o.nextActionDate)}</span></div>`);
+    sec('הצעות ממתינות', n.waitingProposals, (p) => `<div class="list-item" onclick="BOS.openOpp('${p.opportunityId}')"><div class="li-main"><b>${esc(p.opportunityTitle)} · v${p.version}</b><small>${esc(p.organizationName)}</small></div>${hp('proposalStatus', p.status)}</div>`);
+    sec('פרויקטים בסיכון', n.projectsAtRisk, (p) => `<div class="list-item" onclick="BOS.openProject('${p.id}')"><div class="li-main"><b>${esc(p.title)}</b><small>${esc(p.organizationName)} · ${H('projectStatus', p.status)}</small></div>${healthPill(p.health)}</div>`);
+    sec('משימות באיחור', n.overdueTasks, (t) => `<div class="list-item" onclick="go('tasks')"><div class="li-main"><b>${esc(t.title)}</b></div><span class="pill p-red">${fmt(t.dueDate)}</span></div>`);
+    sec('אבני דרך קרובות', n.upcomingMilestones, (m) => `<div class="list-item" onclick="BOS.openProject('${m.projectId}')"><div class="li-main"><b>${esc(m.title)}</b></div><span class="pill p-amber">${fmt(m.dueDate)}</span></div>`);
 
     const allActions = [
       ...safe(a.overdue).map(x => ({...x, timing:'באיחור'})),
@@ -134,13 +134,13 @@
     ];
     const actionChip = (x) => {
       const opener = x.entity === 'project' ? 'Project' : 'Opp';
-      return \`<button class="action-chip" onclick="BOS.open\${opener}('\${x.id}')"><span><b>\${esc(x.action || 'המשך טיפול')}</b><small>\${esc(x.title || '')}\${x.organizationName ? ' · ' + esc(x.organizationName) : ''}</small></span><span class="action-arrow">←</span></button>\`;
+      return `<button class="action-chip" onclick="BOS.open${opener}('${x.id}')"><span><b>${esc(x.action || 'המשך טיפול')}</b><small>${esc(x.title || '')}${x.organizationName ? ' · ' + esc(x.organizationName) : ''}</small></span><span class="action-arrow">←</span></button>`;
     };
     const attentionCount = ['newLeads','oppsNoNextAction','overdueFollowups','waitingProposals','projectsAtRisk','overdueTasks','upcomingMilestones']
       .reduce((sum,key) => sum + safe(n[key]).length, 0);
     const momentum = attentionCount ? 'יש נושאים שמחכים לך' : 'הכול מתקדם בצורה טובה';
 
-    V().innerHTML = \`
+    V().innerHTML = `
       <div class="living-dashboard">
         <div class="living-head">
           <div class="living-title"><h2>העסק היום</h2><p>תמונה אחת שמחברת מכירות, לקוחות, עבודה וכספים</p></div>
@@ -157,26 +157,26 @@
               <path d="M370 352 C286 415 214 474 145 510" stroke="#2aa8e8"/>
               <path d="M435 354 C520 420 590 472 666 505" stroke="#f3a51a"/>
             </svg>
-            <button class="orbit-node node-sales" onclick="go('sales')"><span class="node-icon">▥</span><b>מכירות</b><strong>\${money(s.pipeline || 0)}</strong><small>צינור · משוקלל \${money(s.weightedPipeline || 0)}</small></button>
-            <button class="orbit-node node-clients" onclick="go('customers')"><span class="node-icon">●●</span><strong>\${s.activeCustomers || 0}</strong><b>לקוחות</b><small>לקוחות פעילים</small></button>
-            <button class="orbit-node node-projects" onclick="go('work')"><span class="node-icon">□</span><strong>\${s.activeProjects || 0}</strong><b>פרויקטים</b><small>ביצוע ותוצאות</small></button>
-            <button class="orbit-node node-finance" onclick="go('finance')"><span class="node-icon">₪</span><b>כספים</b><strong>\${money(s.mrr || 0)}</strong><small>הכנסה חודשית חוזרת</small></button>
-            <button class="orbit-node node-tasks" onclick="go('tasks')"><span class="node-icon">✓</span><strong>\${safe(n.overdueTasks).length}</strong><b>משימות</b><small>משימות באיחור</small></button>
-            <div class="business-core"><span class="pulse">↗</span><b>העסק היום</b><small>כל התחומים מחוברים</small><em>● \${momentum}</em></div>
-            <div class="map-preview"><b>הצעות ממתינות</b><small>דורשות החלטה או מעקב</small><div class="preview-val">\${s.proposalsWaiting || 0}</div></div>
+            <button class="orbit-node node-sales" onclick="go('sales')"><span class="node-icon">▥</span><b>מכירות</b><strong>${money(s.pipeline || 0)}</strong><small>צינור · משוקלל ${money(s.weightedPipeline || 0)}</small></button>
+            <button class="orbit-node node-clients" onclick="go('customers')"><span class="node-icon">●●</span><strong>${s.activeCustomers || 0}</strong><b>לקוחות</b><small>לקוחות פעילים</small></button>
+            <button class="orbit-node node-projects" onclick="go('work')"><span class="node-icon">□</span><strong>${s.activeProjects || 0}</strong><b>פרויקטים</b><small>ביצוע ותוצאות</small></button>
+            <button class="orbit-node node-finance" onclick="go('finance')"><span class="node-icon">₪</span><b>כספים</b><strong>${money(s.mrr || 0)}</strong><small>הכנסה חודשית חוזרת</small></button>
+            <button class="orbit-node node-tasks" onclick="go('tasks')"><span class="node-icon">✓</span><strong>${safe(n.overdueTasks).length}</strong><b>משימות</b><small>משימות באיחור</small></button>
+            <div class="business-core"><span class="pulse">↗</span><b>העסק היום</b><small>כל התחומים מחוברים</small><em>● ${momentum}</em></div>
+            <div class="map-preview"><b>הצעות ממתינות</b><small>דורשות החלטה או מעקב</small><div class="preview-val">${s.proposalsWaiting || 0}</div></div>
           </section>
           <aside class="attention-panel">
-            <div class="attention-title"><h3>דורש טיפול</h3><span class="attention-badge">\${attentionCount}</span></div>
-            \${attn.join('') || '<div class="living-empty">הכול תחת שליטה ✓</div>'}
+            <div class="attention-title"><h3>דורש טיפול</h3><span class="attention-badge">${attentionCount}</span></div>
+            ${attn.join('') || '<div class="living-empty">הכול תחת שליטה ✓</div>'}
           </aside>
         </div>
         <section class="action-dock">
           <div class="action-dock-head"><h3>מה כדאי לעשות עכשיו</h3><span>⚡</span></div>
           <div class="action-list">
-            \${allActions.length ? allActions.slice(0,3).map(actionChip).join('') : '<div class="living-empty" style="grid-column:1/-1">אין כרגע פעולות פתוחות</div>'}
+            ${allActions.length ? allActions.slice(0,3).map(actionChip).join('') : '<div class="living-empty" style="grid-column:1/-1">אין כרגע פעולות פתוחות</div>'}
           </div>
         </section>
-      </div>\`;
+      </div>`;
   };
 
   /* =========================== מכירות =========================== */
