@@ -42,7 +42,7 @@
     /* direction:ltr places the map on the left and the panel on the right; children reset to rtl for Hebrew text */
     .live-layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:stretch}
     .business-map,.attention-panel{direction:rtl}
-    .business-map{position:relative;min-height:600px;border:1px solid var(--line);border-radius:28px;overflow:hidden;background:rgba(255,255,255,.58);box-shadow:0 24px 70px rgba(36,60,103,.1);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+    .business-map{position:relative;min-height:500px;border:1px solid var(--line);border-radius:28px;overflow:hidden;background:rgba(255,255,255,.58);box-shadow:0 24px 70px rgba(36,60,103,.1);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
     .business-map:before{content:"";position:absolute;inset:0;background:
       radial-gradient(circle at 50% 48%,rgba(43,92,255,.10),transparent 29%),
       radial-gradient(circle at 16% 22%,rgba(40,199,190,.12),transparent 23%),
@@ -69,7 +69,7 @@
     .business-core b{font-size:1.42rem}.business-core small{color:var(--muted)}.business-core em{font-style:normal;font-size:.74rem;color:var(--accent-2);margin-top:5px}
     .map-preview{position:absolute;z-index:3;bottom:24px;left:24px;width:190px;padding:14px 16px;border:1px solid var(--line);border-radius:19px;background:rgba(255,255,255,.88);box-shadow:0 18px 42px rgba(44,64,102,.12);text-align:right}
     .map-preview b{display:block;color:var(--txt)}.map-preview small{color:var(--muted)}.map-preview .preview-val{font-size:1.35rem;font-weight:900;color:var(--accent-2);margin-top:6px}
-    .attention-panel{background:rgba(255,255,255,.86);border:1px solid var(--line);border-radius:26px;padding:18px;box-shadow:0 22px 60px rgba(36,60,103,.1);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);max-height:600px;overflow:auto}
+    .attention-panel{background:rgba(255,255,255,.86);border:1px solid var(--line);border-radius:26px;padding:18px;box-shadow:0 22px 60px rgba(36,60,103,.1);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);max-height:500px;overflow:auto}
     .attention-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.attention-title h3{margin:0;font-size:1.18rem;color:var(--txt)}.attention-badge{min-width:31px;height:31px;padding:0 8px;border-radius:11px;background:rgba(239,68,68,.14);color:#b42323;display:grid;place-items:center;font-weight:900}
     .attention-panel .attn-sec{margin:0 0 9px;padding:11px 12px;border-radius:16px;background:var(--bg-2);border:1px solid var(--line)}
     .attention-panel .attn-sec h4{margin-bottom:4px}.attention-panel .list-item{padding:8px 0}.attention-panel .li-main b{font-size:.85rem}.attention-panel .pill{font-size:.65rem}
@@ -80,7 +80,7 @@
     .action-chip:hover{border-color:var(--accent);background:var(--card)}.action-chip b{font-size:.82rem;display:block;color:var(--txt)}.action-chip small{font-size:.7rem;color:var(--muted)}
     .chip-end{display:flex;align-items:center;gap:6px;flex:none}.action-arrow{width:28px;height:28px;flex:none;border-radius:9px;background:#edf3ff;background:color-mix(in srgb,var(--accent) 12%,white);color:var(--accent);display:grid;place-items:center}
     .living-empty{padding:24px;text-align:center;color:var(--muted)}
-    @media(max-width:960px){.live-layout{grid-template-columns:1fr}.attention-panel{max-height:none}.business-map{min-height:560px}.action-list{grid-template-columns:1fr}}
+    @media(max-width:960px){.live-layout{grid-template-columns:1fr}.attention-panel{max-height:none}.business-map{min-height:460px}.action-list{grid-template-columns:1fr}}
     @media(max-width:660px){
       .living-dashboard:before{inset:-18px}.living-head{align-items:flex-start}.living-title p{display:none}.business-map{min-height:auto;padding:72px 14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
       .map-links,.map-caption,.map-preview{display:none}.business-core,.orbit-node{position:relative;inset:auto!important;transform:none!important;width:auto;height:126px;border-radius:22px}
