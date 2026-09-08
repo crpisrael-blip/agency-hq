@@ -29,6 +29,60 @@
     .tl li{padding:9px 0;border-bottom:1px solid var(--line);font-size:.86rem}
     .tl li small{color:var(--muted);display:block;font-size:.75rem}
     .backbtn{background:none;border:0;color:var(--accent-2);font-weight:700;font-size:.86rem;margin-bottom:8px;padding:2px 0}
+
+    /* ===== Living Business — dashboard ===== */
+    .living-dashboard{position:relative;isolation:isolate}
+    .living-dashboard:before{content:"";position:absolute;z-index:-2;inset:-24px;background:
+      radial-gradient(circle at 18% 18%,rgba(40,199,190,.19),transparent 31%),
+      radial-gradient(circle at 72% 34%,rgba(125,104,255,.16),transparent 29%),
+      linear-gradient(145deg,#f9fcff 0%,#f2f7fb 52%,#fbf9ff 100%);border-radius:28px}
+    .living-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+    .living-title h2{font-size:1.58rem;margin:0;color:#111a36}
+    .living-title p{margin:2px 0 0;color:#68728c;font-size:.86rem}
+    .live-layout{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:stretch}
+    .business-map,.attention-panel{direction:rtl}
+    .business-map{position:relative;min-height:600px;border:1px solid rgba(194,207,229,.8);border-radius:28px;overflow:hidden;background:rgba(255,255,255,.58);box-shadow:0 24px 70px rgba(36,60,103,.1);backdrop-filter:blur(14px)}
+    .business-map:before{content:"";position:absolute;inset:0;background:
+      radial-gradient(circle at 50% 48%,rgba(36,183,214,.13),transparent 29%),
+      radial-gradient(circle at 16% 22%,rgba(40,199,190,.13),transparent 23%),
+      radial-gradient(circle at 82% 72%,rgba(255,175,71,.12),transparent 22%);pointer-events:none}
+    .map-caption{position:absolute;top:22px;right:24px;z-index:3}
+    .map-caption b{display:block;font-size:1rem;color:#111a36}.map-caption small{color:#77819a}
+    .map-links{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+    .map-links path{fill:none;stroke-width:1.8;stroke-linecap:round;opacity:.7;stroke-dasharray:2 8;animation:live-flow 11s linear infinite}
+    @keyframes live-flow{to{stroke-dashoffset:-80}}
+    .orbit-node,.business-core{position:absolute;z-index:2;border:0;font-family:inherit;text-align:center;color:#15203d}
+    .orbit-node{width:134px;height:134px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 17px 42px rgba(36,64,110,.13),inset 0 0 0 1px rgba(255,255,255,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:transform .2s ease,box-shadow .2s ease}
+    .orbit-node:after{content:"";position:absolute;inset:6px;border-radius:50%;border:4px solid var(--node);border-left-color:transparent;opacity:.9}
+    .orbit-node:hover{transform:translateY(-5px) scale(1.035);box-shadow:0 24px 55px rgba(36,64,110,.2)}
+    .orbit-node .node-icon{width:35px;height:35px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--node) 14%,white);color:var(--node);font-size:1.15rem;font-weight:900;margin-bottom:3px}
+    .orbit-node b{font-size:1rem}.orbit-node strong{font-size:1.26rem;line-height:1.15}.orbit-node small{font-size:.73rem;color:#77819a}
+    .node-sales{--node:#19bca8;top:64px;left:42%}.node-clients{--node:#4995f5;top:176px;left:7%}
+    .node-projects{--node:#8068ed;top:162px;right:7%}.node-finance{--node:#2aa8e8;bottom:50px;left:10%}
+    .node-tasks{--node:#f3a51a;bottom:38px;right:10%}
+    .business-core{width:206px;height:206px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-44%);background:rgba(255,255,255,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 12px rgba(255,255,255,.55),0 25px 65px rgba(44,92,160,.18)}
+    .business-core:before,.business-core:after{content:"";position:absolute;border-radius:50%;inset:-2px;border:7px solid transparent;border-top-color:#1fc7b4;border-right-color:#6e6ff2;border-bottom-color:#32a8ef}
+    .business-core:after{inset:18px;border-width:1px;border-color:rgba(69,111,181,.16)}
+    .business-core .pulse{width:43px;height:43px;border-radius:15px;background:linear-gradient(135deg,#1fc7b4,#4e8ff2);color:white;display:grid;place-items:center;font-size:1.2rem;margin-bottom:8px;box-shadow:0 9px 22px rgba(41,169,193,.3)}
+    .business-core b{font-size:1.42rem}.business-core small{color:#6c7690}.business-core em{font-style:normal;font-size:.74rem;color:#078d7e;margin-top:5px}
+    .map-preview{position:absolute;z-index:3;bottom:24px;left:24px;width:190px;padding:14px 16px;border:1px solid rgba(194,207,229,.9);border-radius:19px;background:rgba(255,255,255,.88);box-shadow:0 18px 42px rgba(44,64,102,.12);text-align:right}
+    .map-preview b{display:block}.map-preview small{color:#748099}.map-preview .preview-val{font-size:1.35rem;font-weight:900;color:#159d91;margin-top:6px}
+    .attention-panel{background:rgba(255,255,255,.86);border:1px solid rgba(194,207,229,.82);border-radius:26px;padding:18px;box-shadow:0 22px 60px rgba(36,60,103,.1);backdrop-filter:blur(16px);max-height:600px;overflow:auto}
+    .attention-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.attention-title h3{margin:0;font-size:1.18rem}.attention-badge{width:31px;height:31px;border-radius:11px;background:#fff0f1;color:#d4434f;display:grid;place-items:center;font-weight:900}
+    .attention-panel .attn-sec{margin:0 0 9px;padding:11px 12px;border-radius:16px;background:#fbfcff;border:1px solid #e9edf5}
+    .attention-panel .attn-sec h4{margin-bottom:4px}.attention-panel .list-item{padding:8px 0}.attention-panel .li-main b{font-size:.85rem}.attention-panel .pill{font-size:.65rem}
+    .action-dock{margin:18px auto 0;max-width:940px;border:1px solid rgba(194,207,229,.82);border-radius:28px;padding:16px 20px;background:rgba(255,255,255,.88);box-shadow:0 22px 55px rgba(36,60,103,.11);backdrop-filter:blur(16px)}
+    .action-dock-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.action-dock-head h3{margin:0;font-size:1.05rem}.action-dock-head span{color:#2a91dc}
+    .action-list{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.action-chip{border:1px solid #e4e9f3;border-radius:16px;padding:11px 12px;background:#fbfcff;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:right}
+    .action-chip:hover{border-color:#52a7e8;background:#fff}.action-chip b{font-size:.82rem;display:block}.action-chip small{font-size:.7rem;color:#7b849b}.action-arrow{width:28px;height:28px;flex:none;border-radius:9px;background:#edf6ff;color:#2389d2;display:grid;place-items:center}
+    .living-empty{padding:24px;text-align:center;color:#72809a}
+    @media(max-width:960px){.live-layout{grid-template-columns:1fr}.attention-panel{max-height:none}.business-map{min-height:560px}.action-list{grid-template-columns:1fr}}
+    @media(max-width:660px){
+      .living-dashboard:before{inset:-18px}.living-head{align-items:flex-start}.living-title p{display:none}.business-map{min-height:auto;padding:72px 14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .map-links,.map-caption,.map-preview{display:none}.business-core,.orbit-node{position:relative;inset:auto!important;transform:none;width:auto;height:126px;border-radius:22px}
+      .business-core{grid-column:1/-1;height:152px;order:-1}.business-core:before,.business-core:after{border-radius:22px}
+      .orbit-node:after{border-radius:18px}.attention-panel{border-radius:22px}.action-dock{border-radius:22px;padding:14px}
+    }
   `;
   document.head.appendChild(style);
 
@@ -57,40 +111,71 @@
   /* =========================== היום =========================== */
   RENDER.today = async () => {
     let d; try { d = await apiGet('/today'); } catch (e) { V().innerHTML = '<div class="empty">שגיאה בטעינה</div>'; return; }
-    const s = d.summary, n = d.needsAttention, a = d.myActions;
-    const kpi = (v, lbl, cls = '') => `<div class="kpi ${cls}"><b>${v}</b><small>${lbl}</small></div>`;
+    const s = d.summary || {}, n = d.needsAttention || {}, a = d.myActions || {};
+    const safe = (x) => Array.isArray(x) ? x : [];
     const attn = [];
-    const sec = (title, items, render) => { if (items && items.length) attn.push(`<div class="attn-sec"><h4>${title} <span class="cnt">${items.length}</span></h4>${items.map(render).join('')}</div>`); };
-    sec('לידים חדשים', n.newLeads, (l) => `<div class="list-item" onclick="BOS.handleLead('${l.id}')"><div class="li-main"><b>${esc(l.name || 'ליד')}</b><small>${esc(l.source || '')}</small></div><span class="pill p-amber">טיפול מהיר ›</span></div>`);
-    sec('הזדמנויות ללא פעולה הבאה', n.oppsNoNextAction, (o) => `<div class="list-item warn-row" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${esc(o.organizationName)} · ${H('oppStage', o.stage)}</small></div><span class="pill p-red">חסר Next Action</span></div>`);
-    sec('Follow-ups באיחור', n.overdueFollowups, (o) => `<div class="list-item" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${esc(o.organizationName)} · ${esc(o.nextAction || '')}</small></div><span class="pill p-red">${fmt(o.nextActionDate)}</span></div>`);
+    const sec = (title, items, render) => {
+      items = safe(items);
+      if (items.length) attn.push(`<div class="attn-sec"><h4>${title} <span class="cnt">${items.length}</span></h4>${items.slice(0,4).map(render).join('')}</div>`);
+    };
+    sec('לידים חדשים', n.newLeads, (l) => `<div class="list-item" onclick="BOS.handleLead('${l.id}')"><div class="li-main"><b>${esc(l.name || 'ליד')}</b><small>${esc(l.source || '')}</small></div><span class="pill p-amber">טיפול ›</span></div>`);
+    sec('הזדמנויות ללא פעולה הבאה', n.oppsNoNextAction, (o) => `<div class="list-item warn-row" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${esc(o.organizationName)} · ${H('oppStage', o.stage)}</small></div><span class="pill p-red">חסר פעולה</span></div>`);
+    sec('מעקבים באיחור', n.overdueFollowups, (o) => `<div class="list-item" onclick="BOS.openOpp('${o.id}')"><div class="li-main"><b>${esc(o.title)}</b><small>${esc(o.organizationName)} · ${esc(o.nextAction || '')}</small></div><span class="pill p-red">${fmt(o.nextActionDate)}</span></div>`);
     sec('הצעות ממתינות', n.waitingProposals, (p) => `<div class="list-item" onclick="BOS.openOpp('${p.opportunityId}')"><div class="li-main"><b>${esc(p.opportunityTitle)} · v${p.version}</b><small>${esc(p.organizationName)}</small></div>${hp('proposalStatus', p.status)}</div>`);
     sec('פרויקטים בסיכון', n.projectsAtRisk, (p) => `<div class="list-item" onclick="BOS.openProject('${p.id}')"><div class="li-main"><b>${esc(p.title)}</b><small>${esc(p.organizationName)} · ${H('projectStatus', p.status)}</small></div>${healthPill(p.health)}</div>`);
-    sec('משימות באיחור', n.overdueTasks, (t) => `<div class="list-item"><div class="li-main"><b>${esc(t.title)}</b></div><span class="pill p-red">${fmt(t.dueDate)}</span></div>`);
+    sec('משימות באיחור', n.overdueTasks, (t) => `<div class="list-item" onclick="go('tasks')"><div class="li-main"><b>${esc(t.title)}</b></div><span class="pill p-red">${fmt(t.dueDate)}</span></div>`);
     sec('אבני דרך קרובות', n.upcomingMilestones, (m) => `<div class="list-item" onclick="BOS.openProject('${m.projectId}')"><div class="li-main"><b>${esc(m.title)}</b></div><span class="pill p-amber">${fmt(m.dueDate)}</span></div>`);
 
-    const actLine = (x) => `<div class="list-item" onclick="BOS.open${x.entity === 'project' ? 'Project' : 'Opp'}('${x.id}')"><div class="li-main"><b>${esc(x.action)}</b><small>${esc(x.title)} · ${esc(x.organizationName)}</small></div>${x.date ? `<span class="pill ${overdue(x.date) ? 'p-red' : x.date === todayISO() ? 'p-amber' : 'p-gray'}">${fmt(x.date)}</span>` : ''}</div>`;
-    const actionsBlock = (title, arr) => arr.length ? `<div class="card"><h3>${title}</h3>${arr.map(actLine).join('')}</div>` : '';
+    const allActions = [
+      ...safe(a.overdue).map(x => ({...x, timing:'באיחור'})),
+      ...safe(a.today).map(x => ({...x, timing:'להיום'})),
+      ...safe(a.upcoming).map(x => ({...x, timing:'קרוב'})),
+      ...safe(a.undated).map(x => ({...x, timing:'ללא תאריך'}))
+    ];
+    const actionChip = (x) => {
+      const opener = x.entity === 'project' ? 'Project' : 'Opp';
+      return `<button class="action-chip" onclick="BOS.open${opener}('${x.id}')"><span><b>${esc(x.action || 'המשך טיפול')}</b><small>${esc(x.title || '')}${x.organizationName ? ' · ' + esc(x.organizationName) : ''}</small></span><span class="action-arrow">←</span></button>`;
+    };
+    const attentionCount = ['newLeads','oppsNoNextAction','overdueFollowups','waitingProposals','projectsAtRisk','overdueTasks','upcomingMilestones']
+      .reduce((sum,key) => sum + safe(n[key]).length, 0);
+    const momentum = attentionCount ? 'יש נושאים שמחכים לך' : 'הכול מתקדם בצורה טובה';
 
     V().innerHTML = `
-      <div class="spread"><h2 style="margin:0">היום</h2><button class="btn small" onclick="BOS.newOpp()">+ הזדמנות</button></div>
-      <div class="kpis">
-        ${kpi(money(s.pipeline), 'צינור מכירות', 'accent')}
-        ${kpi(money(s.weightedPipeline), 'צינור משוקלל', 'accent')}
-        ${kpi(money(s.mrr), 'MRR', 'green')}
-        ${kpi(s.activeProjects, 'פרויקטים פעילים')}
-        ${kpi(s.activeCustomers, 'לקוחות פעילים')}
-        ${kpi(s.proposalsWaiting, 'הצעות ממתינות', 'amber')}
-      </div>
-      <div class="grid2" style="align-items:start">
-        <div><h3 style="margin:6px 0 10px">דורש טיפול</h3>${attn.join('') || '<div class="empty">הכול תחת שליטה ✓</div>'}</div>
-        <div><h3 style="margin:6px 0 10px">הפעולות שלי היום</h3>
-          ${actionsBlock('באיחור', a.overdue)}
-          ${actionsBlock('להיום', a.today)}
-          ${actionsBlock('קרוב', a.upcoming)}
-          ${actionsBlock('ללא תאריך', a.undated)}
-          ${(a.overdue.length + a.today.length + a.upcoming.length + a.undated.length) === 0 ? '<div class="empty">אין פעולות פתוחות</div>' : ''}
+      <div class="living-dashboard">
+        <div class="living-head">
+          <div class="living-title"><h2>העסק היום</h2><p>תמונה אחת שמחברת מכירות, לקוחות, עבודה וכספים</p></div>
+          <button class="btn small" onclick="BOS.newOpp()">+ הזדמנות</button>
         </div>
+        <div class="live-layout">
+          <section class="business-map" aria-label="מפת הפעילות העסקית">
+            <div class="map-caption"><b>מפת הפעילות</b><small>לחיצה על תחום פותחת את התמונה המלאה</small></div>
+            <svg class="map-links" viewBox="0 0 800 600" preserveAspectRatio="none" aria-hidden="true">
+              <defs><linearGradient id="liveG" x1="0" x2="1"><stop stop-color="#1fc7b4"/><stop offset=".55" stop-color="#4f9bea"/><stop offset="1" stop-color="#8068ed"/></linearGradient></defs>
+              <path d="M400 302 C400 220 420 180 430 125" stroke="url(#liveG)"/>
+              <path d="M372 310 C275 288 220 250 145 230" stroke="#4995f5"/>
+              <path d="M430 305 C535 278 602 246 665 225" stroke="#8068ed"/>
+              <path d="M370 352 C286 415 214 474 145 510" stroke="#2aa8e8"/>
+              <path d="M435 354 C520 420 590 472 666 505" stroke="#f3a51a"/>
+            </svg>
+            <button class="orbit-node node-sales" onclick="go('sales')"><span class="node-icon">▥</span><b>מכירות</b><strong>${money(s.pipeline || 0)}</strong><small>צינור · משוקלל ${money(s.weightedPipeline || 0)}</small></button>
+            <button class="orbit-node node-clients" onclick="go('customers')"><span class="node-icon">●●</span><strong>${s.activeCustomers || 0}</strong><b>לקוחות</b><small>לקוחות פעילים</small></button>
+            <button class="orbit-node node-projects" onclick="go('work')"><span class="node-icon">□</span><strong>${s.activeProjects || 0}</strong><b>פרויקטים</b><small>ביצוע ותוצאות</small></button>
+            <button class="orbit-node node-finance" onclick="go('finance')"><span class="node-icon">₪</span><b>כספים</b><strong>${money(s.mrr || 0)}</strong><small>הכנסה חודשית חוזרת</small></button>
+            <button class="orbit-node node-tasks" onclick="go('tasks')"><span class="node-icon">✓</span><strong>${safe(n.overdueTasks).length}</strong><b>משימות</b><small>משימות באיחור</small></button>
+            <div class="business-core"><span class="pulse">↗</span><b>העסק היום</b><small>כל התחומים מחוברים</small><em>● ${momentum}</em></div>
+            <div class="map-preview"><b>הצעות ממתינות</b><small>דורשות החלטה או מעקב</small><div class="preview-val">${s.proposalsWaiting || 0}</div></div>
+          </section>
+          <aside class="attention-panel">
+            <div class="attention-title"><h3>דורש טיפול</h3><span class="attention-badge">${attentionCount}</span></div>
+            ${attn.join('') || '<div class="living-empty">הכול תחת שליטה ✓</div>'}
+          </aside>
+        </div>
+        <section class="action-dock">
+          <div class="action-dock-head"><h3>מה כדאי לעשות עכשיו</h3><span>⚡</span></div>
+          <div class="action-list">
+            ${allActions.length ? allActions.slice(0,3).map(actionChip).join('') : '<div class="living-empty" style="grid-column:1/-1">אין כרגע פעולות פתוחות</div>'}
+          </div>
+        </section>
       </div>`;
   };
 
