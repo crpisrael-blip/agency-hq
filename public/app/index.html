@@ -309,6 +309,17 @@
   .sk-use:hover{border-color:var(--red);color:var(--red)}
   .sk-use-add{font-size:.7rem;font-weight:700;color:var(--muted);background:none;border:1px dashed var(--line);border-radius:6px;padding:1px 8px;cursor:pointer;font-family:inherit}
   .sk-use-add:hover{border-color:var(--accent);color:var(--accent)}
+  .sk-he{font-weight:700;font-size:.78rem;color:var(--txt);margin-top:2px}
+  .sk-src{margin-top:6px;font-size:.68rem;direction:ltr;text-align:right;word-break:break-all}
+  .sk-src span{color:var(--muted)}
+  .sk-src a{color:var(--muted);text-decoration:none;font-size:.8rem;padding:0 4px;border:1px solid var(--line);border-radius:5px}
+  .sk-src a:hover{color:var(--accent);border-color:var(--accent)}
+  .sk-item.il .sk-name{color:var(--purple)}
+  .kpi.teal b{color:var(--purple)}
+  .sk-bundles{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+  .sk-bundle{font-family:inherit;font-size:.76rem;font-weight:700;background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:4px 9px;cursor:pointer;color:var(--txt)}
+  .sk-bundle:hover{border-color:var(--accent);color:var(--accent)}
+  .sk-bundle .n{color:var(--muted);font-weight:600;margin-inline-start:3px}
 </style>
 </head>
 <body>
@@ -2924,7 +2935,8 @@ async function openCall(id){
 async function advanceCallTask(id,status,callId){ try{ await apiPatch('/tasks/'+id,{status}); openCall(callId); }catch(e){ toast('שגיאה','bad'); } }
 async function delCall(id,clientId){ if(!confirm('למחוק את תיעוד השיחה? המשימות והרעיונות שנגזרו יישארו.'))return; try{ await apiDel('/calls/'+id); closeModal(); toast('נמחק'); if(clientId) openClient(clientId); else go('calls'); }catch(e){ toast('שגיאה','bad'); } }
 
-// ============ מאגר סקילז (ECC) ============
+// ============ מאגר סקילז (ECC + Skills IL) ============
+// הקטלוג של ECC יושב כאן (SKILLS_DATA / CMDS_DATA); הקטלוג הישראלי נטען מ-/js/skills-il.js (window.SKILLS_IL_DATA).
 const SK_CATS=[["backend","Backend, API ושרת","🔧"],["db","בסיסי נתונים","🗄️"],["testing","בדיקות ואיכות קוד","🧪"],["devops","העלאה לאוויר ותשתית","🚀"],["security","אבטחה","🛡️"],["frontend","מסכים, עיצוב ואנימציה","🎨"],["langs","שפות תכנות ותקני-קוד","💬"],["ai","בינה מלאכותית וסוכנים","🤖"],["orch","עבודה של כמה סוכנים יחד","🕸️"],["planning","תכנון, מוצר והתמצאות","🗺️"],["business","עסקי, פיננסי וגיוס","💼"],["content","תוכן, שיווק ורשתות","📣"],["video","וידאו ומדיה","🎬"],["research","מחקר, נתונים וידע","🔬"],["ecc","תשתית ECC והגדרות","⚙️"],["network","רשת ותקשורת","🌐"],["domains","תחומים ייעודיים","🧩"]];
 const SK_CMDG=[["cmd-build","תיקון שגיאות בנייה","🔨"],["cmd-review","ביקורת קוד","🔎"],["cmd-test","בדיקות","✅"],["cmd-plan","תכנון ופיתוח פיצ׳ר","📐"],["cmd-multi","עבודה רב-מודלית ולולאות","🧠"],["cmd-orch","ניהול תהליך מלא (orch)","🎛️"],["cmd-epic","תיאום משימות ב-GitHub","📋"],["cmd-learn","למידה ושיפור-עצמי","📚"],["cmd-hook","אוטומציות (hookify)","🪝"],["cmd-session","סשן, זיכרון ונקודות-שמירה","💾"],["cmd-ecc","תחזוקת ECC וכלים כלליים","🧰"]];
 const SKILLS_DATA=[
@@ -3311,77 +3323,130 @@ const CMDS_DATA=[
 ["marketing-campaign","cmd-ecc","מתכנן ומריץ קמפיין-שיווקי שלם מתוך תקציר-מוצר",""],
 ["jira","cmd-ecc","שליפה או עדכון של כרטיס Jira וניתוח דרישות","jira-integration,tdd-workflow"],
 ];
+// ---------- מקורות הסקילז ----------
+// לכל מקור: מאיפה משכפלים, איפה יושב כל סקיל בתוך הריפו, ואיך מנסחים נתיב גישה קריא.
+// הנתיב הקריא (ref) הוא מה שנשמר ב-DB לצד כל סימון "מותקן ב…", כדי שנדע לחזור לסקיל גם בעוד שנה.
+const SK_SOURCES={
+  ecc:{ id:'ecc', label:'ECC', full:'affaan-m/ecc', icon:'🧩', url:'https://github.com/affaan-m/ecc',
+    ref:(name,type)=> type==='cmd' ? 'affaan-m/ecc/commands/'+name+'.md' : 'affaan-m/ecc/skills/'+name,
+    link:(name,type)=> 'https://github.com/affaan-m/ecc/tree/main/'+(type==='cmd'?'commands/'+name+'.md':'skills/'+name) },
+  'skills-il':{ id:'skills-il', label:'Skills IL', full:'github.com/skills-il', icon:'🇮🇱', url:'https://github.com/skills-il', site:'https://agentskills.co.il',
+    ref:(name,repo)=> 'skills-il/'+repo+'/'+name,
+    link:(name,repo)=> 'https://github.com/skills-il/'+repo+'/tree/main/'+name },
+};
+const IL_DATA=()=>window.SKILLS_IL_DATA||[];
+const IL_CATS=()=>window.SK_IL_CATS||[];
+const IL_BUNDLES=()=>window.SK_IL_BUNDLES||[];
+function ilItem(name){ return IL_DATA().find(x=>x[0]===name)||null; }
+function eccItem(name,type){ return (type==='cmd'?CMDS_DATA:SKILLS_DATA).find(x=>x[0]===name)||null; }
+// מזהה בחירה → { source, name, type, ref, link }
+function skResolve(id){
+  const i=id.indexOf(':'); const kind=id.slice(0,i), name=id.slice(i+1);
+  if(kind==='il'){ const it=ilItem(name); const repo=it?it[1]:'?'; const S=SK_SOURCES['skills-il']; return { source:'skills-il', name, type:'skill', repo, ref:S.ref(name,repo), link:S.link(name,repo) }; }
+  const S=SK_SOURCES.ecc; return { source:'ecc', name, type:kind, ref:S.ref(name,kind), link:S.link(name,kind) };
+}
+// מפתח השימוש ב-DB: "<source>:<name>" (פקודה וסקיל ב-ECC חולקים מפתח — כמו קודם)
+function skUseKey(source,name){ return source+':'+name; }
+
 let SK_VIEW='all', SK_STAR=false, SK_CAT='', SK_USED=false;
 let SK_WITHINSTR=(function(){try{return localStorage.getItem('skInstr')!=='0';}catch(e){return true;}})();
 function skSetInstr(v){ SK_WITHINSTR=v; try{localStorage.setItem('skInstr',v?'1':'0');}catch(e){} }
-const SK_SEL=new Set(); // בחירה מרובה: 'skill:<name>' / 'cmd:<name>'
+const SK_SEL=new Set(); // בחירה מרובה: 'skill:<name>' / 'cmd:<name>' (ECC) / 'il:<name>' (skills-il)
 function skCopy(name,type){
   const t=(type==='cmd'?'/':'')+name; let ok=false;
   try{ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;} }catch(e){}
   if(!ok){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); }
   toast('הועתק: '+t);
 }
-// מפת התקנות: אילו סקילז כבר יושמו/הותקנו ובאילו פרויקטים (לשימור ידע)
 // שימוש בסקילז לפי מערכת — נתונים חיים מה-DB (נטענים ב-RENDER.skills)
-let SK_USAGE={};   // { skillName: [{id, systemId, systemName}] }
+let SK_USAGE={};   // { "<source>:<skillName>": [{id, source, sourceRef, systemId, systemName}] }
 let SK_SYS=[];     // רשימת המערכות לבורר
+// פריט בקטלוג. type: 'skill' | 'cmd' (ECC) | 'il' (skills-il)
 function skItemHtml(it,type){
   const name=it[0], desc=it[2];
-  const star=type==='skill'&&it[3]===1;
+  const isIl=type==='il';
+  const source=isIl?'skills-il':'ecc';
+  const star=(type==='skill'||isIl)&&it[3]===1;
   const rel=type==='cmd'?it[3]:'';
-  const uses=SK_USAGE[name]||null;
+  const uses=SK_USAGE[skUseKey(source,name)]||null;
   const label=(type==='cmd'?'/':'')+name;
+  const heName=isIl?(it[4]||''):'';
+  const fullDesc=isIl?(it[5]||''):'';
+  const R=skResolve(type+':'+name);
   const useNames=uses?uses.map(u=>u.systemName).join(' '):'';
-  const s=esc((name+' '+desc+' '+(rel||'')+' '+useNames).toLowerCase());
+  const s=esc((name+' '+desc+' '+heName+' '+fullDesc+' '+(rel||'')+' '+R.ref+' '+useNames).toLowerCase());
   let relHtml='';
   if(rel){ relHtml='<div class="sk-rel"><span class="t" style="border-color:transparent;background:none;padding-inline:0">שייך ל:</span>'+rel.split(',').map(x=>'<span class="t">'+esc(x)+'</span>').join('')+'</div>'; }
   const chips=(uses||[]).map(u=>'<span class="sk-use" onclick="event.stopPropagation();skUsageDel(\''+u.id+'\')" title="הסר סימון">'+esc(u.systemName)+' ✕</span>').join('');
-  const instHtml='<div class="sk-inst-row">'+((uses&&uses.length)?'<span class="sk-inst-lbl">✅ בשימוש:</span>'+chips:'')+'<button class="sk-use-add" onclick="event.stopPropagation();skUsageAdd(\''+esc(name)+'\')">+ סמן מערכת</button></div>';
+  const instHtml='<div class="sk-inst-row">'+((uses&&uses.length)?'<span class="sk-inst-lbl">✅ בשימוש:</span>'+chips:'')+'<button class="sk-use-add" onclick="event.stopPropagation();skUsageAdd(\''+esc(name)+'\',\''+source+'\')">+ סמן מערכת</button></div>';
+  // נתיב הגישה כטקסט (לחיצה עליו בוחרת את הכרטיס) + קישור קטן נפרד ל-GitHub
+  const srcHtml='<div class="sk-src" title="נתיב הגישה לסקיל (נשמר עם כל סימון התקנה)"><span>📍 '+esc(R.ref)+'</span> <a href="'+esc(R.link)+'" target="_blank" rel="noopener" title="פתיחה ב-GitHub" onclick="event.stopPropagation()">↗</a></div>';
   const id=type+':'+name;
-  return '<div class="sk-item '+type+(star?' star':'')+((uses&&uses.length)?' inst':'')+(SK_SEL.has(id)?' sel':'')+'" data-id="'+id+'" data-type="'+type+'" data-star="'+(star?1:0)+'" data-inst="'+((uses&&uses.length)?1:0)+'" data-s="'+s+'" onclick="skToggleSel(\''+esc(name)+'\',\''+type+'\',this)">'
+  return '<div class="sk-item '+type+(star?' star':'')+((uses&&uses.length)?' inst':'')+(SK_SEL.has(id)?' sel':'')+'" data-id="'+id+'" data-type="'+type+'" data-src="'+source+'" data-star="'+(star?1:0)+'" data-inst="'+((uses&&uses.length)?1:0)+'" data-s="'+s+'"'+(fullDesc?' title="'+esc(fullDesc)+'"':'')+' onclick="skToggleSel(\''+esc(name)+'\',\''+type+'\',this)">'
     +'<span class="sk-cb"></span>'
     +(star?'<span class="sk-star-tag">⭐</span>':'')
-    +'<div class="sk-name">'+esc(label)+'</div><div class="sk-desc">'+esc(desc)+'</div>'+relHtml+instHtml+'</div>';
+    +'<div class="sk-name">'+esc(label)+'</div>'+(heName?'<div class="sk-he">'+esc(heName)+'</div>':'')+'<div class="sk-desc">'+esc(desc)+'</div>'+relHtml+srcHtml+instHtml+'</div>';
 }
 RENDER.skills=async()=>{
   try{ SK_USAGE=await apiGet('/skills/usage'); }catch(e){ SK_USAGE={}; }
   try{ SK_SYS=await apiGet('/systems'); }catch(e){ SK_SYS=[]; }
-  const nSk=SKILLS_DATA.length, nCmd=CMDS_DATA.length, nStar=SKILLS_DATA.filter(s=>s[3]===1).length;
+  const IL=IL_DATA(), ILC=IL_CATS(), ILB=IL_BUNDLES();
+  const nSk=SKILLS_DATA.length, nCmd=CMDS_DATA.length, nIl=IL.length;
+  const nStar=SKILLS_DATA.filter(s=>s[3]===1).length+IL.filter(s=>s[3]===1).length;
   const nInst=Object.keys(SK_USAGE).length;
   const sg={}; SKILLS_DATA.forEach(s=>{(sg[s[1]]=sg[s[1]]||[]).push(s);});
   const cg={}; CMDS_DATA.forEach(c=>{(cg[c[1]]=cg[c[1]]||[]).push(c);});
-  let h='<div class="spread"><div><h2>🧩 מאגר סקילז ופקודות</h2><div class="sub">קטלוג ידע מ-ECC — לחיצה על פריט בוחרת אותו, והבחירות נאספות למטה להעתקה</div></div></div>';
-  h+='<div class="kpis"><div class="kpi accent"><b>'+nSk+'</b><small>סקילז</small></div><div class="kpi amber"><b>'+nCmd+'</b><small>פקודות</small></div><div class="kpi green"><b>'+nStar+'</b><small>מומלצים ⭐</small></div><div class="kpi"><b>'+nInst+'</b><small>מסומנים בשימוש ✅</small></div></div>';
-  h+='<div class="row" style="margin-bottom:14px"><input id="skq" class="search" placeholder="חיפוש לפי שם או תיאור…" oninput="skApply()">'
-    +'<div class="seg" style="flex:0 0 auto">'+[['all','הכל'],['skill','סקילז'],['cmd','פקודות']].map(v=>'<button class="'+(SK_VIEW===v[0]?'on':'')+'" onclick="skView(\''+v[0]+'\',this)">'+v[1]+'</button>').join('')+'</div>'
-    +'<select id="skCat" class="search" style="max-width:190px;flex:0 0 auto" onchange="skSetCat(this.value)"><option value="">כל הקטגוריות</option>'+SK_CATS.map(c=>'<option value="'+c[0]+'"'+(SK_CAT===c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')+'<option value="" disabled>──── פקודות ────</option>'+SK_CMDG.map(c=>'<option value="'+c[0]+'"'+(SK_CAT===c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')+'</select>'
+  const ig={}; IL.forEach(s=>{(ig[s[1]]=ig[s[1]]||[]).push(s);});
+  let h='<div class="spread"><div><h2>🧩 מאגר סקילז ופקודות</h2><div class="sub">קטלוג ידע משני מקורות — ECC (כללי) ו-Skills IL (ישראלי). לחיצה על פריט בוחרת אותו, הבחירות נאספות למטה להעתקה ולסימון "מותקן ב…"</div></div></div>';
+  h+='<div class="kpis"><div class="kpi accent"><b>'+nSk+'</b><small>סקילז ECC</small></div><div class="kpi amber"><b>'+nCmd+'</b><small>פקודות ECC</small></div><div class="kpi teal"><b>'+nIl+'</b><small>סקילז Skills IL 🇮🇱</small></div><div class="kpi green"><b>'+nStar+'</b><small>מומלצים ⭐</small></div><div class="kpi"><b>'+nInst+'</b><small>מסומנים בשימוש ✅</small></div></div>';
+  h+='<div class="row" style="margin-bottom:14px"><input id="skq" class="search" placeholder="חיפוש לפי שם, תיאור או נתיב…" oninput="skApply()">'
+    +'<div class="seg" style="flex:0 0 auto">'+[['all','הכל'],['skill','סקילז ECC'],['cmd','פקודות'],['il','Skills IL 🇮🇱']].map(v=>'<button class="'+(SK_VIEW===v[0]?'on':'')+'" onclick="skView(\''+v[0]+'\',this)">'+v[1]+'</button>').join('')+'</div>'
+    +'<select id="skCat" class="search" style="max-width:210px;flex:0 0 auto" onchange="skSetCat(this.value)"><option value="">כל הקטגוריות</option>'
+    +'<option value="" disabled>──── ECC ────</option>'+SK_CATS.map(c=>'<option value="'+c[0]+'"'+(SK_CAT===c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')
+    +'<option value="" disabled>──── פקודות ────</option>'+SK_CMDG.map(c=>'<option value="'+c[0]+'"'+(SK_CAT===c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')
+    +'<option value="" disabled>──── Skills IL ────</option>'+ILC.map(c=>'<option value="il-'+c[0]+'"'+(SK_CAT==='il-'+c[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('')+'</select>'
     +'<button class="btn small'+(SK_STAR?' teal':'')+'" onclick="skStarToggle(this)">⭐ רלוונטי לי</button>'
     +'<button class="btn small'+(SK_USED?' teal':'')+'" onclick="skUsedToggle(this)">✅ בשימוש</button></div>';
-  h+='<div class="card"><h3>💾 איפה זה שמור</h3><div class="muted" style="font-size:.85rem;line-height:1.75">סקילז מותקנים יושבים בנתיב <span class="tag" style="direction:ltr">.claude/skills/&lt;שם&gt;/SKILL.md</span> בתוך הריפו. פקודה יושבת ב-<span class="tag" style="direction:ltr">.claude/commands/&lt;שם&gt;.md</span> ומורצת עם <span class="tag" style="direction:ltr">/שם</span>. להתקנה בפרויקט עתידי — מעתיקים את התיקייה מהמאגר <span class="tag" style="direction:ltr">affaan-m/ecc</span> לאותו נתיב.</div></div>';
+  h+='<div class="card"><h3>💾 מקורות ונתיבי גישה</h3><div class="muted" style="font-size:.85rem;line-height:1.8">'
+    +'<div><b>🧩 ECC</b> — <a href="https://github.com/affaan-m/ecc" target="_blank" rel="noopener" style="direction:ltr">affaan-m/ecc</a>: סקיל יושב ב-<span class="tag" style="direction:ltr">skills/&lt;שם&gt;/SKILL.md</span>, פקודה ב-<span class="tag" style="direction:ltr">commands/&lt;שם&gt;.md</span> (מורצת עם <span class="tag" style="direction:ltr">/שם</span>).</div>'
+    +'<div><b>🇮🇱 Skills IL</b> — <a href="https://github.com/skills-il" target="_blank" rel="noopener" style="direction:ltr">github.com/skills-il</a> · <a href="https://agentskills.co.il" target="_blank" rel="noopener" style="direction:ltr">agentskills.co.il</a>: הארגון מחולק לריפו לכל קטגוריה, וכל סקיל הוא תיקייה <span class="tag" style="direction:ltr">&lt;ריפו&gt;/&lt;שם&gt;/SKILL.md</span> (לרוב עם <span class="tag" style="direction:ltr">scripts/</span> ו-<span class="tag" style="direction:ltr">references/</span>). התקנה: העתקת התיקייה ל-<span class="tag" style="direction:ltr">.claude/skills/&lt;שם&gt;/</span>, או <span class="tag" style="direction:ltr">npx skills-il add skills-il/&lt;ריפו&gt; --skill &lt;שם&gt;</span>.</div>'
+    +'<div>בפרויקט: כל הסקילז המותקנים יושבים ב-<span class="tag" style="direction:ltr">.claude/skills/&lt;שם&gt;/SKILL.md</span> בתוך הריפו. הנתיב 📍 שמופיע על כל כרטיס הוא נתיב הגישה שנשמר עם כל סימון "מותקן ב…".</div>'
+    +'</div></div>';
   SK_CATS.forEach(c=>{ const items=sg[c[0]]; if(!items)return; items.sort((a,b)=>(b[3]===1?1:0)-(a[3]===1?1:0));
     h+='<div class="card sk-sec" data-cat="'+c[0]+'" data-kind="skill"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'skill')).join('')+'</div></div>'; });
-  h+='<div class="card sk-sec" data-kind="cmdhead"><h3>⌘ פקודות מוכנות (Slash Commands)</h3><div class="muted" style="font-size:.84rem">94 קיצורים שמריצים עם /שם. אצל כל פקודה מצוין לאילו סקילז היא קשורה.</div></div>';
+  h+='<div class="card sk-sec" data-kind="cmdhead"><h3>⌘ פקודות מוכנות (Slash Commands)</h3><div class="muted" style="font-size:.84rem">'+nCmd+' קיצורים שמריצים עם /שם. אצל כל פקודה מצוין לאילו סקילז היא קשורה.</div></div>';
   SK_CMDG.forEach(c=>{ const items=cg[c[0]]; if(!items)return;
     h+='<div class="card sk-sec" data-cat="'+c[0]+'" data-kind="cmd"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'cmd')).join('')+'</div></div>'; });
+  // ---- Skills IL ----
+  const bundleChips=ILB.map(b=>'<button class="sk-bundle" onclick="skSelBundle(\''+esc(b[0])+'\')" title="'+esc(b[4]||'')+'">'+b[2]+' '+esc(b[1])+' <span class="n">'+b[3].length+'</span></button>').join('');
+  h+='<div class="card sk-sec" data-kind="ilhead"><h3>🇮🇱 Skills IL — סקילז לשוק הישראלי</h3><div class="muted" style="font-size:.84rem;line-height:1.7">'+nIl+' סקילז מארגון skills-il (מיסים, עברית/RTL, סליקה, ממשל, שיווק ועוד). מתחת לשם האנגלי מופיע השם העברי הרשמי, ובריחוף — התיאור המלא.</div>'
+    +(bundleChips?'<div class="sk-bundles"><span class="sk-tray-lbl">📦 חבילות מוכנות (לחיצה בוחרת את כל הסקילז שבחבילה):</span>'+bundleChips+'</div>':'')+'</div>';
+  ILC.forEach(c=>{ const items=ig[c[0]]; if(!items)return; items.sort((a,b)=>(b[3]===1?1:0)-(a[3]===1?1:0));
+    h+='<div class="card sk-sec" data-cat="il-'+c[0]+'" data-kind="il"><h3>'+c[2]+' '+c[1]+' <span class="sk-cat-count" data-count>'+items.length+'</span></h3><div class="sk-grid">'+items.map(it=>skItemHtml(it,'il')).join('')+'</div></div>'; });
   h+='<div class="empty" id="sk-empty" style="display:none">לא נמצאו פריטים תואמים</div>';
   h+='<div style="height:64px"></div><div id="skTray" class="sk-tray"></div>';
   $('view').innerHTML=h; skApply(); skTray();
 };
 function skView(v,el){ SK_VIEW=v; el.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); skApply(); }
 function skSetCat(v){ SK_CAT=v; skApply(); }
-function skUsageAdd(name){
+function skUsageAdd(name,source){
+  source=source||'ecc';
+  const R=skResolve((source==='skills-il'?'il:':'skill:')+name);
   const opts=SK_SYS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(s.clientName&&s.clientName!=='—'?' — '+esc(s.clientName):'')+'</option>').join('');
   openModal('<h3>סימון שימוש · '+esc(name)+'</h3>'
+    +'<div class="hint" style="margin-bottom:10px;direction:ltr;text-align:left">📍 '+esc(R.ref)+'</div>'
     +'<div class="f"><label>מערכת מהרשימה</label><select id="su_sys"><option value="">— בחר מערכת —</option>'+opts+'</select></div>'
     +'<div class="f"><label>או שם חופשי (אם לא ברשימה)</label><input id="su_name" placeholder="למשל agency-hq / kravmaga-app"></div>'
-    +'<div class="modal-actions"><button class="btn primary" onclick="skUsageSave(\''+esc(name)+'\')">שמירה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>');
+    +'<div class="modal-actions"><button class="btn primary" onclick="skUsageSave(\''+esc(name)+'\',\''+source+'\')">שמירה</button><button class="btn ghost" onclick="closeModal()">ביטול</button></div>');
 }
-async function skUsageSave(name){
+async function skUsageSave(name,source){
+  source=source||'ecc';
   const sysId=val('su_sys'), freeName=val('su_name');
   const sys=SK_SYS.find(s=>s.id===sysId);
   const systemName=freeName||(sys?sys.name:'');
   if(!systemName){ toast('בחר מערכת או הקלד שם','bad'); return; }
-  try{ await apiPost('/skills/usage',{skillName:name,systemId:sysId||null,systemName}); closeModal(); toast('סומן ✓'); go('skills'); }
+  const R=skResolve((source==='skills-il'?'il:':'skill:')+name);
+  try{ await apiPost('/skills/usage',{skillName:name,source,sourceRef:R.ref,systemId:sysId||null,systemName}); closeModal(); toast('סומן ✓'); go('skills'); }
   catch(e){ toast('שגיאה','bad'); }
 }
 async function skUsageDel(id){
@@ -3393,8 +3458,10 @@ function skStarToggle(el){ SK_STAR=!SK_STAR; el.classList.toggle('teal',SK_STAR)
 function skUsedToggle(el){ SK_USED=!SK_USED; el.classList.toggle('teal',SK_USED); skApply(); }
 function skApply(){
   const term=($('skq')?.value||'').trim().toLowerCase(); let any=false;
+  const filtered=SK_STAR||SK_USED||SK_CAT||term;
   document.querySelectorAll('#view .sk-sec').forEach(sec=>{
-    if(sec.dataset.kind==='cmdhead'){ sec.style.display=(SK_VIEW==='skill'||SK_STAR||SK_USED||SK_CAT)?'none':''; return; }
+    if(sec.dataset.kind==='cmdhead'){ sec.style.display=(SK_VIEW!=='all'&&SK_VIEW!=='cmd')||filtered?'none':''; return; }
+    if(sec.dataset.kind==='ilhead'){ sec.style.display=(SK_VIEW!=='all'&&SK_VIEW!=='il')||filtered?'none':''; return; }
     if(SK_CAT && sec.dataset.cat!==SK_CAT){ sec.style.display='none'; return; }
     let shown=0;
     sec.querySelectorAll('.sk-item').forEach(c=>{
@@ -3424,35 +3491,70 @@ function skClearSel(){
   document.querySelectorAll('.sk-item.sel').forEach(c=>c.classList.remove('sel'));
   skTray();
 }
+// בחירת חבילה מוכנה של skills-il — מוסיפה לבחירה את כל הסקילז שבחבילה וקיימים בקטלוג
+function skSelBundle(slug){
+  const b=IL_BUNDLES().find(x=>x[0]===slug); if(!b)return;
+  let n=0;
+  b[3].forEach(name=>{ if(!ilItem(name))return; const id='il:'+name; if(SK_SEL.has(id))return; SK_SEL.add(id); n++;
+    const c=document.querySelector('.sk-item[data-id="'+id+'"]'); if(c)c.classList.add('sel'); });
+  skTray(); toast(n?'נוספו '+n+' סקילז מהחבילה "'+b[1]+'"':'כל הסקילז של החבילה כבר נבחרו');
+}
+function skSelGroups(){
+  const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
+  const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
+  const il=[...SK_SEL].filter(x=>x.startsWith('il:')).map(x=>x.slice(3)).sort();
+  return {skills,cmds,il};
+}
 function skTray(){
   const box=$('skTray'); if(!box)return;
   if(!SK_SEL.size){ box.className='sk-tray'; box.innerHTML=''; return; }
-  const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
-  const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
+  const {skills,cmds,il}=skSelGroups();
   const grp=(lbl,arr,pre,prefix)=>arr.length?'<div class="sk-tray-grp"><span class="sk-tray-lbl">'+lbl+' ('+arr.length+')</span>'+
     arr.map(n=>'<span class="sk-chip"'+(pre?' style="direction:ltr"':'')+' onclick="skDeSel(\''+prefix+n+'\')">'+(pre||'')+esc(n)+' ✕</span>').join('')+'</div>':'';
   box.className='sk-tray open';
-  box.innerHTML='<div class="sk-tray-in"><div class="sk-tray-chips">'+grp('סקילז',skills,'','skill:')+grp('פקודות',cmds,'/','cmd:')+'</div>'
+  box.innerHTML='<div class="sk-tray-in"><div class="sk-tray-chips">'+grp('סקילז ECC',skills,'','skill:')+grp('פקודות',cmds,'/','cmd:')+grp('Skills IL 🇮🇱',il,'','il:')+'</div>'
     +'<div class="sk-tray-act"><b>'+SK_SEL.size+' נבחרו</b>'
     +'<label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);font-weight:600" title="לכלול הוראות התקנה מלאות (כבה בשימוש חוזר באותו סשן)"><input type="checkbox" id="skInstr" '+(SK_WITHINSTR?'checked':'')+' onchange="skSetInstr(this.checked)" style="width:16px;height:16px;accent-color:var(--accent)"> הוראות</label>'
     +'<button class="btn small primary" onclick="skCopySel()">📋 העתק</button>'
     +'<button class="btn small ghost" onclick="skClearSel()">נקה</button></div></div>';
 }
+// טקסט ההעתקה: הוראות התקנה לכל מקור בנפרד + נתיב גישה לכל פריט
 function skBuildCopy(){
-  const skills=[...SK_SEL].filter(x=>x.startsWith('skill:')).map(x=>x.slice(6)).sort();
-  const cmds=[...SK_SEL].filter(x=>x.startsWith('cmd:')).map(x=>x.slice(4)).sort();
+  const {skills,cmds,il}=skSelGroups();
   let out=[];
-  if((skills.length||cmds.length) && SK_WITHINSTR){
-    out.push('התקן לי את הסקילז/פקודות הבאים מהמאגר הציבורי affaan-m/ecc לפרויקט הנוכחי:');
-    out.push('1) שכפל: GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/affaan-m/ecc /tmp/ecc');
-    out.push('2) לכל סקיל: קרא /tmp/ecc/skills/<שם>/SKILL.md (ודא שאין hooks מפוקפקים), והעתק את התיקייה כולה ל-.claude/skills/<שם>/');
-    out.push('3) לכל פקודה: העתק /tmp/ecc/commands/<שם>.md ל-.claude/commands/<שם>.md');
-    out.push('4) קמט ודחוף לענף שאני עובד עליו. הסקילז זמינים מיד באותו סשן (הסביבה מזהה אותם בתור הבא).');
+  const nSrc=(skills.length||cmds.length?1:0)+(il.length?1:0);
+  if(SK_WITHINSTR && nSrc){
+    out.push('התקן לי את הסקילז/פקודות הבאים לפרויקט הנוכחי. '+(nSrc>1?'הם מגיעים משני מקורות שונים — לכל מקור הוראות ונתיב גישה משלו.':'')); out.push('');
+  }
+  if(skills.length||cmds.length){
+    out.push('== מקור: ECC (github.com/affaan-m/ecc) ==');
+    if(SK_WITHINSTR){
+      out.push('1) שכפל: GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/affaan-m/ecc /tmp/ecc');
+      if(skills.length) out.push('2) לכל סקיל: קרא /tmp/ecc/skills/<שם>/SKILL.md (ודא שאין hooks מפוקפקים), והעתק את התיקייה כולה ל-.claude/skills/<שם>/');
+      if(cmds.length) out.push((skills.length?'3':'2')+') לכל פקודה: העתק /tmp/ecc/commands/<שם>.md ל-.claude/commands/<שם>.md');
+    }
+    if(skills.length){ out.push('סקילז להתקנה:'); skills.forEach(n=>out.push('- '+n+'  ← '+SK_SOURCES.ecc.ref(n,'skill'))); }
+    if(cmds.length){ out.push('פקודות להרצה:'); cmds.forEach(n=>out.push('- /'+n+'  ← '+SK_SOURCES.ecc.ref(n,'cmd'))); }
     out.push('');
   }
-  if(skills.length){ out.push('== סקילז להתקנה =='); out.push(...skills); }
-  if(cmds.length){ if(out.length)out.push(''); out.push('== פקודות להרצה =='); out.push(...cmds.map(c=>'/'+c)); }
-  return { text: out.join('\n'), skills, cmds };
+  if(il.length){
+    const repos=[...new Set(il.map(n=>{const it=ilItem(n); return it?it[1]:'?';}))].sort();
+    out.push('== מקור: Skills IL (github.com/skills-il · agentskills.co.il) ==');
+    if(SK_WITHINSTR){
+      out.push('1) שכפל את הריפואים הרלוונטיים (ריפו לכל קטגוריה):');
+      repos.forEach(r=>out.push('   GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/skills-il/'+r+' /tmp/skills-il/'+r));
+      out.push('2) לכל סקיל: קרא /tmp/skills-il/<ריפו>/<שם>/SKILL.md (ודא שאין hooks מפוקפקים), והעתק את התיקייה כולה — כולל scripts/ ו-references/ — ל-.claude/skills/<שם>/');
+      out.push('   חלופה עם ה-CLI של הארגון: npx skills-il add skills-il/<ריפו> --skill <שם> -a claude-code -y');
+    }
+    out.push('סקילז להתקנה (שם ← ריפו/נתיב):');
+    il.forEach(n=>{ const it=ilItem(n); const repo=it?it[1]:'?'; out.push('- '+n+'  ← '+SK_SOURCES['skills-il'].ref(n,repo)+(it&&it[4]?'  ('+it[4]+')':'')); });
+    out.push('');
+  }
+  if(SK_WITHINSTR && nSrc){
+    out.push('לסיום: קמט ודחוף לענף שאני עובד עליו. הסקילז זמינים מיד באותו סשן (הסביבה מזהה אותם בתור הבא).');
+  }
+  while(out.length&&out[out.length-1]==='')out.pop();
+  return { text: out.join('\n'), skills, cmds, il };
 }
 function skDoCopy(text){
   let ok=false;
@@ -3461,10 +3563,11 @@ function skDoCopy(text){
 }
 function skCopySel(){
   if(!SK_SEL.size) return;
-  const {skills,cmds}=skBuildCopy();
+  const {skills,cmds,il}=skBuildCopy();
   const opts=SK_SYS.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(s.clientName&&s.clientName!=='—'?' — '+esc(s.clientName):'')+'</option>').join('');
+  const parts=[]; if(skills.length)parts.push(skills.length+' סקילז ECC'); if(cmds.length)parts.push(cmds.length+' פקודות'); if(il.length)parts.push(il.length+' סקילז Skills IL');
   openModal('<h3>📋 העתק + סימון התקנה</h3>'
-    +'<div class="hint" style="margin-bottom:10px">'+skills.length+' סקילז · '+cmds.length+' פקודות ייכללו בהעתקה</div>'
+    +'<div class="hint" style="margin-bottom:10px">'+parts.join(' · ')+' ייכללו בהעתקה — עם נתיב הגישה של כל אחד</div>'
     +'<div class="f"><label>לאיזה פרויקט מדביקים? (לסימון "מותקן ב…")</label><select id="sk_copy_sys"><option value="">— בחר מערכת —</option>'+opts+'</select></div>'
     +'<div class="f"><label>או שם חופשי (אם לא ברשימה)</label><input id="sk_copy_free" placeholder="למשל agency-hq / kravmaga-app"></div>'
     +'<div class="modal-actions"><button class="btn primary" onclick="skCopyConfirm(true)">📋 העתק וסמן</button>'
@@ -3472,7 +3575,7 @@ function skCopySel(){
     +'<button class="btn ghost" onclick="closeModal()">ביטול</button></div>');
 }
 async function skCopyConfirm(mark){
-  const {text,skills,cmds}=skBuildCopy();
+  const {text}=skBuildCopy();
   const n=SK_SEL.size;
   skDoCopy(text);
   if(!mark){ closeModal(); toast('הועתקו '+n+' פריטים'); return; }
@@ -3481,11 +3584,12 @@ async function skCopyConfirm(mark){
   const systemName=freeName||(sys?sys.name:'');
   if(!systemName){ toast('בחר מערכת לסימון, או "העתק בלבד"','bad'); return; }
   let marked=0, skipped=0;
-  for(const name of [...skills,...cmds]){
-    const uses=SK_USAGE[name]||[];
+  for(const id of [...SK_SEL]){
+    const R=skResolve(id);
+    const uses=SK_USAGE[skUseKey(R.source,R.name)]||[];
     const dup=uses.some(u=> sysId ? u.systemId===sysId : (u.systemName===systemName && !u.systemId));
     if(dup){ skipped++; continue; }
-    try{ await apiPost('/skills/usage',{skillName:name,systemId:sysId||null,systemName}); marked++; }catch(e){}
+    try{ await apiPost('/skills/usage',{skillName:R.name,source:R.source,sourceRef:R.ref,systemId:sysId||null,systemName}); marked++; }catch(e){}
   }
   closeModal();
   toast('הועתקו '+n+' · סומנו '+marked+' ב'+systemName+(skipped?' ('+skipped+' כבר היו)':''));
@@ -3495,6 +3599,7 @@ async function skCopyConfirm(mark){
 // ============ הפעלה ============
 boot();
 </script>
+<script src="/js/skills-il.js"></script>
 <script src="/js/labels.js"></script>
 <script src="/js/bos.js"></script>
 <script src="/js/finance.js"></script>

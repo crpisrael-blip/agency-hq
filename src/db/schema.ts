@@ -487,10 +487,12 @@ export const processKits = sqliteTable('process_kits', {
   updatedAt: integer('updated_at'),
 });
 
-// מעקב שימוש בסקילז של ECC לפי מערכת/פרויקט
+// מעקב שימוש בסקילז לפי מערכת/פרויקט — מכמה מקורות (ECC, skills-il)
 export const skillUsage = sqliteTable('skill_usage', {
   id: text('id').primaryKey(),
   skillName: text('skill_name').notNull(),   // שם הסקיל/פקודה
+  source: text('source').notNull().default('ecc'), // 'ecc' | 'skills-il' — מאיפה הסקיל הגיע
+  sourceRef: text('source_ref'),             // נתיב גישה קריא: skills-il/<repo>/<skill> או affaan-m/ecc/skills/<skill>
   systemId: text('system_id'),               // קישור אופציונלי למערכת
   systemName: text('system_name').notNull(), // תווית לתצוגה (snapshot)
   note: text('note'),
