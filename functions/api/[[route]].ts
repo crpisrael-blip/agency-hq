@@ -23,6 +23,7 @@ import { opportunitiesApp } from '../../src/api/opportunities';
 import { proposalsApp } from '../../src/api/proposals';
 import { projectsApp } from '../../src/api/projects';
 import { activitiesApp } from '../../src/api/activities';
+import { callsApp } from '../../src/api/calls';
 import { todayApp } from '../../src/api/today';
 
 const app = new Hono<Env>().basePath('/api');
@@ -67,6 +68,7 @@ app.route('/opportunities', opportunitiesApp);
 app.route('/proposals', proposalsApp);
 app.route('/projects', projectsApp);
 app.route('/activities', activitiesApp);
+app.route('/calls', callsApp);
 app.route('/today', todayApp);
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));

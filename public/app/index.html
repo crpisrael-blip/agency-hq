@@ -442,6 +442,7 @@ const PAGES = [
 // תפריט משני / הגדרות (כולל מסכים ותיקים שנשמרו)
 const SECONDARY = [
   ['leads','📥 לידים (CRM)'],
+  ['calls','📞 תיעוד שיחות'],
   ['documents','מסמכים'],
   ['playbooks','ספריית מתודולוגיה'],
   ['skills','🧩 סקילז'],
@@ -455,6 +456,7 @@ const NAV_GROUP = {
   today:'today',
   sales:'sales', opportunities:'sales', opportunity:'sales', proposals:'sales', leads:'sales',
   customers:'customers', clients:'customers', organizations:'customers', organization:'customers',
+  calls:'customers', call:'customers',
   work:'work', projects:'work', project:'work', systems:'work', processes:'work',
   finance:'finance', engagements:'finance', cashflow:'finance', calculator:'finance',
   growth:'growth', ideas:'growth',
@@ -509,6 +511,11 @@ const STAGE_LABELS={discovery:'אפיון וגילוי',proposal:'הצעה וה�
 const STAGE_ORDER=['discovery','proposal','design','build','quality','security','launch','handoff','care','advisory'];
 const STAGE_EMOJI={discovery:'🔍',proposal:'📝',design:'🧭',build:'🛠️',quality:'✅',security:'🔒',launch:'🚀',handoff:'🤝',care:'🛡️',advisory:'📈'};
 const PB_KIND={checklist:['צ׳ק־ליסט','p-blue'],template:['תבנית מסמך','p-purple'],canvas:['קנבס','p-teal']};
+// תיעוד שיחה — מי יזם / אמצעי
+const CALL_INITIATOR={me:'יזמתי אני',client:'הלקוח יזם',other:'גורם שלישי'};
+const CALL_CHANNEL={phone:['📞','טלפון'],whatsapp:['💬','וואטסאפ'],video:['🎥','וידאו'],meeting:['🤝','פגישה'],other:['🔗','אחר']};
+const callChannelIcon=(k)=>(CALL_CHANNEL[k]||CALL_CHANNEL.other)[0];
+const callChannelLabel=(k)=>(CALL_CHANNEL[k]||CALL_CHANNEL.other)[1];
 
 // ============ מסכים ============
 const RENDER={};
@@ -687,8 +694,8 @@ async function openClient(id){
   closeModal();
   CURRENT='client'; document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p==='customers'));
   $('view').innerHTML='<div class="empty">טוען…</div>';
-  let d, org;
-  try{ [d,org]=await Promise.all([apiGet('/clients/'+id), apiGet('/organizations/'+id).catch(()=>({}))]); }
+  let d, org, calls=[];
+  try{ [d,org,calls]=await Promise.all([apiGet('/clients/'+id), apiGet('/organizations/'+id).catch(()=>({})), apiGet('/calls?clientId='+id).catch(()=>[])]); }
   catch(e){ $('view').innerHTML='<div class="empty">שגיאה בטעינת הלקוח</div>'; return; }
   const c=d.client; CLIENT360=d;
   const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];
@@ -750,6 +757,10 @@ async function openClient(id){
     <button class="btn ghost small" onclick="docForm({clientId:'${id}'})">+ מסמך</button></div>
     ${d.documents&&d.documents.length?d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join(''):'<div class="muted">—</div>'}`);
 
+  const callsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">📞 שיחות מתועדות${calls.length?` (${calls.length})`:''}</h3>
+    <button class="btn ghost small" onclick="callForm({clientId:'${id}'})">+ תעד שיחה</button></div>
+    ${calls.length?calls.slice(0,6).map(x=>`<div class="stat-row" style="cursor:pointer" onclick="openCall('${x.id}')"><span>${callChannelIcon(x.channel)} ${CALL_INITIATOR[x.initiator]||''} <span class="muted" style="font-size:.82rem">· ${callWhen(x.occurredAt)}</span></span><span class="row" style="gap:4px">${x.taskCount?`<span class="tag">📋 ${x.taskCount}</span>`:''}${x.ideaCount?`<span class="tag">💡 ${x.ideaCount}</span>`:''}</span></div>`).join(''):'<div class="muted">אין עדיין. אחרי שיחה עם הלקוח — תעד מה דובר, מה סוכם ומה צריך לעשות.</div>'}`);
+
   const notesCard=c.notes?card(`<h3>הערות</h3><div class="muted">${esc(c.notes)}</div>`):'';
   const actsCard=acts.length?card(`<h3>פעילות אחרונה</h3><ul class="tl">${acts.map(a=>`<li><b>${esc(a.title)}</b><small>${LABELS.t('activityType',a.type)} · ${new Date(a.occurredAt).toLocaleDateString('he-IL')}</small></li>`).join('')}</ul>`):'';
 
@@ -759,6 +770,7 @@ async function openClient(id){
     <div class="sub">${esc(c.industry||'')}${c.contactName?' · '+esc(c.contactName):''}${c.phone?' · '+esc(c.phone):''}</div>
     <div class="row" style="flex-wrap:wrap;gap:6px;margin:12px 0">
       <button class="btn primary small" onclick='clientForm(${j(c)})'>✏️ עריכה</button>
+      <button class="btn teal small" onclick="callForm({clientId:'${id}'})">📞 תיעוד שיחה</button>
       <button class="btn teal small" onclick="taskForm({},'${id}','${id}')">+ משימה</button>
       <button class="btn ghost small" onclick="BOS.newOpp('${id}')">+ הזדמנות</button>
       <button class="btn ghost small" onclick="BOS.newProject('${id}')">+ פרויקט</button>
@@ -780,7 +792,8 @@ async function openClient(id){
       ${oppsCard}${projsCard}
       ${systemsCard}${modulesCard}
       ${engCard}${tasksCard}
-      ${pcCard}${docsCard}
+      ${callsCard}${pcCard}
+      ${docsCard}
     </div>
     ${runsCard}
     ${notesCard}
@@ -2739,7 +2752,7 @@ RENDER.tasks=async()=>{
 };
 async function advanceTask(id,status){ await apiPatch('/tasks/'+id,{status}); toast('עודכן'); go('tasks'); }
 // תווית ישות שאליה משימה משויכת (מלבד לקוח, שנבחר מרשימה)
-const ENTITY_LABEL={client:'👤 לקוח',system:'🖥️ מערכת',engagement:'🤝 התקשרות',process:'⚙️ תהליך',profit_center:'📈 מרכז רווח',project:'📁 פרויקט'};
+const ENTITY_LABEL={client:'👤 לקוח',system:'🖥️ מערכת',engagement:'🤝 התקשרות',process:'⚙️ תהליך',profit_center:'📈 מרכז רווח',project:'📁 פרויקט',call:'📞 שיחה'};
 const entityLabel=(t)=>ENTITY_LABEL[t]||t||'';
 // t=משימה לעריכה · presetClientId=לקוח לבחירה מראש (משימה חדשה מכרטיס לקוח) · returnClientId=חזרה לכרטיס הלקוח המאוחד לאחר שמירה
 // returnKind נשמר לתאימות לאחור (כל היעדים מובילים כעת לאותו כרטיס מאוחד)
@@ -2776,6 +2789,140 @@ async function saveTask(id,returnClientId,returnKind){
 }
 async function delTask(id,returnClientId,returnKind){ if(!confirm('למחוק?'))return; await apiDel('/tasks/'+id); closeModal(); toast('נמחק'); if(returnClientId) reopenClientCard(returnClientId,returnKind); else go('tasks'); }
 async function advanceClientTask(id,status,clientId,returnKind){ try{ await apiPatch('/tasks/'+id,{status}); reopenClientCard(clientId,returnKind||'client'); }catch(e){ toast('שגיאה','bad'); } }
+
+// ============ תיעוד שיחות ============
+// שיחה שכבר בוצעה → תיעוד מסודר: מי יזם, מה דובר, מה סוכם, רעיונות ומשימות שנגזרו.
+const callWhen=(ms)=>{ try{ return new Date(ms).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
+// ברירת מחדל ל-datetime-local: הרגע הנוכחי בשעון המקומי
+function nowLocalInput(){ const d=new Date(); const p=(n)=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+RENDER.calls=async()=>{
+  let list=[]; try{ list=await apiGet('/calls'); }catch(e){}
+  const row=(x)=>`<div class="list-item" onclick="openCall('${x.id}')">
+    <div class="li-main"><b>${callChannelIcon(x.channel)} ${esc(x.clientName||'שיחה כללית')}</b>
+      <small>${CALL_INITIATOR[x.initiator]||''} · ${callWhen(x.occurredAt)}${x.contactName?' · '+esc(x.contactName):''}</small></div>
+    <div class="row" style="gap:6px">${x.taskCount?`<span class="tag">📋 ${x.taskCount}</span>`:''}${x.ideaCount?`<span class="tag">💡 ${x.ideaCount}</span>`:''}</div>
+  </div>`;
+  $('view').innerHTML=`
+    <div class="spread"><div><h2>📞 תיעוד שיחות</h2><div class="sub">${list.length} שיחות מתועדות · מה דובר, מה סוכם, ומה צריך לעשות</div></div>
+      <button class="btn primary" onclick="callForm()">+ תעד שיחה</button></div>
+    ${list.length?`<div class="card">${list.map(row).join('')}</div>`
+      :`<div class="empty" style="padding:34px 16px;text-align:center">
+        <div style="font-size:2rem">📞</div>
+        <p style="margin:8px 0">עוד לא תיעדת שיחות.</p>
+        <p class="muted" style="margin:0 0 14px">אחרי כל שיחה עם לקוח — תעד מה דובר, מה סוכם ואילו משימות נגזרו, כדי שכלום לא ייפול בין הכיסאות.</p>
+        <button class="btn primary" onclick="callForm()">+ תעד שיחה ראשונה</button></div>`}`;
+};
+
+// prefill: {clientId} לשיחה חדשה · אובייקט שיחה מלא (עם id) לעריכת הנרטיב
+async function callForm(prefill={}){
+  const isEdit=!!prefill.id;
+  let clients=[]; try{ clients=await apiGet('/clients'); }catch(e){}
+  const curClient=prefill.clientId||'';
+  const clientOpts=`<option value="">— ללא לקוח משויך —</option>`+clients.map(cl=>`<option value="${cl.id}" ${cl.id===curClient?'selected':''}>${esc(cl.name)}</option>`).join('');
+  const whenVal=prefill.occurredAt?(()=>{ const d=new Date(prefill.occurredAt); const p=(n)=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; })():nowLocalInput();
+  openModal(`<h3>${isEdit?'עריכת תיעוד שיחה':'📞 תיעוד שיחה'}</h3>
+    <div class="f2">
+      <div class="f"><label>לקוח</label><select id="c_client">${clientOpts}</select></div>
+      <div class="f"><label>עם מי דיברת</label><input id="c_contact" value="${esc(prefill.contactName||'')}" placeholder="שם איש הקשר"></div>
+    </div>
+    <div class="f3">
+      <div class="f"><label>מי יזם</label><select id="c_initiator">${opts(CALL_INITIATOR,prefill.initiator||'me')}</select></div>
+      <div class="f"><label>אמצעי</label><select id="c_channel">${opts({phone:'📞 טלפון',whatsapp:'💬 וואטסאפ',video:'🎥 וידאו',meeting:'🤝 פגישה',other:'🔗 אחר'},prefill.channel||'phone')}</select></div>
+      <div class="f"><label>מתי בוצעה</label><input type="datetime-local" id="c_when" value="${whenVal}"></div>
+    </div>
+    <div class="f"><label>משך (דקות)</label><input type="number" id="c_duration" min="0" value="${prefill.durationMin!=null?prefill.durationMin:''}" placeholder="לא חובה" style="max-width:140px"></div>
+    <div class="f"><label>מה דובר</label><textarea id="c_discussed" rows="3" placeholder="עיקרי הדברים שעלו בשיחה">${esc(prefill.discussed||'')}</textarea></div>
+    <div class="f"><label>מה סוכם</label><textarea id="c_agreed" rows="3" placeholder="ההחלטות וההסכמות">${esc(prefill.agreed||'')}</textarea></div>
+    ${isEdit?`<div class="f"><label>רעיונות שעלו</label><textarea id="c_ideas" rows="2">${esc(prefill.ideas||'')}</textarea></div>`
+      :`<div class="f"><div class="spread" style="margin-bottom:4px"><label style="margin:0">💡 רעיונות שעלו</label><button class="btn ghost small" type="button" onclick="addCallIdeaRow()">+ רעיון</button></div>
+        <div id="c_ideaRows"></div>
+        <div class="hint">כל רעיון יישמר גם כמרכז רווח${curClient?' של הלקוח':''}.</div></div>
+      <div class="f"><div class="spread" style="margin-bottom:4px"><label style="margin:0">📋 משימות שנגזרו</label><button class="btn ghost small" type="button" onclick="addCallTaskRow()">+ משימה</button></div>
+        <div id="c_taskRows"></div>
+        <div class="hint">כל משימה תיפתח כמשימה אמיתית${curClient?' על כרטיס הלקוח':''}.</div></div>`}
+    <div class="f"><label>הערות נוספות</label><textarea id="c_notes" rows="2">${esc(prefill.notes||'')}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="saveCall('${prefill.id||''}')">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button>
+      ${isEdit?`<button class="btn danger" style="margin-inline-start:auto" onclick="delCall('${prefill.id}','${prefill.clientId||''}')">מחיקה</button>`:''}
+    </div>`, true);
+  if(!isEdit){ addCallIdeaRow(); addCallTaskRow(); }
+}
+function addCallIdeaRow(){
+  const box=$('c_ideaRows'); if(!box)return;
+  const div=document.createElement('div'); div.className='row c_ideaRow'; div.style.cssText='gap:6px;margin-bottom:6px';
+  div.innerHTML=`<input class="ci_title" placeholder="רעיון…" style="flex:1">
+    <input type="number" class="ci_monthly" placeholder="₪/ח' (לא חובה)" min="0" style="max-width:150px">
+    <button class="btn ghost small" type="button" onclick="this.parentElement.remove()">✕</button>`;
+  box.appendChild(div);
+}
+function addCallTaskRow(){
+  const box=$('c_taskRows'); if(!box)return;
+  const div=document.createElement('div'); div.className='row c_taskRow'; div.style.cssText='gap:6px;margin-bottom:6px';
+  div.innerHTML=`<input class="ct_title" placeholder="משימה…" style="flex:1">
+    <select class="ct_priority">${opts({low:'נמוכה',normal:'רגילה',high:'גבוהה',urgent:'דחוף'},'normal')}</select>
+    <input type="date" class="ct_due" style="max-width:150px">
+    <button class="btn ghost small" type="button" onclick="this.parentElement.remove()">✕</button>`;
+  box.appendChild(div);
+}
+async function saveCall(id){
+  const whenRaw=$('c_when')?.value||'';
+  const occurredAt=whenRaw?new Date(whenRaw).getTime():Date.now();
+  const clientSel=$('c_client'); const clientId=clientSel?clientSel.value:'';
+  const clientName=clientSel&&clientId?clientSel.options[clientSel.selectedIndex].text:'';
+  const body={
+    clientId:clientId||null, clientName:clientName||null,
+    contactName:val('c_contact')||null,
+    initiator:val('c_initiator')||'me', channel:val('c_channel')||'phone',
+    occurredAt, durationMin:$('c_duration')?.value||null,
+    discussed:val('c_discussed')||null, agreed:val('c_agreed')||null, notes:val('c_notes')||null,
+  };
+  if(id){
+    body.ideas=val('c_ideas')||null;
+    try{ await apiPatch('/calls/'+id,body); closeModal(); toast('עודכן ✓'); openCall(id); }
+    catch(e){ toast('שגיאה','bad'); }
+    return;
+  }
+  // איסוף שורות דינמיות
+  const derivedIdeas=[...document.querySelectorAll('.c_ideaRow')].map(r=>({
+    title:r.querySelector('.ci_title')?.value.trim()||'', potentialMonthly:Number(r.querySelector('.ci_monthly')?.value||0),
+  })).filter(x=>x.title);
+  const derivedTasks=[...document.querySelectorAll('.c_taskRow')].map(r=>({
+    title:r.querySelector('.ct_title')?.value.trim()||'', priority:r.querySelector('.ct_priority')?.value||'normal', dueDate:r.querySelector('.ct_due')?.value||null,
+  })).filter(x=>x.title);
+  body.ideas=derivedIdeas.map(i=>i.title).join('\n')||null; // גיבוי טקסטואלי
+  body.derivedIdeas=derivedIdeas; body.derivedTasks=derivedTasks;
+  if(!body.discussed&&!body.agreed&&!derivedTasks.length&&!derivedIdeas.length){ toast('כתוב לפחות מה דובר / מה סוכם','bad'); return; }
+  try{
+    const r=await apiPost('/calls',body);
+    closeModal();
+    toast(`השיחה תועדה ✓${r.taskCount?` · ${r.taskCount} משימות`:''}${r.ideaCount?` · ${r.ideaCount} רעיונות`:''}`);
+    if(clientId) openClient(clientId); else go('calls');
+  }catch(e){ toast('שגיאה','bad'); }
+}
+async function openCall(id){
+  let data; try{ data=await apiGet('/calls/'+id); }catch(e){ toast('שגיאה בטעינה','bad'); return; }
+  const x=data.call, ts=data.tasks||[], ideas=data.ideas||[];
+  const sec=(title,inner)=>inner?`<div class="f"><label style="font-weight:700">${title}</label><div class="muted" style="white-space:pre-wrap;line-height:1.6">${esc(inner)}</div></div>`:'';
+  const tasksList=ts.length?`<div class="f"><label style="font-weight:700">📋 משימות שנגזרו</label>${ts.map(t=>`<div class="stat-row"><span>${t.status==='done'?'✅ ':t.priority==='urgent'?'🔴 ':t.priority==='high'?'🟠 ':''}${esc(t.title)}${t.dueDate?` <span class="muted" style="font-size:.82rem">· יעד ${t.dueDate}</span>`:''}</span>${t.status!=='done'?`<button class="btn teal small" onclick="advanceCallTask('${t.id}','${t.status==='todo'?'doing':'done'}','${id}')">${t.status==='todo'?'התחל':'סיים'}</button>`:''}</div>`).join('')}</div>`:'';
+  const ideasList=ideas.length?`<div class="f"><label style="font-weight:700">💡 רעיונות שעלו</label>${ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span>${i.potentialMonthly?`<b>${money(i.potentialMonthly)}/ח'</b>`:''}</div>`).join('')}</div>`:'';
+  openModal(`<h3>${callChannelIcon(x.channel)} תיעוד שיחה — ${esc(x.clientName||'כללי')}</h3>
+    <div class="sub" style="margin-bottom:10px">${CALL_INITIATOR[x.initiator]||''} · ${callChannelLabel(x.channel)} · ${callWhen(x.occurredAt)}${x.durationMin?` · ${x.durationMin} דק'`:''}${x.contactName?' · '+esc(x.contactName):''}</div>
+    ${sec('מה דובר',x.discussed)}
+    ${sec('מה סוכם',x.agreed)}
+    ${ideasList}
+    ${tasksList}
+    ${sec('הערות',x.notes)}
+    <div class="modal-actions">
+      <button class="btn primary" onclick='callForm(${j(x)})'>✏️ עריכה</button>
+      ${x.clientId?`<button class="btn ghost" onclick="closeModal();openClient('${x.clientId}')">👤 כרטיס הלקוח</button>`:''}
+      <button class="btn ghost" onclick="closeModal()">סגירה</button>
+      <button class="btn danger" style="margin-inline-start:auto" onclick="delCall('${x.id}','${x.clientId||''}')">מחיקה</button>
+    </div>`, true);
+}
+async function advanceCallTask(id,status,callId){ try{ await apiPatch('/tasks/'+id,{status}); openCall(callId); }catch(e){ toast('שגיאה','bad'); } }
+async function delCall(id,clientId){ if(!confirm('למחוק את תיעוד השיחה? המשימות והרעיונות שנגזרו יישארו.'))return; try{ await apiDel('/calls/'+id); closeModal(); toast('נמחק'); if(clientId) openClient(clientId); else go('calls'); }catch(e){ toast('שגיאה','bad'); } }
 
 // ============ מאגר סקילז (ECC) ============
 const SK_CATS=[["backend","Backend, API ושרת","🔧"],["db","בסיסי נתונים","🗄️"],["testing","בדיקות ואיכות קוד","🧪"],["devops","העלאה לאוויר ותשתית","🚀"],["security","אבטחה","🛡️"],["frontend","מסכים, עיצוב ואנימציה","🎨"],["langs","שפות תכנות ותקני-קוד","💬"],["ai","בינה מלאכותית וסוכנים","🤖"],["orch","עבודה של כמה סוכנים יחד","🕸️"],["planning","תכנון, מוצר והתמצאות","🗺️"],["business","עסקי, פיננסי וגיוס","💼"],["content","תוכן, שיווק ורשתות","📣"],["video","וידאו ומדיה","🎬"],["research","מחקר, נתונים וידע","🔬"],["ecc","תשתית ECC והגדרות","⚙️"],["network","רשת ותקשורת","🌐"],["domains","תחומים ייעודיים","🧩"]];
