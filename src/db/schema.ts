@@ -375,6 +375,31 @@ export const leadActivities = sqliteTable('lead_activities', {
   createdAt: integer('created_at').notNull(),
 });
 
+/**
+ * תיעוד שיחה עם לקוח — לוכד מה שנאמר בשיחה שכבר בוצעה: מי יזם, מה דובר,
+ * מה סוכם, אילו רעיונות עלו ואילו משימות נגזרו. הרעיונות והמשימות שנגזרו
+ * נשמרים גם כישויות אמיתיות (profitCenters / tasks) והמזהים שלהם כאן — כך
+ * שהם מופיעים במסכים הקיימים ושומרים סטטוס חי.
+ */
+export const calls = sqliteTable('calls', {
+  id: text('id').primaryKey(),
+  clientId: text('client_id').references(() => clients.id), // לקוח מקושר (אופציונלי)
+  clientName: text('client_name'),                          // שם לתצוגה / שיחה ללא לקוח
+  systemId: text('system_id').references(() => systems.id), // מערכת מקושרת (אופציונלי)
+  initiator: text('initiator').notNull().default('me'),     // me | client | other — מי יזם
+  contactName: text('contact_name'),                        // עם מי דיברתי
+  channel: text('channel').notNull().default('phone'),      // phone | whatsapp | video | meeting | other
+  occurredAt: integer('occurred_at').notNull(),             // מתי בוצעה
+  durationMin: integer('duration_min'),                     // משך בדקות (אופציונלי)
+  discussed: text('discussed'),                             // מה דובר
+  agreed: text('agreed'),                                   // מה סוכם
+  ideas: text('ideas'),                                     // רעיונות — טקסט חופשי (גיבוי)
+  notes: text('notes'),                                     // הערות נוספות
+  taskIds: text('task_ids').notNull().default('[]'),        // JSON: מזהי המשימות שנגזרו
+  ideaIds: text('idea_ids').notNull().default('[]'),        // JSON: מזהי הרעיונות שנוצרו
+  createdAt: integer('created_at').notNull(),
+});
+
 /** מרכז מסמכים/תוצרים — כל הקישורים והנכסים של כל פרויקט במקום אחד */
 export const documents = sqliteTable('documents', {
   id: text('id').primaryKey(),
@@ -654,6 +679,7 @@ export type ProcessKit = typeof processKits.$inferSelect;
 export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;
 export type ExpenseReceipt = typeof expenseReceipts.$inferSelect;
 export type SkillUsage = typeof skillUsage.$inferSelect;
+export type Call = typeof calls.$inferSelect;
 
 export type FinancialOccurrence = typeof financialOccurrences.$inferSelect;
 export type Vendor = typeof vendors.$inferSelect;
