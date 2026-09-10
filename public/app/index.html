@@ -724,7 +724,7 @@ async function openClient(id){
 
   const systemsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מערכות${d.systems.length?` (${d.systems.length})`:''}</h3>
     <button class="btn ghost small" onclick="systemForm({clientId:'${id}'})">+ מערכת</button></div>
-    ${d.systems.length?d.systems.map(s=>`<div class="stat-row"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}`);
+    ${d.systems.length?d.systems.map(s=>`<div class="stat-row" style="cursor:pointer" onclick='systemForm(${j(s)})' title="פתיחת כרטיס המערכת"><span>${esc(s.name)} <span class="pill ${(SYS_STATUS[s.status]||['','p-gray'])[1]}">${(SYS_STATUS[s.status]||[s.status])[0]}</span></span><b>${s.progress}%</b></div>`).join(''):'<div class="muted">—</div>'}`);
 
   const modulesCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מודולים מוטמעים${d.modules&&d.modules.length?` (${d.modules.length})`:''}</h3>
     <button class="btn ghost small" onclick="moduleForm({clientId:'${id}'})">+ מודול</button></div>
