@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { asc, desc, eq } from 'drizzle-orm';
-import { playbooks, playbookRuns, clients, systems, processKits } from '../db/schema';
+import { playbooks, playbookRuns, clients, systems, processKits, telegramFillSessions } from '../db/schema';
 import { Env, db, uid, now, pick, todayIL } from './util';
 import { STAGES, DEFAULT_PLAYBOOKS, DEFAULT_KITS } from './playbook-seed';
+import { calcProgress, createInvite, cancelInvite, runTelegramSummary, buildSummary } from './run-fill';
 
 const STAGE_LABEL: Record<string, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.label]));
 
@@ -13,31 +14,6 @@ const RUN_FIELDS = ['title', 'status', 'checked', 'answers', 'na', 'doc', 'notes
 
 const asJson = (v: any, fallback: string) =>
   v === undefined ? undefined : typeof v === 'string' ? v : JSON.stringify(v ?? JSON.parse(fallback));
-
-/**
- * מחשב אחוז השלמה מתוך צילום הסעיפים ומפת הסימונים.
- * למהלך מסוג תבנית אין פריטים — הוא נמדד בסימון ידני כהושלם.
- */
-function calcProgress(sectionsRaw: string, checkedRaw: string, naRaw?: string): number {
-  try {
-    const sections = JSON.parse(sectionsRaw || '[]');
-    const checked = JSON.parse(checkedRaw || '{}');
-    const na = JSON.parse(naRaw || '{}');
-    let total = 0;
-    let done = 0;
-    sections.forEach((s: any, si: number) =>
-      (s.items || []).forEach((_: any, ii: number) => {
-        const key = `${si}-${ii}`;
-        if (na[key]) return; // פריט "לא רלוונטי" — לא נספר במונה ובמכנה
-        total++;
-        if (checked[key]) done++;
-      })
-    );
-    return total ? Math.round((done / total) * 100) : 0;
-  } catch {
-    return 0;
-  }
-}
 
 /** מזריע את תבניות ברירת המחדל שחסרות (אידמפוטנטי — לא מכפיל, לא דורס עריכות) */
 async function seedDefaults(c: any) {
@@ -213,6 +189,8 @@ playbooksApp.patch('/:id', async (c) => {
 
 playbooksApp.delete('/:id', async (c) => {
   const id = c.req.param('id');
+  const runIds = (await db(c).select({ id: playbookRuns.id }).from(playbookRuns).where(eq(playbookRuns.playbookId, id)).all()).map((r) => r.id);
+  for (const rid of runIds) await db(c).delete(telegramFillSessions).where(eq(telegramFillSessions.runId, rid));
   await db(c).delete(playbookRuns).where(eq(playbookRuns.playbookId, id));
   await db(c).delete(playbooks).where(eq(playbooks.id, id));
   return c.json({ ok: true });
@@ -224,6 +202,10 @@ playbooksApp.get('/runs', async (c) => {
   const rows = await d.select().from(playbookRuns).orderBy(desc(playbookRuns.createdAt)).all();
   const cls = await d.select().from(clients).all();
   const sys = await d.select().from(systems).all();
+  // סטטוס מילוי בטלגרם לכל מהלך — שאילתה אחת שממופה, בלי בקשה לכל שורה.
+  // ברשימה מספיקים מצב/ספירה/אחוז; הקישור עצמו נטען במסך המהלך (buildSummary עם null).
+  const tgRows = await d.select().from(telegramFillSessions).all();
+  const tgByRun = new Map(tgRows.map((s) => [s.runId, s]));
   const clientId = c.req.query('clientId');
   const filtered = clientId ? rows.filter((r) => r.clientId === clientId) : rows;
   return c.json(
@@ -231,6 +213,7 @@ playbooksApp.get('/runs', async (c) => {
       ...r,
       clientName: cls.find((cl) => cl.id === r.clientId)?.name || null,
       systemName: sys.find((s) => s.id === r.systemId)?.name || null,
+      telegram: buildSummary(r, tgByRun.get(r.id) || null, null),
     }))
   );
 });
@@ -242,7 +225,8 @@ async function loadRun(c: any, id: string) {
   if (!r) return null;
   const cl = r.clientId ? (await d.select().from(clients).where(eq(clients.id, r.clientId)).limit(1))[0] : null;
   const sy = r.systemId ? (await d.select().from(systems).where(eq(systems.id, r.systemId)).limit(1))[0] : null;
-  return { ...r, clientName: cl?.name || null, systemName: sy?.name || null };
+  const telegram = await runTelegramSummary(c, r).catch(() => null);
+  return { ...r, clientName: cl?.name || null, systemName: sy?.name || null, telegram };
 }
 
 playbooksApp.get('/runs/:id', async (c) => {
@@ -300,6 +284,24 @@ playbooksApp.get('/runs/:id/form', async (c) => {
   return c.json({ title: run.title, clientId: run.clientId, clientName: run.clientName, markdown: buildForm(run) });
 });
 
+/**
+ * שליחת המהלך ללקוח למילוי עצמי בטלגרם — יוצר/מאפס הזמנה ומחזיר קישור עמוק.
+ * הלקוח פותח את הקישור → הבוט מציג את אותן שאלות המהלך, והתשובות זורמות לאותם שדות.
+ */
+playbooksApp.post('/runs/:id/telegram/invite', async (c) => {
+  const run = await loadRun(c, c.req.param('id'));
+  if (!run) return c.json({ error: 'not_found' }, 404);
+  const res = await createInvite(c, run);
+  if (!res.ok) return c.json({ error: res.error }, 400);
+  return c.json({ ok: true, telegram: res.summary });
+});
+
+/** ביטול הזמנת המילוי בטלגרם (הקישור מפסיק לעבוד). התשובות שכבר נכנסו נשמרות. */
+playbooksApp.post('/runs/:id/telegram/cancel', async (c) => {
+  const done = await cancelInvite(c, c.req.param('id'));
+  return c.json({ ok: done });
+});
+
 // החלת פורמט → יוצר מהלך עם צילום הסעיפים
 playbooksApp.post('/:id/apply', async (c) => {
   const id = c.req.param('id');
@@ -337,7 +339,9 @@ playbooksApp.patch('/runs/:id', async (c) => {
 });
 
 playbooksApp.delete('/runs/:id', async (c) => {
-  await db(c).delete(playbookRuns).where(eq(playbookRuns.id, c.req.param('id')));
+  const id = c.req.param('id');
+  await db(c).delete(telegramFillSessions).where(eq(telegramFillSessions.runId, id));
+  await db(c).delete(playbookRuns).where(eq(playbookRuns.id, id));
   return c.json({ ok: true });
 });
 

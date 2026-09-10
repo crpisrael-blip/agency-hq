@@ -487,6 +487,30 @@ export const processKits = sqliteTable('process_kits', {
   updatedAt: integer('updated_at'),
 });
 
+/**
+ * הזמנת מילוי עצמי של הלקוח דרך בוט Telegram — ערוץ שני לאותו מהלך מתודולוגיה.
+ * לא מחזיקה תשובות: התשובות נכנסות ישירות ל-playbookRuns.answers (אותם שדות
+ * שממלאים ידנית במערכת). כאן נשמר רק *מצב* ההזמנה והמילוי, לתצוגה במסך המתודולוגיה.
+ * status: sent | opened | in_progress | completed | cancelled
+ */
+export const telegramFillSessions = sqliteTable('telegram_fill_sessions', {
+  id: text('id').primaryKey(),
+  runId: text('run_id').notNull().references(() => playbookRuns.id),
+  token: text('token').notNull(),               // טוקן חד-פעמי לקישור העמוק (בלתי-ניחוש)
+  chatId: text('chat_id'),                        // מזהה הצ'אט של הלקוח (מתמלא ב-Start)
+  contactName: text('contact_name'),              // שם הלקוח כפי שהגיע מטלגרם
+  status: text('status').notNull().default('sent'), // sent|opened|in_progress|completed|cancelled
+  currentKey: text('current_key'),                // "si-ii" של השאלה שממתינה לתשובה כרגע
+  total: integer('total').notNull().default(0),   // מספר השאלות בנות-המענה (לא כולל "לא רלוונטי")
+  answeredCount: integer('answered_count').notNull().default(0),
+  sentAt: integer('sent_at'),                     // מתי נשלחה ההזמנה
+  openedAt: integer('opened_at'),                 // מתי הלקוח פתח (Start)
+  startedAt: integer('started_at'),               // מתי ענה על השאלה הראשונה
+  lastActivityAt: integer('last_activity_at'),    // מועד הפעילות האחרונה
+  completedAt: integer('completed_at'),           // מתי השלים את כל השאלות
+  createdAt: integer('created_at').notNull(),
+});
+
 // מעקב שימוש בסקילז לפי מערכת/פרויקט — מכמה מקורות (ECC, skills-il)
 export const skillUsage = sqliteTable('skill_usage', {
   id: text('id').primaryKey(),
@@ -678,6 +702,7 @@ export type Task = typeof tasks.$inferSelect;
 export type Playbook = typeof playbooks.$inferSelect;
 export type PlaybookRun = typeof playbookRuns.$inferSelect;
 export type ProcessKit = typeof processKits.$inferSelect;
+export type TelegramFillSession = typeof telegramFillSessions.$inferSelect;
 export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;
 export type ExpenseReceipt = typeof expenseReceipts.$inferSelect;
 export type SkillUsage = typeof skillUsage.$inferSelect;
