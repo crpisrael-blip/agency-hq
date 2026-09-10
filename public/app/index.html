@@ -1009,7 +1009,8 @@ RENDER.portfolio=async()=>{
     <div class="hint" style="padding:2px 4px">💡 לחיצה על לקוח פותחת את המערכות שלו · לחיצה על מערכת פותחת עריכה · ״חי/נפל״ בודק זמינות.</div>`;
 };
 RENDER.clients=RENDER.portfolio;
-RENDER.systems=RENDER.portfolio;
+// הערה: RENDER.systems הוא רשימת המערכות (מוגדר למעלה). אין למפות אותו ל-portfolio —
+// אחרת מסך "עבודה → מערכות" (וניווט go('systems')) מציג את מסך הלקוחות במקום את המערכות.
 function pfToggle(head){ head.parentElement.classList.toggle('open'); }
 function pfExpandAll(btn){
   const groups=document.querySelectorAll('.pf-group');
