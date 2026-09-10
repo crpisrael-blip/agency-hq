@@ -2086,8 +2086,7 @@ async function quoteBuild(){
   closeModal();
   quoteRenderPrint(q);
   try{ await apiPost('/quotes',q); toast('ההצעה נשמרה ✓');
-    if(CURRENT==='playbooks') loadQuotesList();
-    else if(CURRENT==='sales' && window.BOS){ try{ go('sales'); }catch(_){}}
+    if(CURRENT==='sales' && window.BOS){ try{ go('sales'); }catch(_){}}
   }
   catch(e){ toast('הדף הופק אך השמירה נכשלה','bad'); }
 }
@@ -2161,31 +2160,11 @@ function quoteRenderPrint(q){
   if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
 }
 
-// רשימת ההצעות שנשמרו (מוצגת במסך המתודולוגיה)
+// מטמון הצעות מחיר — משמש את מסך המכירות (טאב "הצעות מחיר") ואת ההדפסה החוזרת.
+// ההצעות חיות במסך מכירות; אין להן עוד רשימה נפרדת במסך המתודולוגיה.
 let QUOTES_CACHE=[];
-let QUOTE_RUNS=[]; // מהלכי מתודולוגיה שהושלמו — לצירוף להצעת מחיר
-async function loadQuotesList(){
-  const box=$('quotesList'); if(!box)return;
-  try{
-    QUOTES_CACHE=await apiGet('/quotes');
-    if(!QUOTES_CACHE.length){ box.innerHTML='<div class="muted hint">עדיין לא נוצרו הצעות מחיר. לחץ "📄 הצעת מחיר" ליצירת הראשונה.</div>'; return; }
-    const fmt=n=>'₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:0});
-    box.innerHTML=QUOTES_CACHE.map(q=>
-      '<div class="list-item"><div class="li-main"><b>'+esc(q.clientName||'—')+'</b>'+
-        '<small>'+(q.title?esc(q.title)+' · ':'')+esc(q.quoteNo||'')+' · '+new Date(q.createdAt).toLocaleDateString('he-IL')+(q.runTitle?' · 🔗 '+esc(q.runTitle):'')+'</small></div>'+
-        '<div class="row" style="gap:6px;align-items:center"><b>'+fmt(q.total)+'</b>'+
-          (q.runId?'<button class="btn ghost small" onclick="event.stopPropagation();runRenderPrintById(\''+q.runId+'\')" title="הפקת נספח המתודולוגיה המקושר">📎</button>':'')+
-          '<button class="btn ghost small" onclick="event.stopPropagation();quoteReopen(\''+q.id+'\')" title="פתח והדפס שוב">🖨️</button>'+
-          '<button class="btn danger small" onclick="event.stopPropagation();quoteDelete(\''+q.id+'\')" title="מחק">🗑</button></div></div>'
-    ).join('');
-  }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת ההצעות</div>'; }
-}
+let QUOTE_RUNS=[]; // מהלכי מתודולוגיה שהושלמו — לצירוף להצעת מחיר (הקישור מתודולוגיה↔הצעה נשמר)
 function quoteReopen(id){ const q=QUOTES_CACHE.find(x=>x.id===id); if(q) quoteRenderPrint(q); }
-async function quoteDelete(id){
-  if(!confirm('למחוק את הצעת המחיר?'))return;
-  try{ await apiDel('/quotes/'+id); toast('נמחקה'); loadQuotesList(); }
-  catch(e){ toast('שגיאה במחיקה','bad'); }
-}
 
 // ---- בורר הרכבת תהליך: מצב + בחירה + מטמון ערכות ----
 let COMPOSE=false;            // מצב "הרכבת תהליך" פעיל (מציג צ׳קבוקסים)
@@ -2205,7 +2184,6 @@ RENDER.playbooks=async()=>{
       <div class="sub">תבניות המתודולוגיה לכל שלב בעבודה עם לקוח. בחר פורמט, החל על לקוח — ותקבל מהלך חי עם מעקב.</div></div>
       <div class="row"><button class="btn ${COMPOSE?'primary':'teal'}" onclick="toggleCompose()">${COMPOSE?'✕ סגירת הרכבה':'🧩 הרכבת תהליך'}</button>
         <button class="btn ghost" onclick="reseedPlaybooks()" title="החזרת תבניות ברירת המחדל שנמחקו">↻ שחזור תבניות</button>
-        <button class="btn teal" onclick="quoteForm()">📄 הצעת מחיר</button>
         <button class="btn primary" onclick="playbookForm()">+ פורמט</button></div></div>
     ${COMPOSE?`<div class="card" style="border:1px solid var(--teal,#0d9488);background:#f0fdfa">
       <div class="spread"><div><b>🧩 מצב הרכבת תהליך</b>
@@ -2225,9 +2203,6 @@ RENDER.playbooks=async()=>{
             <button class="btn ghost small" onclick="kitForm('${k.id}')">עריכה</button></div>
         </div>`;}).join('')}</div>`:'<div class="hint">אין ערכות עדיין. סמן פורמטים במצב הרכבה ולחץ "שמור כערכה", או הוסף ערכה ידנית.</div>'}
     </div>
-    <div class="card"><div class="spread" style="margin-bottom:8px"><h3 style="margin:0">📄 הצעות מחיר</h3>
-      <button class="btn ghost small" onclick="quoteForm()">+ הצעה חדשה</button></div>
-      <div id="quotesList"><div class="muted hint">טוען…</div></div></div>
     ${activeRuns.length?`<div class="card">
       <h3>מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
       ${activeRuns.map(r=>`<div class="list-item" onclick="openRun('${r.id}')">
@@ -2264,7 +2239,6 @@ RENDER.playbooks=async()=>{
             <button class="btn ghost" ${sel.size?'':'disabled'} onclick="saveAsKitForm()">💾 שמירה כערכה</button>
             <button class="btn primary" ${sel.size?'':'disabled'} onclick="applyBatchForm()">הרכבת תהליך ללקוח →</button>
           </div></div></div>`:''}`;
-  loadQuotesList();
 };
 
 /* ---- בורר: מצב הרכבה ובחירה ---- */
