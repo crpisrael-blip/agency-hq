@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { desc, eq, and } from 'drizzle-orm';
-import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules, expenseAllocations, playbookRuns } from '../db/schema';
+import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules, expenseAllocations, playbookRuns, telegramFillSessions } from '../db/schema';
 import { Env, db, uid, now, pick, num } from './util';
 import { engagementMonthly } from './engagements';
+import { buildSummary } from './run-fill';
 
 export const clientsApp = new Hono<Env>();
 
@@ -46,9 +47,12 @@ clientsApp.get('/:id', async (c) => {
   const cf = await d.select().from(cashflow).where(eq(cashflow.clientId, id)).orderBy(desc(cashflow.startDate)).all();
   const docs = await d.select().from(documents).where(eq(documents.clientId, id)).orderBy(desc(documents.pinned), desc(documents.createdAt)).all();
   const mods = await d.select().from(modules).where(eq(modules.clientId, id)).all();
-  // מהלכי המתודולוגיה של הלקוח — כל תהליך שפתחתי מולו
-  const runs = await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, id))
+  // מהלכי המתודולוגיה של הלקוח — כל תהליך שפתחתי מולו, עם מצב מילוי בטלגרם (אם נשלח)
+  const runRows = await d.select().from(playbookRuns).where(eq(playbookRuns.clientId, id))
     .orderBy(desc(playbookRuns.createdAt)).all();
+  const tgRows = await d.select().from(telegramFillSessions).all();
+  const tgByRun = new Map(tgRows.map((s) => [s.runId, s]));
+  const runs = runRows.map((r) => ({ ...r, telegram: buildSummary(r, tgByRun.get(r.id) || null, null) }));
   const linkedTasks = await d.select().from(tasks)
     .where(and(eq(tasks.entityType, 'client'), eq(tasks.entityId, id)))
     .orderBy(desc(tasks.createdAt)).all();

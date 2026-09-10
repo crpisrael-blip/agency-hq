@@ -759,7 +759,7 @@ async function openClient(id){
       <div class="grow"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
         <div class="hint">${STAGE_LABELS[r.stage]||''}${r.status==='done'?' · הושלם':''}</div>
         <div class="bar" style="max-width:200px"><span style="width:${r.progress||0}%"></span></div></div>
-      <span class="pill ${r.status==='done'?'p-green':r.progress?'p-amber':'p-gray'}">${r.status==='done'?'✓':(r.progress||0)+'%'}</span>
+      <span class="row" style="gap:6px">${tgPill(r.telegram)}<span class="pill ${r.status==='done'?'p-green':r.progress?'p-amber':'p-gray'}">${r.status==='done'?'✓':(r.progress||0)+'%'}</span></span>
     </div>`).join(''):'<div class="muted">אין עדיין מהלכים. פתח את הפורמט המתאים לשלב שבו הלקוח נמצא.</div>'}`);
 
   const pcCard=card(`<h3>מרכזי רווח${d.ideas.length?` (${d.ideas.length})`:''}</h3>${d.ideas.length?d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><span class="row" style="gap:6px">${i.potentialMonthly?`<b>${money(i.potentialMonthly)}/ח'</b>`:''}<button class="btn small" onclick="BOS.convertPC('${i.id}')">המר להזדמנות</button></span></div>`).join(''):'<div class="muted">—</div>'}`);
@@ -2234,7 +2234,7 @@ RENDER.playbooks=async()=>{
         <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
           <small>${r.clientName?esc(r.clientName):'כללי'}${r.systemName?' · '+esc(r.systemName):''} · ${STAGE_LABELS[r.stage]||''}</small>
           <div class="bar" style="width:170px;margin-top:6px"><span style="width:${r.progress}%"></span></div></div>
-        <div class="li-val muted">${r.progress}%</div></div>`).join('')}
+        <div class="row" style="gap:8px">${tgPill(r.telegram)}<span class="li-val muted">${r.progress}%</span></div></div>`).join('')}
     </div>`:''}
     <div class="grid2">
     ${stages.map(s=>`
@@ -2511,11 +2511,13 @@ function drawRun(){
     <div class="spread" style="margin-top:10px"><div><h2 style="margin:0">${STAGE_EMOJI[RUN.stage]||''} ${esc(RUN.title)}</h2>
       <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${counter}</div></div>
       <div class="row">${RUN.status==='done'?'<span class="pill p-green">הושלם ✓</span>':`<button class="btn teal" onclick="finishRun()">סימון כהושלם</button>`}
+        ${!isDoc?`<button class="btn teal" onclick="telegramInvite()" title="שליחת התהליך ללקוח למילוי עצמי בבוט Telegram — אותן שאלות, אותם שדות">📲 שליחה ללקוח</button>`:''}
         <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
         <button class="btn ghost" onclick="runRenderPrint()" title="הפקת PDF על דף לוגו ORT-TECH — מוכן להדפסה או לצירוף להצעת מחיר">🖨️ הפקת PDF</button>
         ${(RUN.status==='done'&&RUN.clientId)?`<button class="btn teal" onclick="quoteFromCurrentRun()" title="צור הצעת מחיר ללקוח, מקושרת למהלך שהושלם">📄 הצעת מחיר</button>`:''}
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
+    ${!isDoc&&RUN.telegram?tgStatusCard(RUN.telegram):''}
     <div class="hint" style="margin-bottom:12px">${isDoc
       ? 'מלא את המסמך במקום ה-___ . נשמר אוטומטית ביציאה מהשדה. בסיום לחץ "טופס מלא" כדי לקבל אותו מוכן לשליחה.'
       : 'כתוב את התשובה מתחת לכל שאלה — היא נשמרת אוטומטית ומסמנת את הסעיף. בסיום לחץ "טופס מלא" כדי לקבל את הכל כמסמך אחד.'}</div>
@@ -2582,6 +2584,100 @@ async function saveRunDoc(){ grabRunInputs(); if(await saveRun()) toast('נשמ�
 async function saveRunNotes(){ grabRunInputs(); if(await saveRun()) toast('נשמר'); }
 async function finishRun(){ grabRunInputs(); if(await saveRun({status:'done'})){ RUN.status='done'; toast('הושלם ✓'); drawRun(); } }
 async function delRun(){ if(!confirm('למחוק מהלך זה?'))return; await apiDel('/playbooks/runs/'+RUN.id); toast('נמחק'); go('playbooks'); }
+
+/* ---------- מילוי עצמי של הלקוח בטלגרם (ערוץ שני לאותו מהלך) ---------- */
+const TG_STATUS_CLASS={sent:'p-gray',opened:'p-blue',in_progress:'p-amber',completed:'p-green',cancelled:'p-gray'};
+const TG_STATUS_ICON={sent:'📤',opened:'👀',in_progress:'✍️',completed:'✅',cancelled:'✖️'};
+/** תגית קומפקטית לרשימות (מסך מתודולוגיה / כרטיס לקוח) */
+function tgPill(tg){
+  if(!tg) return '';
+  const lbl=tg.status==='in_progress'?`ממלא ${tg.answered}/${tg.total}`:(tg.status==='completed'?'טלגרם ✓':tg.statusLabel);
+  return `<span class="pill ${TG_STATUS_CLASS[tg.status]||'p-gray'}" title="מילוי בטלגרם · ${tg.answered}/${tg.total} שאלות · ${tg.progress}%">📲 ${lbl}</span>`;
+}
+/** כרטיס מצב מלא במסך המהלך */
+function tgStatusCard(tg){
+  const rows=[
+    tg.contactName?['ממלא/ת',esc(tg.contactName)]:null,
+    ['נשלח',tg.sentAt?new Date(tg.sentAt).toLocaleString('he-IL'):'—'],
+    ['נפתח',tg.openedAt?new Date(tg.openedAt).toLocaleString('he-IL'):'טרם'],
+    ['התחיל לענות',tg.startedAt?new Date(tg.startedAt).toLocaleString('he-IL'):'טרם'],
+    ['פעילות אחרונה',tg.lastActivityAt?timeAgo(tg.lastActivityAt):'—'],
+    tg.completedAt?['הושלם',new Date(tg.completedAt).toLocaleString('he-IL')]:null,
+    (tg.status!=='completed'&&tg.currentLabel)?['נעצר בשאלה',esc(tg.currentLabel)]:null,
+  ].filter(Boolean);
+  return `<div class="card" style="border:1px solid #0d9488;background:#f0fdfa;margin-bottom:12px">
+    <div class="spread" style="margin-bottom:6px"><h3 style="margin:0">📲 מילוי עצמי בטלגרם ${tgPill(tg)}</h3>
+      <div class="row" style="gap:6px">
+        <button class="btn ghost small" onclick="refreshRunTelegram()" title="רענון מצב מהשרת">↻ רענון</button>
+        <button class="btn teal small" onclick="telegramInvite()">ניהול / קישור</button></div></div>
+    <div class="bar" style="margin:2px 0 10px"><span style="width:${tg.progress}%"></span></div>
+    <div class="grid2" style="gap:4px 18px">${rows.map(([k,v])=>`<div class="stat-row"><span class="muted">${k}</span><span>${v}</span></div>`).join('')}</div>
+    <div class="hint" style="margin-top:8px">התשובות מהבוט נכנסות אוטומטית לאותם שדות למטה — אפשר לערוך, להשלים ולהמשיך כרגיל.</div>
+  </div>`;
+}
+/** רענון מצב המהלך (כולל סטטוס הטלגרם) בלי לצאת מהמסך */
+async function refreshRunTelegram(){
+  try{ const r=await apiGet('/playbooks/runs/'+RUN.id);
+    RUN={...r,_checked:JSON.parse(r.checked||'{}'),_answers:JSON.parse(r.answers||'{}'),_na:JSON.parse(r.na||'{}')};
+    drawRun(); toast('עודכן ✓');
+  }catch(e){ toast('שגיאה ברענון','bad'); }
+}
+/** מודל השליחה ללקוח — יצירת קישור, העתקה, וואטסאפ, ומצב הבוט */
+async function telegramInvite(){
+  const tg=RUN.telegram;
+  let botHint='';
+  try{
+    const st=await apiGet('/telegram/status');
+    if(!st.configured) botHint=`<div class="card" style="background:#fef2f2;border:1px solid #fecaca;margin:0 0 10px">
+      <b>⚠️ הבוט אינו מוגדר.</b> יש להגדיר את הסוד <code>TELEGRAM_BOT_TOKEN</code> ב-Cloudflare Pages (Settings → Environment variables) — אותו בוט של התראות הלידים.</div>`;
+    else if(!st.webhookSet) botHint=`<div class="card" style="background:#fffbeb;border:1px solid #fde68a;margin:0 0 10px">
+      <div class="spread"><div><b>הבוט מחובר (@${esc(st.username||'')})</b><div class="hint">כדי שהלקוח יוכל לענות, יש להפעיל את ה-webhook פעם אחת.</div></div>
+      <button class="btn teal small" onclick="telegramSetup()">הפעלת הבוט</button></div></div>`;
+  }catch(e){}
+  const link=tg&&tg.link?tg.link:'';
+  const linkBlock=link
+    ? `<div class="f"><label>קישור אישי ללקוח</label>
+        <input id="tgLink" readonly value="${esc(link)}" style="direction:ltr;text-align:left;font-size:.82rem" onclick="this.select()"></div>
+       <div class="modal-actions" style="margin-top:4px">
+        <button class="btn primary" onclick="tgCopyLink()">📋 העתקת הקישור</button>
+        <button class="btn teal" onclick="tgWaLink()">💬 שליחה בוואטסאפ</button>
+        <button class="btn ghost" onclick="doTelegramInvite()">↻ קישור חדש</button></div>
+       ${tg?`<div class="hint" style="margin-top:8px">מצב נוכחי: ${tg.statusLabel} · ${tg.answered}/${tg.total} שאלות (${tg.progress}%).</div>`:''}`
+    : `<div class="sub" style="margin:2px 0 12px">יצירת קישור אישי לבוט. הלקוח פותח אותו, והבוט מציג לו את שאלות התהליך אחת-אחת. כל תשובה נכנסת אוטומטית לשדה המתאים כאן במערכת.</div>
+       <div class="modal-actions"><button class="btn primary" onclick="doTelegramInvite()">📲 יצירת קישור למילוי</button></div>`;
+  openModal(`<div class="spread"><h3 style="margin:0">📲 שליחה ללקוח למילוי עצמי</h3></div>
+    <div class="sub" style="margin:4px 0 12px">${esc(RUN.title)}${RUN.clientName?' · '+esc(RUN.clientName):''}</div>
+    ${botHint}
+    ${linkBlock}
+    ${tg&&tg.status!=='cancelled'?`<div class="modal-actions" style="margin-top:14px;border-top:1px solid #eee;padding-top:10px">
+      <button class="btn danger ghost small" onclick="telegramCancel()">ביטול ההזמנה</button></div>`:''}
+    <div style="margin-top:10px"><button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+async function telegramSetup(){
+  try{ const r=await apiPost('/telegram/setup'); if(r.ok){ toast('הבוט הופעל ✓'); telegramInvite(); } else toast('שגיאה בהפעלת הבוט','bad'); }
+  catch(e){ toast('שגיאה בהפעלת הבוט','bad'); }
+}
+async function doTelegramInvite(){
+  try{
+    const r=await apiPost('/playbooks/runs/'+RUN.id+'/telegram/invite');
+    RUN.telegram=r.telegram; toast('נוצר קישור ✓'); telegramInvite();
+  }catch(e){
+    const m={no_bot_token:'הבוט אינו מוגדר (TELEGRAM_BOT_TOKEN)',bot_unreachable:'לא ניתן להגיע לבוט — בדוק את הטוקן',no_questions:'אין שאלות לשליחה במהלך זה',not_checklist:'רק תהליך מסוג צ׳ק־ליסט ניתן לשליחה'};
+    toast(m[e.message]||'שגיאה ביצירת הקישור','bad');
+  }
+}
+function tgCopyLink(){ const t=$('tgLink')?.value||RUN.telegram?.link||''; (navigator.clipboard?.writeText(t)||Promise.reject()).then(()=>toast('הקישור הועתק ✓')).catch(()=>toast('בחר והעתק ידנית','bad')); }
+function tgWaLink(){
+  const c=CLIENT360?.client; const phone=(c&&RUN.clientId&&c.id===RUN.clientId)?c.phone:'';
+  const link=RUN.telegram?.link||''; if(!link){ toast('אין קישור עדיין','bad'); return; }
+  const msg=`שלום! אשמח שתמלא/י את "${RUN.title}" דרך הקישור הבא — קצר ופשוט, עונים ישירות בטלגרם:\n${link}`;
+  window.open(waLink(phone)+'?text='+encodeURIComponent(msg),'_blank');
+}
+async function telegramCancel(){
+  if(!confirm('לבטל את הזמנת המילוי? הקישור יפסיק לעבוד. התשובות שכבר נכנסו יישמרו.'))return;
+  try{ await apiPost('/playbooks/runs/'+RUN.id+'/telegram/cancel'); await refreshRunTelegram(); closeModal(); toast('ההזמנה בוטלה'); }
+  catch(e){ toast('שגיאה','bad'); }
+}
 
 // ---------- הטופס המלא: כל השאלות + התשובות כמסמך אחד ----------
 let RUN_FORM='';

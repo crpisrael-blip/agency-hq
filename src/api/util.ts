@@ -10,6 +10,11 @@ export type Bindings = {
   TELEGRAM_BOT_TOKEN?: string;
   /** מזהה/י צ'אט לקבלת התראות לידים. אפשר כמה מופרדים בפסיק. */
   TELEGRAM_CHAT_ID?: string;
+  /**
+   * סוד לאימות ה-webhook של טלגרם (X-Telegram-Bot-Api-Secret-Token). אופציונלי אך
+   * מומלץ: אם מוגדר — עדכונים בלי הכותרת הזו נדחים. נקבע גם ב-setWebhook.
+   */
+  TELEGRAM_WEBHOOK_SECRET?: string;
   /** אחסון קבצים לקבלות הוצאה (bucket פרטי). אם ריק — העלאת קבלות מושבתת. */
   RECEIPTS?: R2Bucket;
 };

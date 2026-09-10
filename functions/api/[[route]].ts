@@ -25,6 +25,7 @@ import { projectsApp } from '../../src/api/projects';
 import { activitiesApp } from '../../src/api/activities';
 import { callsApp } from '../../src/api/calls';
 import { todayApp } from '../../src/api/today';
+import { telegramWebhook, telegramAdminApp } from '../../src/api/run-fill';
 
 const app = new Hono<Env>().basePath('/api');
 
@@ -42,6 +43,7 @@ app.get('/health', async (c) => {
 
 app.route('/auth', auth); // כניסת מנהל
 app.post('/hook/lead', registerLeadPublic); // webhook ציבורי: מערכות לקוח רושמות ליד
+app.post('/telegram/webhook', telegramWebhook); // webhook ציבורי: בוט מילוי עצמי של הלקוח
 
 // --- מוגן: כל השאר דורש טוקן מנהל ---
 app.use('*', requireAdmin);
@@ -70,6 +72,7 @@ app.route('/projects', projectsApp);
 app.route('/activities', activitiesApp);
 app.route('/calls', callsApp);
 app.route('/today', todayApp);
+app.route('/telegram', telegramAdminApp); // הגדרת/מצב בוט המילוי (מוגן)
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 
