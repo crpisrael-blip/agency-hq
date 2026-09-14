@@ -31,6 +31,7 @@ window.SITE = {
     ['method', '/#method', 'איך אנחנו עובדים'],
     ['services', '/services', 'פתרונות'],
     ['about', '/about', 'אודות'],
+    ['book', '/book', 'קביעת שיחה'],
     ['contact', '/contact', 'צור קשר']
   ];
   var LOGO_DARK = '/ort-tech-logo-dark.png';

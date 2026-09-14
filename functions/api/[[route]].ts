@@ -27,6 +27,7 @@ import { callsApp } from '../../src/api/calls';
 import { todayApp } from '../../src/api/today';
 import { telegramWebhook, telegramAdminApp } from '../../src/api/run-fill';
 import { whatsappAdminApp } from '../../src/api/whatsapp';
+import { bookingPublicApp, bookingsAdminApp } from '../../src/api/bookings';
 
 const app = new Hono<Env>().basePath('/api');
 
@@ -45,6 +46,7 @@ app.get('/health', async (c) => {
 app.route('/auth', auth); // כניסת מנהל
 app.post('/hook/lead', registerLeadPublic); // webhook ציבורי: מערכות לקוח רושמות ליד
 app.post('/telegram/webhook', telegramWebhook); // webhook ציבורי: בוט מילוי עצמי של הלקוח
+app.route('/book', bookingPublicApp); // ציבורי: קביעת שיחה מהאתר (הגדרות, משבצות, קביעה)
 
 // --- מוגן: כל השאר דורש טוקן מנהל ---
 app.use('*', requireAdmin);
@@ -75,6 +77,7 @@ app.route('/calls', callsApp);
 app.route('/today', todayApp);
 app.route('/telegram', telegramAdminApp); // הגדרת/מצב בוט המילוי (מוגן)
 app.route('/whatsapp', whatsappAdminApp); // ווטסאפ אוטומטי לליד: הגדרות / מצב / בדיקה / שליחה חוזרת (מוגן)
+app.route('/bookings', bookingsAdminApp); // קביעת שיחה: הגדרות זמינות, משבצות, ניהול פגישות (מוגן)
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 
