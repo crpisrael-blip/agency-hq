@@ -113,17 +113,47 @@ window.SITE = {
     document.body.appendChild(a);
   }
 
+  /* ---------- אימות טלפון ישראלי (זהה ל-normalizeILPhone בשרת) ---------- */
+  function normalizeILPhone(raw) {
+    var d = (raw || '').replace(/\D/g, '');
+    if (!d) return null;
+    if (d.indexOf('00') === 0) d = d.slice(2);
+    if (d.indexOf('972') === 0) { if (d.length === 13 && d[3] === '0') d = '972' + d.slice(4); }
+    else if (d[0] === '0') d = '972' + d.slice(1);
+    else if (d.length >= 8 && d.length <= 9) d = '972' + d;
+    if (d.indexOf('972') === 0) return (d.length === 11 || d.length === 12) ? d : null;
+    return (d.length >= 8 && d.length <= 15) ? d : null;
+  }
+  function fieldError(input, msg) {
+    if (!input) return;
+    var wrap = (input.closest && input.closest('.field')) || input.parentNode;
+    var e = wrap.querySelector('.field-err');
+    if (!e) { e = document.createElement('div'); e.className = 'field-err'; wrap.appendChild(e); }
+    e.textContent = msg;
+    input.classList.add('invalid');
+    input.setAttribute('aria-invalid', 'true');
+    input.addEventListener('input', function clr() {
+      e.textContent = ''; input.classList.remove('invalid'); input.removeAttribute('aria-invalid');
+      input.removeEventListener('input', clr);
+    });
+    input.focus();
+  }
+
   /* ---------- Lead form (אינטגרציה קיימת — לא לשנות יעד) ---------- */
   window.submitLead = function (e) {
     e.preventDefault();
     var form = e.target;
     var btn = form.querySelector('[type=submit]');
-    var name = (form.querySelector('[name=name]') || {}).value;
-    var phone = (form.querySelector('[name=phone]') || {}).value;
+    var nameEl = form.querySelector('[name=name]');
+    var phoneEl = form.querySelector('[name=phone]');
+    var name = (nameEl || {}).value;
+    var phone = (phoneEl || {}).value;
     var field = (form.querySelector('[name=field]') || {}).value || '';
     var msg = (form.querySelector('[name=msg]') || {}).value || '';
     name = (name || '').trim(); phone = (phone || '').trim();
-    if (!name || !phone) return false;
+    if (!name) { fieldError(nameEl, 'צריך למלא שם'); return false; }
+    if (!phone) { fieldError(phoneEl, 'צריך למלא מספר טלפון'); return false; }
+    if (!normalizeILPhone(phone)) { fieldError(phoneEl, 'מספר טלפון לא תקין — לדוגמה 050-0000000'); return false; }
     var origTxt = btn.textContent;
     btn.disabled = true; btn.textContent = 'שולח…';
     var note = '📞 ' + phone + (field ? ' · תחום: ' + field : '') + (msg ? ' · ' + msg : '');
