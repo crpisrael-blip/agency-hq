@@ -26,6 +26,7 @@ import { activitiesApp } from '../../src/api/activities';
 import { callsApp } from '../../src/api/calls';
 import { todayApp } from '../../src/api/today';
 import { telegramWebhook, telegramAdminApp } from '../../src/api/run-fill';
+import { whatsappAdminApp } from '../../src/api/whatsapp';
 
 const app = new Hono<Env>().basePath('/api');
 
@@ -73,6 +74,7 @@ app.route('/activities', activitiesApp);
 app.route('/calls', callsApp);
 app.route('/today', todayApp);
 app.route('/telegram', telegramAdminApp); // הגדרת/מצב בוט המילוי (מוגן)
+app.route('/whatsapp', whatsappAdminApp); // ווטסאפ אוטומטי לליד: הגדרות / מצב / בדיקה / שליחה חוזרת (מוגן)
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 

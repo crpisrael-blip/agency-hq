@@ -348,9 +348,14 @@
     btn.disabled=true; btn.textContent='שולח…';
     var note='📞 '+phone+(field?' · תחום: '+field:'')+(msg?' · '+msg:'');
     fetch('/api/hook/lead',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({systemId:SYSTEM_ID,source:'landing',name:name,note:note.slice(0,300)})})
+      body:JSON.stringify({systemId:SYSTEM_ID,source:'landing',name:name,phone:phone,note:note.slice(0,300)})})
       .then(function(r){return r.json().catch(function(){return {};});})
-      .then(function(){document.getElementById('formInner').style.display='none';document.getElementById('okBox').style.display='block';})
+      .then(function(res){
+        document.getElementById('formInner').style.display='none';
+        var ok=document.getElementById('okBox');
+        if(res&&res.whatsapp==='queued'){var p=document.createElement('p');p.textContent='💬 שלחתי לך עכשיו הודעה בווטסאפ. אפשר לכתוב לי שם כבר עכשיו כמה מילים על העסק.';ok.appendChild(p);}
+        ok.style.display='block';
+      })
       .catch(function(){btn.disabled=false;btn.textContent='נסה שוב';alert('אופס, משהו השתבש. אפשר גם לכתוב לי למייל.');});
     return false;
   }

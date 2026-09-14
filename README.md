@@ -64,6 +64,38 @@
 בלי הסודות — ההתראות פשוט מושבתות, שאר המערכת עובדת רגיל. הקוד: `src/api/util.ts` (`notifyTelegram`)
 ו-`src/api/leads.ts`.
 
+### הודעת ווטסאפ אוטומטית לכל ליד מהאתר
+
+כל מבקר שמשאיר פרטים באחד מטפסי האתר (עמוד הבית / צור קשר / דף נחיתה) מקבל **מיד** הודעת ווטסאפ:
+הפנייה התקבלה, נחזור בהקדם, ובינתיים בקשה לספר בכמה מילים על העסק ומה רוצים לשפר. כך השיחה
+מתחילה עוד לפני שחזרת אליו, והוא כבר כותב לך בווטסאפ. בהצלחת הטופס המבקר גם רואה "שלחנו לך
+הודעה בווטסאפ".
+
+הזרימה: טופס → `POST /api/hook/lead` (עכשיו עם שדה `phone` נפרד) → הליד נשמר → ברקע נשלחת ההודעה →
+התוצאה נרשמת על הליד (`whatsapp_status`: נשלח / נכשל) וביומן הפעילות שלו, ומצורפת גם להתראת הטלגרם.
+נשלח רק ללידים של העסק שלך (לקוח עם `is_self`), לא ללידים ממערכות של לקוחות. best-effort — כשל
+בשליחה לעולם לא שובר שמירת ליד.
+
+**הגדרה מהדשבורד:** לידים → **💬 ווטסאפ אוטומטי** — בחירת ספק, פרטי חיבור, נוסח ההודעה (עם `{name}`
+שמוחלף בשם הפרטי של הליד, כולל תצוגה מקדימה), "בדוק חיבור" ו"שלח בדיקה" למספר שלך. בכרטיס הליד
+רואים אם ההודעה נשלחה, ואפשר לשלוח שוב ידנית. ההגדרות נשמרות בטבלת `settings`; משתני הסביבה
+שלהלן הם נפילה חזרה. סודות (טוקנים) מוצגים מוסתרים ולא נשמרים אם משאירים את השדה ריק.
+
+| ספק | מתי מתאים | הגדרות (settings / env) |
+|-----|-----------|--------------------------|
+| **Green API** (ברירת מחדל) | הכי פשוט: מחברים את מספר הווטסאפ העסקי שלך בסריקת QR ב-[green-api.com](https://green-api.com), וההודעה נשלחת כטקסט חופשי מהמספר שלך | `green_api_instance` / `GREEN_API_INSTANCE` · `green_api_token` / `GREEN_API_TOKEN` (סוד) · `green_api_url` / `GREEN_API_URL` (כתובת ה-API של המופע, למשל `https://7105.api.greenapi.com`) |
+| **Meta WhatsApp Cloud API** | הערוץ הרשמי. הודעה יזומה (העסק פותח שיחה) חייבת להישלח כ**תבנית מאושרת** עם משתנה `{{1}}` = שם הליד; בלי תבנית השליחה תיכשל (חלון 24 שעות) | `whatsapp_phone_id` / `WHATSAPP_PHONE_ID` · `whatsapp_token` / `WHATSAPP_TOKEN` (סוד) · `whatsapp_template` / `WHATSAPP_TEMPLATE` · `whatsapp_template_lang` / `WHATSAPP_TEMPLATE_LANG` (ברירת מחדל `he`) |
+
+משותף: `whatsapp_provider` / `WHATSAPP_PROVIDER` (`green` | `meta`), `whatsapp_enabled` / `WHATSAPP_ENABLED` (`0` מכבה בלי למחוק
+סודות), `whatsapp_welcome_text` / `WHATSAPP_WELCOME_TEXT` (נוסח; ב-Meta הנוסח נקבע בתבנית המאושרת).
+
+API מוגן (מנהל): `GET/PUT /api/whatsapp/settings` · `GET /api/whatsapp/status` (בדיקת חיבור) · `POST /api/whatsapp/test { phone }` ·
+`POST /api/whatsapp/resend/:leadId`. הקוד: `src/api/whatsapp.ts` (ספקים, נרמול טלפון ישראלי, נוסח ברירת מחדל)
+ו-`src/api/leads.ts` (`registerLeadPublic`). מיגרציה: `migrations/0033_lead_phone_whatsapp.sql`.
+
+> **פרטיות:** ההודעה היא אישור פנייה (תפעולי) למי שביקש בעצמו שנחזור אליו, והיא נשלחת דרך ספק
+> צד-שלישי — כדאי לציין זאת במדיניות הפרטיות של האתר. אין לשלוח בערוץ הזה תוכן שיווקי לא מבוקש.
+
 ### מילוי עצמי של הלקוח דרך בוט Telegram (מתודולוגיה דו־ערוצית)
 
 כל מהלך מתודולוגיה מסוג צ׳ק־ליסט הוא **שאלון**. מלבד מילוי פנימי במערכת, אפשר לשלוח אותו
@@ -111,7 +143,7 @@
 
 ## מודל הנתונים (D1 / Drizzle)
 
-`clients` · `systems` · `engagements` · `scenarios` · `cashflow` · `profit_centers` · `processes` · `playbooks` · `playbook_runs` · `telegram_fill_sessions` · `tasks` · `settings` · `admin_sessions`
+`clients` · `systems` · `engagements` · `scenarios` · `cashflow` · `profit_centers` · `processes` · `playbooks` · `playbook_runs` · `telegram_fill_sessions` · `leads` · `lead_activities` · `tasks` · `settings` · `admin_sessions`
 
 הסכמה המלאה: `src/db/schema.ts`. המיגרציות: `migrations/`.
 

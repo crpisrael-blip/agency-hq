@@ -132,14 +132,23 @@ window.SITE = {
       body: JSON.stringify({
         systemId: 'sys-agency-hq-core',
         source: form.getAttribute('data-source') || 'website',
-        name: name, note: note.slice(0, 300)
+        name: name, phone: phone, note: note.slice(0, 300)
       })
     }).then(function (r) { return r.json().catch(function () { return {}; }); })
-      .then(function () {
+      .then(function (res) {
         var inner = form.closest('.form-card') ? form.closest('.form-card').querySelector('.form-inner') : form;
         var ok = form.closest('.form-card') ? form.closest('.form-card').querySelector('.ok-box') : null;
         if (inner) inner.style.display = 'none';
-        if (ok) ok.style.display = 'block';
+        if (ok) {
+          // אם המערכת שלחה למבקר הודעת ווטסאפ אוטומטית — אומרים לו לחפש אותה שם
+          if (res && res.whatsapp === 'queued' && !ok.querySelector('.ok-wa')) {
+            var wa = document.createElement('p');
+            wa.className = 'ok-wa';
+            wa.textContent = '💬 שלחנו לך עכשיו הודעה בווטסאפ. אפשר לכתוב לנו שם כבר עכשיו כמה מילים על העסק.';
+            ok.appendChild(wa);
+          }
+          ok.style.display = 'block';
+        }
         else { form.reset(); btn.disabled = false; btn.textContent = origTxt; }
       })
       .catch(function () {
