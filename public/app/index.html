@@ -1083,7 +1083,7 @@ async function loadSysTasks(id){
   }catch(e){ box.innerHTML='<div class="muted hint">שגיאה בטעינת משימות</div>'; }
 }
 // לידים של המערכת מפולחים לפי מקור — כך רואים איזו גרסת דף נחיתה באמת מביאה לידים
-const LEAD_SOURCES={'landing':"דף נחיתה א'",'landing-b':"דף נחיתה ב'",'website':'אתר','manual':'ידני'};
+const LEAD_SOURCES={'landing':"דף נחיתה א'",'landing-b':"דף נחיתה ב'",'website':'אתר','website-home':'אתר · עמוד הבית','website-contact':'אתר · צור קשר','manual':'ידני'};
 async function loadSysLeads(id){
   const box=$('sysLeads'); if(!box)return;
   try{
@@ -1130,7 +1130,9 @@ function timeAgo(ms){ const s=Math.floor((Date.now()-ms)/1000); if(s<60)return '
 function leadStatusSelect(id,cur){ return '<select onchange="leadSetStatus(\''+id+'\',this.value)" style="padding:6px 10px;border:1px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.85rem;background:#fff;font-weight:700;cursor:pointer">'+LEAD_STATUS_ORDER.map(k=>'<option value="'+k+'" '+(k===cur?'selected':'')+'>'+LEAD_STATUS[k][0]+'</option>').join('')+'</select>'; }
 
 RENDER.leads=async()=>{
-  $('view').innerHTML='<h2>📥 לידים</h2><div class="sub">הלידים שלך — CRM מלא לניהול המכירה · לידים של מערכות לקוחות — מעקב וספירה בלבד</div><div id="leadsBody"><div class="empty">טוען…</div></div>';
+  $('view').innerHTML='<div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:8px"><div><h2>📥 לידים</h2><div class="sub">הלידים שלך — CRM מלא לניהול המכירה · לידים של מערכות לקוחות — מעקב וספירה בלבד</div></div>'+
+    '<button class="btn ghost small" onclick="whatsappSettings()" title="הודעת אישור אוטומטית בווטסאפ לכל מי שמשאיר פרטים באתר">💬 ווטסאפ אוטומטי <span id="waHdrState" class="pill p-gray">…</span></button></div><div id="leadsBody"><div class="empty">טוען…</div></div>';
+  apiGet('/whatsapp/settings').then(st=>{ const el=$('waHdrState'); if(!el)return; const on=st.enabled!=='0'&&st.ready&&st.ready.ready; el.className='pill '+(on?'p-green':'p-gray'); el.textContent=on?'פעיל':'כבוי'; }).catch(()=>{});
   try{
     const [rows,systems,cls]=await Promise.all([apiGet('/leads'),apiGet('/systems'),apiGet('/clients')]);
     LEADS_ALL=rows;
@@ -1222,11 +1224,18 @@ function leadsClientsHTML(others){
   );
 }
 
+function leadPhoneOf(l){ return (l.phone||'').replace(/\D/g,'') || leadPhone(l.note); }
+function waBadge(l){
+  if(!l.whatsappStatus) return '';
+  if(l.whatsappStatus==='sent') return '<span class="pill p-green" title="נשלחה הודעת אישור אוטומטית בווטסאפ'+(l.whatsappSentAt?' · '+new Date(l.whatsappSentAt).toLocaleString('he-IL'):'')+'">💬 נשלח</span>';
+  if(l.whatsappStatus==='failed') return '<span class="pill p-red" title="'+esc(l.whatsappError||'')+'">💬 נכשל</span>';
+  return '';
+}
 function leadCard(l){
-  const ph=leadPhone(l.note); const st=l.status||'new';
+  const ph=leadPhoneOf(l); const st=l.status||'new';
   return '<div class="card" style="margin-bottom:10px">'+
     '<div class="spread" style="align-items:flex-start">'+
-      '<div><b style="font-size:1.05rem">'+esc(l.name||'ליד ללא שם')+'</b> '+pill(LEAD_STATUS,st)+' '+fuBadge(l)+
+      '<div><b style="font-size:1.05rem">'+esc(l.name||'ליד ללא שם')+'</b> '+pill(LEAD_STATUS,st)+' '+fuBadge(l)+' '+waBadge(l)+
         '<div class="muted" style="font-size:.83rem;margin-top:2px">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+' · '+timeAgo(l.createdAt)+'</div></div>'+
       '<div class="row" style="gap:6px;flex:none">'+
         (ph?'<a class="btn teal small" href="tel:'+ph+'" title="חייג">📞</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank" title="וואטסאפ">💬</a>':'')+
@@ -1246,13 +1255,19 @@ function leadCard(l){
 
 function openLead(id){
   const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
-  const ph=leadPhone(l.note);
+  const ph=leadPhoneOf(l);
   const fuVal=l.followUpAt? new Date(l.followUpAt).toISOString().slice(0,10) : '';
   const inputStyle='padding:8px 10px;border:1px solid #d9d2c4;border-radius:8px;font-family:inherit;font-size:.9rem;background:#fff';
   openModal(
     '<div class="spread"><h3 style="margin:0">'+esc(l.name||'ליד')+'</h3><span>'+pill(LEAD_STATUS,l.status||'new')+' '+fuBadge(l)+'</span></div>'+
     '<div class="muted" style="margin:6px 0 14px;font-size:.88rem">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+'<br>נכנס: '+new Date(l.createdAt).toLocaleString('he-IL')+(l.handledAt?' · טופל: '+new Date(l.handledAt).toLocaleString('he-IL'):'')+'</div>'+
     (ph?'<div class="row" style="gap:8px;margin-bottom:14px"><a class="btn teal small" href="tel:'+ph+'">📞 '+ph+'</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank">💬 וואטסאפ</a></div>':'')+
+    (leadIsMine(l)?'<div class="row" style="gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap"><span class="muted" style="font-size:.85rem">הודעת אישור אוטומטית:</span>'+
+      (l.whatsappStatus==='sent'?'<span class="pill p-green">נשלחה '+(l.whatsappSentAt?new Date(l.whatsappSentAt).toLocaleString('he-IL',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):'')+'</span>'
+        :l.whatsappStatus==='failed'?'<span class="pill p-red" title="'+esc(l.whatsappError||'')+'">נכשלה</span><span class="muted" style="font-size:.8rem">'+esc(l.whatsappError||'')+'</span>'
+        :'<span class="pill p-gray">לא נשלחה</span>')+
+      (ph?'<button class="btn ghost small" onclick="whatsappResend(\''+l.id+'\')" title="שליחה (חוזרת) של הודעת האישור לליד">📤 '+(l.whatsappStatus==='sent'?'שלח שוב':'שלח עכשיו')+'</button>':'')+
+    '</div>':'')+
     (l.note?'<div class="card" style="margin:0 0 14px;white-space:pre-wrap">'+esc(l.note)+'</div>':'')+
     '<div class="f2">'+
       '<div class="f"><label>סטטוס טיפול</label>'+leadStatusSelect(l.id,l.status||'new')+'</div>'+
@@ -1280,7 +1295,7 @@ function openLead(id){
 function leadConvert(id){
   const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
   if(l.convertedClientId){ toast('הליד כבר הומר ללקוח — פותח את הכרטיס'); closeModal(); openClient(l.convertedClientId); return; }
-  const ph=leadPhone(l.note);
+  const ph=leadPhoneOf(l);
   const indM=(l.note||'').match(/תחום:\s*([^·]+)/);
   const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
   openModal(
@@ -1352,6 +1367,105 @@ async function leadDelete(id){
   if(!confirm('למחוק את הליד לצמיתות?'))return;
   try{ await apiDel('/leads/'+id); LEADS_ALL=LEADS_ALL.filter(x=>x.id!==id); closeModal(); toast('הליד נמחק'); renderLeadsList(); }
   catch(e){ toast('שגיאה במחיקה','bad'); }
+}
+
+// ============ ווטסאפ אוטומטי לליד — הגדרות, בדיקה, שליחה חוזרת ============
+// הודעת אישור מיידית למי שהשאיר פרטים באתר. ההגדרות נשמרות ב-D1 (settings) ומשמשות
+// את /api/hook/lead. הקוד בשרת: src/api/whatsapp.ts
+const WA_HELP={
+  green:'<b>Green API</b> (green-api.com): פותחים חשבון, יוצרים Instance, סורקים QR עם מספר הווטסאפ העסקי שלך. מעתיקים לכאן את <code>idInstance</code>, <code>apiTokenInstance</code> ואת כתובת ה-API של המופע (מופיעה בקונסול, למשל <code>https://7105.api.greenapi.com</code>). ההודעה נשלחת כטקסט חופשי מהמספר שלך.',
+  meta:'<b>WhatsApp Cloud API</b> (Meta): הודעה יזומה ללקוח חייבת להישלח כ<b>תבנית מאושרת</b> (Message Template) — יוצרים תבנית ב-WhatsApp Manager עם משתנה <code>{{1}}</code> = שם הליד, ומזינים כאן את שם התבנית. בלי תבנית, השליחה תיכשל (חלון 24 שעות). נדרשים Phone number ID וטוקן קבוע (System User).'
+};
+async function whatsappSettings(){
+  let st; try{ st=await apiGet('/whatsapp/settings'); }catch(e){ toast('שגיאה בטעינת ההגדרות','bad'); return; }
+  const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
+  const ltr='direction:ltr;text-align:left';
+  const prov=st.provider||'green';
+  const secretPh=(set)=>set?'מוגדר — השאר ריק כדי לא לשנות':'';
+  const fromEnv=(k)=>st.source&&st.source[k]==='env'?'<span class="muted" style="font-size:.75rem"> · מגיע ממשתנה סביבה</span>':'';
+  openModal(
+    '<div class="spread"><h3 style="margin:0">💬 ווטסאפ אוטומטי לליד</h3><span id="waState">'+(st.ready&&st.ready.ready?'<span class="pill p-green">מוגדר</span>':'<span class="pill p-gray">לא מוגדר</span>')+'</span></div>'+
+    '<div class="muted" style="font-size:.88rem;margin:6px 0 14px">כל מבקר שמשאיר פרטים באתר (עמוד הבית / צור קשר / דף נחיתה) מקבל <b>מיד</b> הודעת ווטסאפ שהפנייה התקבלה, עם בקשה לספר בכמה מילים על הפנייה. התוצאה נרשמת על הליד וביומן הפעילות שלו, וגם בהתראת הטלגרם.</div>'+
+    '<div class="f2">'+
+      '<div class="f"><label>מצב</label><select id="wa_enabled" style="'+inputStyle+';font-weight:700"><option value="1" '+(st.enabled!=='0'?'selected':'')+'>פעיל — שולח אוטומטית</option><option value="0" '+(st.enabled==='0'?'selected':'')+'>כבוי</option></select></div>'+
+      '<div class="f"><label>ספק שליחה</label><select id="wa_provider" onchange="waProviderToggle()" style="'+inputStyle+';font-weight:700"><option value="green" '+(prov==='green'?'selected':'')+'>Green API (מספר משלך, QR)</option><option value="meta" '+(prov==='meta'?'selected':'')+'>Meta WhatsApp Cloud API (רשמי)</option></select></div>'+
+    '</div>'+
+    '<div id="wa_green" class="card" style="margin:10px 0;display:'+(prov==='green'?'block':'none')+'">'+
+      '<div class="hint" style="margin-bottom:8px">'+WA_HELP.green+'</div>'+
+      '<div class="f2">'+
+        '<div class="f"><label>idInstance'+fromEnv('greenInstance')+'</label><input id="wa_greenInstance" value="'+esc(st.greenInstance||'')+'" placeholder="7105123456" style="'+inputStyle+';'+ltr+'"></div>'+
+        '<div class="f"><label>apiTokenInstance (סוד)'+fromEnv('greenToken')+'</label><input id="wa_greenToken" type="password" autocomplete="new-password" placeholder="'+secretPh(st.greenTokenSet)+'" style="'+inputStyle+';'+ltr+'"></div>'+
+      '</div>'+
+      '<div class="f" style="margin-top:8px"><label>כתובת API של המופע'+fromEnv('greenUrl')+'</label><input id="wa_greenUrl" value="'+esc(st.greenUrl||'')+'" placeholder="https://api.green-api.com" style="'+inputStyle+';'+ltr+'"></div>'+
+    '</div>'+
+    '<div id="wa_meta" class="card" style="margin:10px 0;display:'+(prov==='meta'?'block':'none')+'">'+
+      '<div class="hint" style="margin-bottom:8px">'+WA_HELP.meta+'</div>'+
+      '<div class="f2">'+
+        '<div class="f"><label>Phone number ID'+fromEnv('metaPhoneId')+'</label><input id="wa_metaPhoneId" value="'+esc(st.metaPhoneId||'')+'" style="'+inputStyle+';'+ltr+'"></div>'+
+        '<div class="f"><label>Access token (סוד)'+fromEnv('metaToken')+'</label><input id="wa_metaToken" type="password" autocomplete="new-password" placeholder="'+secretPh(st.metaTokenSet)+'" style="'+inputStyle+';'+ltr+'"></div>'+
+      '</div>'+
+      '<div class="f2" style="margin-top:8px">'+
+        '<div class="f"><label>שם התבנית המאושרת'+fromEnv('metaTemplate')+'</label><input id="wa_metaTemplate" value="'+esc(st.metaTemplate||'')+'" placeholder="lead_received" style="'+inputStyle+';'+ltr+'"></div>'+
+        '<div class="f"><label>שפת התבנית</label><input id="wa_metaTemplateLang" value="'+esc(st.metaTemplateLang||'he')+'" placeholder="he" style="'+inputStyle+';'+ltr+'"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:10px"><label>נוסח ההודעה — <code>{name}</code> יוחלף בשם הפרטי של הליד <span class="muted">(ב-Meta הנוסח נקבע בתבנית המאושרת; כאן משמש ל-Green API ולתצוגה)</span></label>'+
+      '<textarea id="wa_welcomeText" rows="7" oninput="waPreview()" style="'+inputStyle+';line-height:1.5">'+esc(st.welcomeText||st.defaultWelcomeText||'')+'</textarea>'+
+      '<div class="row" style="gap:8px;margin-top:6px;align-items:center"><button class="btn ghost small" onclick="$(\'wa_welcomeText\').value=WA_DEFAULT_TEXT;waPreview()">↺ נוסח ברירת מחדל</button><span class="muted" style="font-size:.8rem">תצוגה מקדימה (לליד בשם דנה):</span></div>'+
+      '<div id="wa_preview" class="card" style="margin:8px 0 0;white-space:pre-wrap;background:#e7f9ee;border-color:#9fd9b4;font-size:.92rem">'+esc(st.preview||'')+'</div>'+
+    '</div>'+
+    '<div class="card" style="margin:12px 0"><b style="font-size:.92rem">🧪 בדיקת שליחה</b><div class="hint">שולח את ההודעה (עם ההגדרות <u>השמורות</u>) למספר שתבחר — למשל המספר שלך.</div>'+
+      '<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><input id="wa_testPhone" placeholder="054-0000000" inputmode="tel" style="'+inputStyle+';max-width:200px;'+ltr+'"><button class="btn ghost small" onclick="whatsappCheck()">🔌 בדוק חיבור</button><button class="btn teal small" onclick="whatsappTest()">📤 שלח בדיקה</button><span id="wa_testResult" class="muted" style="font-size:.85rem"></span></div></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">סגור</button><button class="btn primary" onclick="whatsappSave()">💾 שמור הגדרות</button></div>'
+  , true);
+  window.WA_DEFAULT_TEXT=st.defaultWelcomeText||'';
+}
+function waProviderToggle(){ const p=$('wa_provider').value; $('wa_green').style.display=p==='green'?'block':'none'; $('wa_meta').style.display=p==='meta'?'block':'none'; }
+function waPreview(){
+  const t=$('wa_welcomeText').value||''; let out=t.replace(/\{name\}/g,'דנה'); $('wa_preview').textContent=out.trim();
+}
+async function whatsappSave(){
+  const v=(id)=>($(id)?$(id).value:'');
+  const body={enabled:v('wa_enabled'),provider:v('wa_provider'),welcomeText:v('wa_welcomeText'),
+    greenInstance:v('wa_greenInstance').trim(),greenUrl:v('wa_greenUrl').trim(),
+    metaPhoneId:v('wa_metaPhoneId').trim(),metaTemplate:v('wa_metaTemplate').trim(),metaTemplateLang:v('wa_metaTemplateLang').trim()};
+  if(v('wa_greenToken').trim()) body.greenToken=v('wa_greenToken').trim();
+  if(v('wa_metaToken').trim()) body.metaToken=v('wa_metaToken').trim();
+  try{
+    const r=await apiPut('/whatsapp/settings',body);
+    const ok=r.ready&&r.ready.ready;
+    $('waState').innerHTML=ok?'<span class="pill p-green">מוגדר</span>':'<span class="pill p-gray">לא מוגדר</span>';
+    if($('wa_greenToken'))$('wa_greenToken').value=''; if($('wa_metaToken'))$('wa_metaToken').value='';
+    toast(ok?'ההגדרות נשמרו ✓':'נשמר — אבל חסרים פרטי חיבור','ok');
+    const hdr=$('waHdrState'); if(hdr){ const on=body.enabled!=='0'&&ok; hdr.className='pill '+(on?'p-green':'p-gray'); hdr.textContent=on?'פעיל':'כבוי'; }
+  }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
+async function whatsappCheck(){
+  const out=$('wa_testResult'); out.textContent='בודק…';
+  try{
+    const r=await apiGet('/whatsapp/status');
+    if(r.connected) out.innerHTML='<span class="pill p-green">מחובר ✓</span> '+esc(r.provider==='meta'?(r.name||'')+' '+(r.phone||'')+(r.templateConfigured?'':' · ⚠️ לא הוגדרה תבנית'):(r.state||''));
+    else out.innerHTML='<span class="pill p-red">לא מחובר</span> '+esc(r.reason||r.state||r.detail||'');
+  }catch(e){ out.textContent='שגיאה בבדיקה'; }
+}
+async function whatsappTest(){
+  const phone=($('wa_testPhone').value||'').trim(); const out=$('wa_testResult');
+  if(!phone){ toast('הזן מספר לבדיקה','bad'); return; }
+  out.textContent='שולח…';
+  try{ const r=await apiPost('/whatsapp/test',{phone,name:'בדיקה'}); out.innerHTML='<span class="pill p-green">נשלח ✓</span> ל-'+esc(r.phone||phone); }
+  catch(e){ out.innerHTML='<span class="pill p-red">נכשל</span> '+esc(e.message||''); }
+}
+async function whatsappResend(id){
+  const l=LEADS_ALL.find(x=>x.id===id); if(!l)return;
+  if(l.whatsappStatus==='sent'&&!confirm('הליד כבר קיבל הודעת אישור. לשלוח שוב?'))return;
+  try{
+    const r=await apiPost('/whatsapp/resend/'+id,{});
+    l.whatsappStatus='sent'; l.whatsappSentAt=Date.now(); l.whatsappError=null;
+    toast('ההודעה נשלחה ✓'); renderLeadsList(); openLead(id);
+  }catch(e){
+    l.whatsappStatus='failed'; l.whatsappError=e.message||'';
+    toast('השליחה נכשלה: '+(e.message||''),'bad'); renderLeadsList(); openLead(id);
+  }
 }
 async function advanceSysTask(taskId,status,systemId){ try{ await apiPatch('/tasks/'+taskId,{status}); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
 async function delSysTask(taskId,systemId){ if(!confirm('למחוק משימה?'))return; try{ await apiDel('/tasks/'+taskId); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }

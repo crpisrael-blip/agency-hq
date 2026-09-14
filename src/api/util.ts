@@ -15,6 +15,20 @@ export type Bindings = {
    * מומלץ: אם מוגדר — עדכונים בלי הכותרת הזו נדחים. נקבע גם ב-setWebhook.
    */
   TELEGRAM_WEBHOOK_SECRET?: string;
+  /**
+   * ווטסאפ אוטומטי לליד (הודעת אישור מיידית). כל ההגדרות ניתנות גם מטבלת settings
+   * (מסך לידים → ⚙️ ווטסאפ אוטומטי), והערכים כאן הם נפילה חזרה. ראה src/api/whatsapp.ts.
+   */
+  WHATSAPP_PROVIDER?: string;      // green | meta
+  WHATSAPP_ENABLED?: string;       // "0" כדי לכבות בלי למחוק סודות
+  WHATSAPP_WELCOME_TEXT?: string;  // נוסח ההודעה ({name} מוחלף בשם הליד)
+  GREEN_API_INSTANCE?: string;     // Green API: idInstance
+  GREEN_API_TOKEN?: string;        // Green API: apiTokenInstance — סוד
+  GREEN_API_URL?: string;          // Green API: כתובת ה-API של המופע (ברירת מחדל api.green-api.com)
+  WHATSAPP_PHONE_ID?: string;      // Meta Cloud API: Phone number ID
+  WHATSAPP_TOKEN?: string;         // Meta Cloud API: טוקן קבוע (System User) — סוד
+  WHATSAPP_TEMPLATE?: string;      // Meta Cloud API: שם התבנית המאושרת (חובה להודעה יזומה)
+  WHATSAPP_TEMPLATE_LANG?: string; // Meta Cloud API: שפת התבנית (ברירת מחדל he)
   /** אחסון קבצים לקבלות הוצאה (bucket פרטי). אם ריק — העלאת קבלות מושבתת. */
   RECEIPTS?: R2Bucket;
 };

@@ -339,8 +339,12 @@ export const leads = sqliteTable('leads', {
   clientId: text('client_id').references(() => clients.id),
   source: text('source'),        // website | form | whatsapp | phone | other
   name: text('name'),
+  phone: text('phone'),          // טלפון הליד כשדה נפרד — משמש לשליחת ווטסאפ אוטומטי
   note: text('note'),
   status: text('status').default('new'), // new | contacted | qualified | won | lost
+  whatsappStatus: text('whatsapp_status'),   // sent | failed | skipped | NULL (לא נשלח)
+  whatsappSentAt: integer('whatsapp_sent_at'),
+  whatsappError: text('whatsapp_error'),
   handledAt: integer('handled_at'),
   followUpAt: integer('follow_up_at'),   // תאריך חזרה ללקוח (follow-up)
   convertedClientId: text('converted_client_id'), // הלקוח שנוצר מהליד — מונע המרה כפולה

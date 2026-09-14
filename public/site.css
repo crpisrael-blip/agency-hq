@@ -552,6 +552,7 @@ section{padding:92px 0;position:relative}
 .ok-box .big{font-size:2.6rem;line-height:1;color:var(--cyan)}
 .ok-box h3{font-size:1.5rem;font-weight:900;margin:12px 0 8px;color:var(--text)}
 .ok-box p{color:var(--mute)}
+.ok-box .ok-wa{margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.35);color:var(--text);font-weight:600}
 
 /* ---------- final CTA band ---------- */
 .cta-band{background:linear-gradient(160deg,var(--panel-2),var(--bg-2));border-block:1px solid var(--line);

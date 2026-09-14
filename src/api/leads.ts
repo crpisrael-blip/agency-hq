@@ -3,13 +3,22 @@ import { Context } from 'hono';
 import { desc, eq, inArray } from 'drizzle-orm';
 import { leads, systems, clients, settings, leadActivities } from '../db/schema';
 import { Env, db, uid, now, todayIL, notifyTelegram } from './util';
+import { loadWhatsAppConfig, isWhatsAppReady, normalizeILPhone, sendLeadWelcome, describeWelcomeResult } from './whatsapp';
 
 export const leadsApp = new Hono<Env>();
 
+/** חילוץ טלפון מתוך הערה חופשית ("📞 054-1234567 · …") — לטפסים ישנים ששולחים רק note */
+export function phoneFromNote(note: string | null | undefined): string | null {
+  const m = String(note || '').match(/(?:\+?972[\s-]?|0)\d[\d\s-]{7,11}/);
+  return m ? m[0].trim() : null;
+}
+
 /**
  * Webhook ציבורי — מערכת לקוח קוראת לו כשנכנס ליד.
- * POST /api/hook/lead  { systemId, source?, name?, note?, clientId? }
+ * POST /api/hook/lead  { systemId, source?, name?, phone?, note?, clientId? }
  * לא דורש אימות מנהל (מערכות חיצוניות קוראות לו), אבל systemId חייב להיות תקף.
+ * אחרי השמירה (ברקע): הודעת ווטסאפ אוטומטית לליד + התראת טלגרם למנהל.
+ * מחזיר { ok, whatsapp: 'queued' | 'off' } כדי שהאתר יוכל לומר למבקר שנשלחה לו הודעה.
  */
 export async function registerLeadPublic(c: Context<Env>) {
   const body = await c.req.json().catch(() => ({} as any));
@@ -21,24 +30,37 @@ export async function registerLeadPublic(c: Context<Env>) {
   const source = body.source ? String(body.source) : 'website';
   const name = body.name ? String(body.name).slice(0, 120) : null;
   const note = body.note ? String(body.note).slice(0, 300) : null;
+  const phone = body.phone ? String(body.phone).slice(0, 40) : phoneFromNote(note);
+  const leadId = uid();
   await d.insert(leads).values({
-    id: uid(),
+    id: leadId,
     systemId,
     clientId: sys.clientId,
     source,
     name,
+    phone,
     note,
     status: 'new',
     createdAt: now(),
   });
 
+  // ווטסאפ אוטומטי לליד — רק ללידים של העסק שלי (לקוח עם is_self), לא למערכות של לקוחות
+  let isMine = !sys.clientId;
+  if (sys.clientId) {
+    const owner = (await d.select({ isSelf: clients.isSelf }).from(clients).where(eq(clients.id, sys.clientId)).limit(1))[0];
+    isMine = !!owner?.isSelf || sys.clientId === 'cl-agency-hq-core';
+  }
+  const waCfg = await loadWhatsAppConfig(c);
+  const willSendWhatsApp = isMine && isWhatsAppReady(waCfg).ready && !!normalizeILPhone(phone);
+
   // התראת טלגרם — best-effort, לא מעכבת את התגובה ולא שוברת שמירה אם נכשלת
   const when = new Intl.DateTimeFormat('he-IL', {
     timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short',
   }).format(new Date());
-  const msg =
+  const baseMsg =
     '🔔 ליד חדש מהאתר\n\n' +
     (name ? `👤 ${name}\n` : '') +
+    (phone && !(note || '').includes(phone) ? `📞 ${phone}\n` : '') +
     (note ? `${note}\n` : '') +
     `🌐 מקור: ${source}\n` +
     `🏢 מערכת: ${sys.name}\n` +
@@ -53,11 +75,20 @@ export async function registerLeadPublic(c: Context<Env>) {
   const cfgMap = Object.fromEntries(cfg.map((r) => [r.key, r.value]));
   const token = cfgMap['telegram_bot_token'] || c.env.TELEGRAM_BOT_TOKEN;
   const chatIds = cfgMap['telegram_chat_id'] || c.env.TELEGRAM_CHAT_ID;
-  const p = notifyTelegram(token, chatIds, msg);
-  if (c.executionCtx?.waitUntil) c.executionCtx.waitUntil(p);
-  else await p;
 
-  return c.json({ ok: true });
+  // ברקע: קודם הווטסאפ לליד (כדי שהמנהל יראה בטלגרם אם נשלח), ואז ההתראה למנהל
+  const background = (async () => {
+    let msg = baseMsg;
+    if (willSendWhatsApp) {
+      const r = await sendLeadWelcome(c, { id: leadId, name, phone }, waCfg);
+      msg += `\n${describeWelcomeResult(r)}`;
+    }
+    await notifyTelegram(token, chatIds, msg);
+  })();
+  if (c.executionCtx?.waitUntil) c.executionCtx.waitUntil(background);
+  else await background;
+
+  return c.json({ ok: true, whatsapp: willSendWhatsApp ? 'queued' : 'off' });
 }
 
 // --- מוגן (מנהל) ---
@@ -122,6 +153,7 @@ leadsApp.patch('/:id', async (c) => {
     patch.handledAt = now();
   }
   if (body.name !== undefined) patch.name = body.name ? String(body.name).slice(0, 120) : null;
+  if (body.phone !== undefined) patch.phone = body.phone ? String(body.phone).slice(0, 40) : null;
   if (body.note !== undefined) patch.note = body.note ? String(body.note).slice(0, 300) : null;
   if (body.followUpAt !== undefined) {
     const n = Number(body.followUpAt);
