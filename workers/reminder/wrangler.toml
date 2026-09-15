@@ -1,0 +1,18 @@
+# Worker נפרד לתזכורות פגישה — רץ ב-Cron ושולח תזכורות ווטסאפ שהגיע זמנן.
+# Cloudflare Pages לא תומך ב-Cron Triggers, ולכן זה Worker עצמאי מול אותו D1.
+# פריסה: cd workers/reminder && npx wrangler deploy  (רץ אוטומטית ב-deploy.yml).
+name = "agency-hq-reminders"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# אותו בסיס נתונים של המערכת (agency-hq-db). הגדרות הווטסאפ נקראות מטבלת settings,
+# ולכן אין צורך לשכפל סודות — מספיק להגדיר ווטסאפ במסך הדשבורד.
+[[d1_databases]]
+binding = "DB"
+database_name = "agency-hq-db"
+database_id = "81a73754-cd5a-498b-a4d2-79c70d29fa02"
+
+# כל 15 דקות. תזכורות של 24 שעות ושעה מראש לא צריכות דיוק גבוה מזה.
+[triggers]
+crons = ["*/15 * * * *"]

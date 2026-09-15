@@ -337,14 +337,34 @@
 
 <script>
   var SYSTEM_ID = 'sys-agency-hq-core';
+  function normILPhone(raw){
+    var d=(raw||'').replace(/\D/g,''); if(!d)return null;
+    if(d.indexOf('00')===0)d=d.slice(2);
+    if(d.indexOf('972')===0){if(d.length===13&&d[3]==='0')d='972'+d.slice(4);}
+    else if(d[0]==='0')d='972'+d.slice(1);
+    else if(d.length>=8&&d.length<=9)d='972'+d;
+    if(d.indexOf('972')===0)return(d.length===11||d.length===12)?d:null;
+    return(d.length>=8&&d.length<=15)?d:null;
+  }
+  function lpErr(el,msg){
+    if(!el)return; var f=(el.closest&&el.closest('.field'))||el.parentNode;
+    var e=f.querySelector('.field-err');
+    if(!e){e=document.createElement('div');e.className='field-err';e.style.cssText='color:#ff6b6b;font-size:.82rem;margin-top:6px;font-weight:600';f.appendChild(e);}
+    e.textContent=msg; el.style.borderColor='#ff6b6b';
+    el.addEventListener('input',function clr(){e.textContent='';el.style.borderColor='';el.removeEventListener('input',clr);});
+    el.focus();
+  }
   function submitLead(e){
     e.preventDefault();
     var btn=document.getElementById('submitBtn');
-    var name=document.getElementById('name').value.trim();
-    var phone=document.getElementById('phone').value.trim();
+    var nameEl=document.getElementById('name'), phoneEl=document.getElementById('phone');
+    var name=nameEl.value.trim();
+    var phone=phoneEl.value.trim();
     var field=document.getElementById('field').value.trim();
     var msg=document.getElementById('msg').value.trim();
-    if(!name||!phone){return false;}
+    if(!name){lpErr(nameEl,'צריך למלא שם');return false;}
+    if(!phone){lpErr(phoneEl,'צריך למלא מספר טלפון');return false;}
+    if(!normILPhone(phone)){lpErr(phoneEl,'מספר טלפון לא תקין — לדוגמה 050-0000000');return false;}
     btn.disabled=true; btn.textContent='שולח…';
     var note='📞 '+phone+(field?' · תחום: '+field:'')+(msg?' · '+msg:'');
     fetch('/api/hook/lead',{method:'POST',headers:{'Content-Type':'application/json'},

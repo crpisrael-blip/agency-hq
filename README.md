@@ -96,6 +96,35 @@ API מוגן (מנהל): `GET/PUT /api/whatsapp/settings` · `GET /api/whatsapp/
 > **פרטיות:** ההודעה היא אישור פנייה (תפעולי) למי שביקש בעצמו שנחזור אליו, והיא נשלחת דרך ספק
 > צד-שלישי — כדאי לציין זאת במדיניות הפרטיות של האתר. אין לשלוח בערוץ הזה תוכן שיווקי לא מבוקש.
 
+### קביעת שיחה מהאתר (יומן זמינות + אישור ותזכורת בווטסאפ)
+
+באתר הציבורי יש עמוד **קביעת שיחה** (`/book`, מקושר בתפריט ומעמוד צור קשר). אתה פותח
+משבצות זמינות בדשבורד, הליד בוחר יום → שעה → טלפון/זום → ממלא שם וטלפון (עם אימות),
+ומקבל **מיד אישור בווטסאפ** עם פרטי הפגישה. לפני הפגישה נשלחת **תזכורת** (ברירת מחדל
+24 שעות ושעה מראש). כל קביעה גם נכנסת כליד ל-CRM. שעון ישראל, ומשבצת נתפסת פעם אחת בלבד
+(מוגן מפני כפל-הזמנה).
+
+**ניהול בדשבורד:** מסך **🗓️ זמינות ופגישות** — פתיחת משבצות (תאריך + שעה/שעות + אורך),
+רשימת משבצות פנויות, רשימת הפגישות עם סטטוס ומצב הווטסאפ, ושליחה חוזרת של אישור. הכפתור
+**⚙️ הגדרות זמינות** קובע מה מוצע (טלפון/זום), קישור זום קבוע, נוסח ההודעות, מועדי התזכורת
+ותבניות Meta.
+
+**ווטסאפ:** משתמש באותו מנגנון של הודעות הליד. ב-Green API ההודעות נשלחות כטקסט חופשי
+(משתנים: `{name}` `{datetime}` `{details}` `{link}` `{date}` `{time}`). ב-Meta צריך **שתי
+תבניות מאושרות** — אחת לאישור ואחת לתזכורת — עם `{{1}}`=שם, `{{2}}`=מועד, `{{3}}`=אופן המפגש;
+מזינים את שמותיהן בהגדרות. הקוד: `src/api/bookings.ts` (API), `src/api/bookings-core.ts`
+(נוסחים, פורמט תאריך, לוגיקת תזכורת). מיגרציה: `migrations/0034_bookings.sql`.
+
+#### התזכורות — Worker נפרד (Cron)
+
+Cloudflare **Pages** לא תומך ב-Cron Triggers, ולכן התזכורות נשלחות מ-**Worker נפרד**
+(`workers/reminder/`, בשם `agency-hq-reminders`) שרץ כל 15 דקות מול אותו D1 וקורא את הגדרות
+הווטסאפ מטבלת `settings` (ולכן אין צורך לשכפל סודות — מספיק להגדיר ווטסאפ בדשבורד). ה-Worker
+נפרס אוטומטית ב-`deploy.yml` (שלב "Deploy reminders worker"). לשם כך ה-secret
+`CLOUDFLARE_API_TOKEN` צריך לכלול גם הרשאת **Workers Scripts:Edit** (בנוסף ל-D1 ו-Pages).
+כישלון בפריסת ה-Worker לא מפיל את הפריסה הראשית. אפשר להריץ ידנית לבדיקה: `GET /run` על
+כתובת ה-Worker (ואם מוגדר `REMINDER_RUN_SECRET` — עם `?key=`).
+
 ### מילוי עצמי של הלקוח דרך בוט Telegram (מתודולוגיה דו־ערוצית)
 
 כל מהלך מתודולוגיה מסוג צ׳ק־ליסט הוא **שאלון**. מלבד מילוי פנימי במערכת, אפשר לשלוח אותו
@@ -143,7 +172,7 @@ API מוגן (מנהל): `GET/PUT /api/whatsapp/settings` · `GET /api/whatsapp/
 
 ## מודל הנתונים (D1 / Drizzle)
 
-`clients` · `systems` · `engagements` · `scenarios` · `cashflow` · `profit_centers` · `processes` · `playbooks` · `playbook_runs` · `telegram_fill_sessions` · `leads` · `lead_activities` · `tasks` · `settings` · `admin_sessions`
+`clients` · `systems` · `engagements` · `scenarios` · `cashflow` · `profit_centers` · `processes` · `playbooks` · `playbook_runs` · `telegram_fill_sessions` · `leads` · `lead_activities` · `booking_slots` · `bookings` · `tasks` · `settings` · `admin_sessions`
 
 הסכמה המלאה: `src/db/schema.ts`. המיגרציות: `migrations/`.
 

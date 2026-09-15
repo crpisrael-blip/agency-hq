@@ -453,6 +453,7 @@ const PAGES = [
 // תפריט משני / הגדרות (כולל מסכים ותיקים שנשמרו)
 const SECONDARY = [
   ['leads','📥 לידים (CRM)'],
+  ['bookings','🗓️ זמינות ופגישות'],
   ['calls','📞 תיעוד שיחות'],
   ['documents','מסמכים'],
   ['playbooks','ספריית מתודולוגיה'],
@@ -1466,6 +1467,150 @@ async function whatsappResend(id){
     l.whatsappStatus='failed'; l.whatsappError=e.message||'';
     toast('השליחה נכשלה: '+(e.message||''),'bad'); renderLeadsList(); openLead(id);
   }
+}
+
+// ============ זמינות ופגישות (קביעת שיחה מהאתר) ============
+// המרת תאריך+שעה בשעון ישראל ל-epoch ms (מטפל ב-DST)
+function ilOffsetMin(atMs){
+  var pr=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jerusalem',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date(atMs)).reduce((a,p)=>{a[p.type]=p.value;return a;},{});
+  var asUTC=Date.UTC(+pr.year,+pr.month-1,+pr.day,+pr.hour,+pr.minute,+pr.second);
+  return (asUTC-atMs)/60000;
+}
+function ilToEpoch(dateStr,timeStr){
+  var d=(dateStr||'').split('-').map(Number), t=(timeStr||'').split(':').map(Number);
+  if(d.length<3||t.length<2) return NaN;
+  var guess=Date.UTC(d[0],d[1]-1,d[2],t[0],t[1]);
+  var off=ilOffsetMin(guess), epoch=guess-off*60000, off2=ilOffsetMin(epoch);
+  if(off2!==off) epoch=guess-off2*60000;
+  return epoch;
+}
+function ilFmt(ms){
+  var dow=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',weekday:'long'}).format(new Date(ms));
+  var day=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',day:'numeric',month:'long',year:'numeric'}).format(new Date(ms));
+  var time=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(ms));
+  return {dow:dow,day:day,time:time,full:dow+', '+day+', '+time};
+}
+var BK_SET=null, BK_SLOTS=[], BK_BOOKINGS=[];
+const BK_STATUS={booked:['🗓️ קבועה','p-blue'],done:['✓ בוצעה','p-green'],cancelled:['בוטלה','p-gray'],noshow:['לא הגיע','p-red']};
+const BK_WA={sent:['💬 נשלח','p-green'],failed:['💬 נכשל','p-red'],skipped:['—','p-gray']};
+
+RENDER.bookings=async()=>{
+  $('view').innerHTML='<div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:8px"><div><h2>🗓️ זמינות ופגישות</h2><div class="sub">אתה פותח משבצות, הליד בוחר מהאתר, ומקבל אישור ותזכורת בווטסאפ</div></div>'+
+    '<button class="btn ghost small" onclick="bkSettings()">⚙️ הגדרות זמינות <span id="bkHdrState" class="pill p-gray">…</span></button></div>'+
+    '<div id="bkBody"><div class="empty">טוען…</div></div>';
+  try{
+    const [set,slots,bks]=await Promise.all([apiGet('/bookings/settings'),apiGet('/bookings/slots'),apiGet('/bookings')]);
+    BK_SET=set; BK_SLOTS=slots; BK_BOOKINGS=bks;
+    const hdr=$('bkHdrState'); if(hdr){hdr.className='pill '+(set.enabled?'p-green':'p-gray');hdr.textContent=set.enabled?'פעיל':'כבוי';}
+    bkRender();
+  }catch(e){ const b=$('bkBody'); if(b)b.innerHTML='<div class="empty">שגיאה בטעינה</div>'; }
+};
+
+function bkRender(){
+  const body=$('bkBody'); if(!body)return;
+  const now=Date.now();
+  const openSlots=BK_SLOTS.filter(s=>s.status==='open'&&s.startAt>now).sort((a,b)=>a.startAt-b.startAt);
+  const upcoming=BK_BOOKINGS.filter(b=>b.status==='booked'&&b.startAt>now).sort((a,b)=>a.startAt-b.startAt);
+  const past=BK_BOOKINGS.filter(b=>!(b.status==='booked'&&b.startAt>now)).sort((a,b)=>b.startAt-a.startAt);
+  const inputStyle='padding:9px 11px;border:1px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
+  body.innerHTML=
+    (!BK_SET.enabled?'<div class="hint" style="margin-bottom:12px;background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.4);padding:10px 12px;border-radius:10px">⚠️ קביעת השיחה כבויה — העמוד /book לא יציג מועדים. הפעל ב"⚙️ הגדרות זמינות".</div>':'')+
+    '<div class="card" style="margin-bottom:14px"><b style="font-size:.95rem">➕ פתיחת משבצות</b>'+
+      '<div class="hint">בחר תאריך, הזן שעה אחת או כמה (מופרדות בפסיק, למשל 10:00, 10:30, 11:00), ואורך בדקות.</div>'+
+      '<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">'+
+        '<input type="date" id="bkDate" style="'+inputStyle+'">'+
+        '<input id="bkTimes" placeholder="10:00, 10:30, 11:00" style="'+inputStyle+';min-width:180px">'+
+        '<span class="muted" style="font-size:.85rem">אורך</span><input id="bkDur" type="number" value="30" min="5" step="5" style="'+inputStyle+';width:80px"><span class="muted" style="font-size:.85rem">דק\x27</span>'+
+        '<button class="btn teal small" onclick="bkAddSlots()">פתח משבצות</button>'+
+      '</div></div>'+
+    '<div class="f2" style="gap:16px;align-items:start"><div>'+
+      '<b style="font-size:.95rem">📅 משבצות פנויות ('+openSlots.length+')</b>'+
+      (openSlots.length? '<div style="margin-top:8px">'+bkGroupByDay(openSlots).map(g=>
+        '<div class="card" style="margin-bottom:8px;padding:10px 12px"><div class="muted" style="font-weight:700;font-size:.85rem;margin-bottom:6px">'+g.label+'</div>'+
+        '<div class="row" style="gap:6px;flex-wrap:wrap">'+g.items.map(s=>'<span class="pill p-gray" style="display:inline-flex;align-items:center;gap:6px">'+ilFmt(s.startAt).time+' <button onclick="bkDelSlot(\''+s.id+'\')" title="מחק" style="border:none;background:none;cursor:pointer;color:#b42323;font-weight:900">×</button></span>').join('')+'</div></div>').join('')+'</div>'
+        : '<div class="empty" style="margin-top:8px">אין משבצות פנויות — פתח למעלה 👆</div>')+
+    '</div><div>'+
+      '<b style="font-size:.95rem">🗓️ פגישות קרובות ('+upcoming.length+')</b>'+
+      (upcoming.length? '<div style="margin-top:8px">'+upcoming.map(bkCard).join('')+'</div>' : '<div class="empty" style="margin-top:8px">אין פגישות קבועות עדיין</div>')+
+    '</div></div>'+
+    (past.length? '<div style="margin-top:16px"><b style="font-size:.95rem">היסטוריה</b><div style="margin-top:8px">'+past.map(bkCard).join('')+'</div></div>' : '');
+}
+function bkGroupByDay(slots){
+  const g={}; slots.forEach(s=>{const f=ilFmt(s.startAt);const k=f.dow+', '+f.day;(g[k]=g[k]||[]).push(s);});
+  return Object.keys(g).map(k=>({label:k,items:g[k]}));
+}
+function bkCard(b){
+  const f=ilFmt(b.startAt); const st=b.status||'booked';
+  const wa=b.whatsappStatus?'<span class="pill '+(BK_WA[b.whatsappStatus]?BK_WA[b.whatsappStatus][1]:'p-gray')+'" title="'+esc(b.whatsappError||'')+'">'+(BK_WA[b.whatsappStatus]?BK_WA[b.whatsappStatus][0]:b.whatsappStatus)+'</span>':'';
+  const ph=(b.phone||'').replace(/\D/g,'');
+  return '<div class="card" style="margin-bottom:8px;padding:11px 13px">'+
+    '<div class="spread" style="align-items:flex-start"><div><b>'+esc(b.name||'—')+'</b> '+pill(BK_STATUS,st)+' '+wa+
+      '<div class="muted" style="font-size:.83rem;margin-top:2px">'+f.full+' · '+(b.meetingType==='zoom'?'💻 זום':'☎️ טלפון')+(b.durationMin?' · '+b.durationMin+' דק\x27':'')+'</div>'+
+      (b.note?'<div class="muted" style="font-size:.83rem;margin-top:3px">📝 '+esc(b.note)+'</div>':'')+'</div>'+
+      '<div class="row" style="gap:6px;flex:none">'+(ph?'<a class="btn teal small" href="tel:'+ph+'">📞</a><a class="btn teal small" href="https://wa.me/'+bkWa(ph)+'" target="_blank">💬</a>':'')+'</div>'+
+    '</div>'+
+    '<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">'+
+      (st==='booked'?'<button class="btn ghost small" onclick="bkSetStatus(\''+b.id+'\',\'done\')">✓ בוצעה</button><button class="btn ghost small" onclick="bkSetStatus(\''+b.id+'\',\'noshow\')">לא הגיע</button><button class="btn danger ghost small" onclick="bkCancel(\''+b.id+'\')">בטל</button>':'')+
+      '<button class="btn ghost small" onclick="bkResend(\''+b.id+'\')">📤 שלח אישור שוב</button>'+
+      (b.leadId?'<button class="btn ghost small" onclick="go(\'leads\')">↗ בלידים</button>':'')+
+    '</div></div>';
+}
+function bkWa(p){p=(p||'').replace(/\D/g,'');if(p.indexOf('972')===0)return p;if(p[0]==='0')return '972'+p.slice(1);return p;}
+
+async function bkAddSlots(){
+  const date=$('bkDate').value, times=($('bkTimes').value||'').split(',').map(t=>t.trim()).filter(Boolean);
+  const dur=Math.max(5,parseInt($('bkDur').value,10)||30);
+  if(!date||!times.length){toast('בחר תאריך והזן שעה','bad');return;}
+  const slots=[]; for(const t of times){const at=ilToEpoch(date,t); if(!Number.isFinite(at)){toast('שעה לא תקינה: '+t,'bad');return;} if(at<Date.now()){toast('המועד '+t+' כבר עבר','bad');continue;} slots.push({startAt:at,durationMin:dur});}
+  if(!slots.length)return;
+  try{ const r=await apiPost('/bookings/slots',{slots}); toast('נפתחו '+r.created+' משבצות ✓'); BK_SLOTS=await apiGet('/bookings/slots'); bkRender(); }
+  catch(e){ toast('שגיאה בפתיחה','bad'); }
+}
+async function bkDelSlot(id){ try{ await apiDel('/bookings/slots/'+id); BK_SLOTS=BK_SLOTS.filter(s=>s.id!==id); bkRender(); }catch(e){ toast(e.message==='slot_booked'?'המשבצת תפוסה — בטל את הפגישה':'שגיאה','bad'); } }
+async function bkSetStatus(id,status){ try{ await apiPatch('/bookings/'+id,{status}); const b=BK_BOOKINGS.find(x=>x.id===id); if(b)b.status=status; toast('עודכן ✓'); bkRender(); }catch(e){ toast('שגיאה','bad'); } }
+async function bkCancel(id){ if(!confirm('לבטל את הפגישה? המשבצת תשוחרר.'))return; try{ await apiPatch('/bookings/'+id,{status:'cancelled'}); const b=BK_BOOKINGS.find(x=>x.id===id); if(b)b.status='cancelled'; toast('הפגישה בוטלה'); bkRender(); }catch(e){ toast('שגיאה','bad'); } }
+async function bkResend(id){ try{ const r=await apiPost('/bookings/'+id+'/resend',{}); const b=BK_BOOKINGS.find(x=>x.id===id); if(b)b.whatsappStatus='sent'; toast('האישור נשלח ✓'); bkRender(); }catch(e){ toast('השליחה נכשלה: '+(e.message||''),'bad'); } }
+
+function bkSettings(){
+  const s=BK_SET||{}; const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
+  const ltr='direction:ltr;text-align:left';
+  const chk=(id,v,lbl)=>'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700"><input type="checkbox" id="'+id+'" '+(v?'checked':'')+'> '+lbl+'</label>';
+  openModal(
+    '<h3 style="margin:0 0 4px">⚙️ הגדרות זמינות ופגישות</h3>'+
+    '<div class="muted" style="font-size:.87rem;margin-bottom:14px">כאן אתה קובע מה מוצע בעמוד קביעת השיחה שבאתר (/book) ואיך נשלחות הודעות הווטסאפ.</div>'+
+    '<div class="card" style="margin-bottom:10px">'+chk('bk_enabled',s.enabled,'הפעל קביעת שיחה באתר')+
+      '<div style="margin-top:10px"></div>'+chk('bk_phone',s.offerPhone,'להציע שיחת טלפון')+
+      '<div style="margin-top:8px"></div>'+chk('bk_zoom',s.offerZoom,'להציע פגישת זום')+
+      '<div class="f" style="margin-top:8px"><label>קישור זום קבוע (הפגישות ישתמשו בו)</label><input id="bk_zoomlink" value="'+esc(s.zoomLink||'')+'" placeholder="https://zoom.us/j/..." style="'+inputStyle+';'+ltr+'"></div>'+
+    '</div>'+
+    '<div class="f" style="margin-bottom:10px"><label>טקסט פתיחה לעמוד (לא חובה)</label><input id="bk_intro" value="'+esc(s.pageIntro||'')+'" placeholder="בחר מועד שנוח לך…" style="'+inputStyle+'"></div>'+
+    '<div class="card" style="margin-bottom:10px">'+chk('bk_reminders',s.remindersEnabled,'שלח תזכורות ווטסאפ לפני הפגישה')+
+      '<div class="f" style="margin-top:8px"><label>מתי לשלוח תזכורת — דקות לפני, מופרד בפסיק (למשל 1440,60 = יום ושעה)</label><input id="bk_offsets" value="'+esc(s.reminderOffsets||'1440,60')+'" style="'+inputStyle+';'+ltr+'"></div>'+
+      '<div class="hint">התזכורות נשלחות ע\x22י Worker נפרד (agency-hq-reminders). ראה README.</div>'+
+    '</div>'+
+    '<div class="card" style="margin-bottom:10px"><b style="font-size:.9rem">נוסח הודעות (Green API / תצוגה)</b>'+
+      '<div class="hint">משתנים: {name} {datetime} {details} {link} {date} {time}. ב-Meta הנוסח נקבע בתבנית המאושרת.</div>'+
+      '<div class="f" style="margin-top:8px"><label>הודעת אישור</label><textarea id="bk_ctext" rows="4" style="'+inputStyle+'">'+esc(s.confirmText||'')+'</textarea></div>'+
+      '<div class="f" style="margin-top:8px"><label>הודעת תזכורת</label><textarea id="bk_rtext" rows="4" style="'+inputStyle+'">'+esc(s.reminderText||'')+'</textarea></div>'+
+    '</div>'+
+    '<div class="card" style="margin-bottom:10px"><b style="font-size:.9rem">תבניות Meta (רק אם הספק הוא Meta)</b>'+
+      '<div class="hint">צור ב-WhatsApp Manager שתי תבניות עם {{1}}=שם, {{2}}=מועד, {{3}}=אופן המפגש, והזן כאן את שמותיהן.</div>'+
+      '<div class="f2" style="margin-top:8px"><div class="f"><label>תבנית אישור</label><input id="bk_ctpl" value="'+esc(s.confirmTemplate||'')+'" placeholder="booking_confirmation" style="'+inputStyle+';'+ltr+'"></div>'+
+        '<div class="f"><label>תבנית תזכורת</label><input id="bk_rtpl" value="'+esc(s.reminderTemplate||'')+'" placeholder="booking_reminder" style="'+inputStyle+';'+ltr+'"></div></div>'+
+      '<div class="f" style="margin-top:8px"><label>שפת התבניות</label><input id="bk_tlang" value="'+esc(s.templateLang||'he')+'" style="'+inputStyle+';'+ltr+';max-width:120px"></div>'+
+    '</div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">סגור</button><button class="btn primary" onclick="bkSaveSettings()">💾 שמור</button></div>'
+  ,true);
+}
+async function bkSaveSettings(){
+  const v=id=>$(id)?$(id).value:''; const ck=id=>$(id)?$(id).checked:false;
+  const body={enabled:ck('bk_enabled'),offerPhone:ck('bk_phone'),offerZoom:ck('bk_zoom'),zoomLink:v('bk_zoomlink').trim(),
+    pageIntro:v('bk_intro'),remindersEnabled:ck('bk_reminders'),reminderOffsets:v('bk_offsets').trim(),
+    confirmText:v('bk_ctext'),reminderText:v('bk_rtext'),confirmTemplate:v('bk_ctpl').trim(),reminderTemplate:v('bk_rtpl').trim(),templateLang:v('bk_tlang').trim()||'he'};
+  try{ const r=await apiPut('/bookings/settings',body); BK_SET=await apiGet('/bookings/settings');
+    const hdr=$('bkHdrState'); if(hdr){hdr.className='pill '+(BK_SET.enabled?'p-green':'p-gray');hdr.textContent=BK_SET.enabled?'פעיל':'כבוי';}
+    toast('ההגדרות נשמרו ✓'); closeModal(); bkRender(); }
+  catch(e){ toast('שגיאה בשמירה','bad'); }
 }
 async function advanceSysTask(taskId,status,systemId){ try{ await apiPatch('/tasks/'+taskId,{status}); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
 async function delSysTask(taskId,systemId){ if(!confirm('למחוק משימה?'))return; try{ await apiDel('/tasks/'+taskId); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
