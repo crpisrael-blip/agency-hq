@@ -2296,7 +2296,7 @@ async function saveDoc(id){
 async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await apiDel('/documents/'+id); closeModal(); toast('נמחק'); go('documents'); }
 
 // ---------- מתודולוגיה (פלייבוק) ----------
-let PB_CACHE=[], PBSECS=[], RUN=null;
+let PB_CACHE=[], PBSECS=[], RUN=null, RUNSECS=[];
 // ---------- הצעת מחיר על דף לוגו (PDF דרך הדפסה) ----------
 async function quoteForm(pre){
   pre=pre||{};
@@ -2778,6 +2778,7 @@ function drawRun(){
         <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
         <button class="btn ghost" onclick="runRenderPrint()" title="הפקת PDF על דף לוגו ORT-TECH — מוכן להדפסה או לצירוף להצעת מחיר">🖨️ הפקת PDF</button>
         ${(RUN.status==='done'&&RUN.clientId)?`<button class="btn teal" onclick="quoteFromCurrentRun()" title="צור הצעת מחיר ללקוח, מקושרת למהלך שהושלם">📄 הצעת מחיר</button>`:''}
+        <button class="btn ghost" onclick="runEditForm()" title="עריכת מבנה הטופס של המהלך הזה — כותרת, סעיפים ושאלות. התשובות שכבר מולאו נשמרות.">✏️ עריכת הטופס</button>
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
     ${!isDoc&&RUN.telegram?tgStatusCard(RUN.telegram):''}
@@ -2847,6 +2848,70 @@ async function saveRunDoc(){ grabRunInputs(); if(await saveRun()) toast('נשמ�
 async function saveRunNotes(){ grabRunInputs(); if(await saveRun()) toast('נשמר'); }
 async function finishRun(){ grabRunInputs(); if(await saveRun({status:'done'})){ RUN.status='done'; toast('הושלם ✓'); drawRun(); } }
 async function delRun(){ if(!confirm('למחוק מהלך זה?'))return; await apiDel('/playbooks/runs/'+RUN.id); toast('נמחק'); go('playbooks'); }
+
+/* ===== עריכת מבנה הטופס של מהלך שכבר הוחל על לקוח ===== */
+function runEditForm(){
+  grabRunInputs();                       // לא לאבד תשובות שהוקלדו ועוד לא נשמרו
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
+  // צילום סעיפי המהלך עם מפתח מקורי (_k) לכל פריט — כדי למפות תשובות מחדש בשמירה
+  RUNSECS=JSON.parse(RUN.sections||'[]').map((s,si)=>({
+    title:s.title||'',
+    items:(s.items||[]).map((it,ii)=>({label:it.label||'',hint:it.hint||'',_k:si+'-'+ii})),
+  }));
+  openModal(`<h3>עריכת הטופס — ${esc(RUN.title||'')}</h3>
+    <div class="f"><label>כותרת *</label><input id="re_title" value="${esc(RUN.title||'')}"></div>
+    ${isDoc
+      ? '<div class="hint" style="margin:8px 0">זהו מהלך מסוג מסמך — את גוף המסמך עורכים ישירות במסך המהלך. כאן ניתן לעדכן את הכותרת בלבד.</div>'
+      : `<div class="f"><label>סעיפים ושאלות</label><div id="reSecs"></div>
+         <button class="btn ghost small" type="button" onclick="addRunSec()">+ סעיף</button></div>
+         <div class="hint" style="margin-top:6px">תשובות שכבר מולאו נשארות צמודות לשאלה שלהן, גם בשינוי סדר או הוספה. שאלה שתמחק — התשובה שלה תימחק איתה.</div>`}
+    <div class="modal-actions"><button class="btn primary" onclick="saveRunEdit()">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+  if(!isDoc) renderRunSecs();
+}
+function renderRunSecs(){
+  $('reSecs').innerHTML=RUNSECS.map((s,si)=>`<div class="pb-sec">
+    <div class="row" style="gap:6px;margin-bottom:6px"><input value="${esc(s.title||'')}" placeholder="שם הסעיף" class="grow" oninput="RUNSECS[${si}].title=this.value">
+      <button class="btn danger small" type="button" onclick="RUNSECS.splice(${si},1);renderRunSecs()">✕ סעיף</button></div>
+    ${(s.items||[]).map((it,ii)=>`<div class="row" style="gap:6px;margin:0 14px 5px">
+      <input value="${esc(it.label||'')}" placeholder="שאלה" class="grow" oninput="RUNSECS[${si}].items[${ii}].label=this.value">
+      <input value="${esc(it.hint||'')}" placeholder="רמז" style="max-width:150px" oninput="RUNSECS[${si}].items[${ii}].hint=this.value">
+      <button class="btn danger small" type="button" onclick="RUNSECS[${si}].items.splice(${ii},1);renderRunSecs()">✕</button></div>`).join('')}
+    <button class="btn ghost small" type="button" onclick="addRunItem(${si})">+ שאלה</button>
+  </div>`).join('')||'<div class="hint">אין סעיפים עדיין</div>';
+}
+function addRunSec(){ RUNSECS.push({title:'',items:[{label:'',hint:''}]}); renderRunSecs(); }
+function addRunItem(si){ RUNSECS[si].items=RUNSECS[si].items||[]; RUNSECS[si].items.push({label:'',hint:''}); renderRunSecs(); }
+/** בונה סעיפים נקיים וממפה מחדש תשובות/סימונים/"לא רלוונטי" למיקום החדש לפי המפתח המקורי */
+function buildRunEdit(){
+  const sections=[], answers={}, checked={}, na={};
+  const oa=RUN._answers||{}, oc=RUN._checked||{}, on=RUN._na||{};
+  (RUNSECS||[]).forEach(s=>{
+    const items=(s.items||[]).filter(i=>i&&String(i.label||'').trim());
+    if(!(String(s.title||'').trim()||items.length)) return;   // סעיף ריק לגמרי מושמט
+    const nsi=sections.length;
+    const outItems=items.map((it,nii)=>{
+      const nk=nsi+'-'+nii;
+      if(it._k!=null){
+        if(oa[it._k]!==undefined) answers[nk]=oa[it._k];
+        if(oc[it._k]) checked[nk]=true;
+        if(on[it._k]) na[nk]=true;
+      }
+      const o={label:String(it.label||'').trim()};
+      const h=String(it.hint||'').trim(); if(h) o.hint=h;
+      return o;
+    });
+    sections.push({title:String(s.title||'').trim(),items:outItems});
+  });
+  return {sections,answers,checked,na};
+}
+async function saveRunEdit(){
+  const title=val('re_title'); if(!title){toast('חסרה כותרת','bad');return;}
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
+  const body=isDoc?{title}:{title,...buildRunEdit()};
+  try{ await apiPatch('/playbooks/runs/'+RUN.id,body); closeModal(); toast('נשמר ✓'); await openRun(RUN.id); }
+  catch(e){ toast('שגיאה בשמירה','bad'); }
+}
 
 /* ---------- מילוי עצמי של הלקוח בטלגרם (ערוץ שני לאותו מהלך) ---------- */
 const TG_STATUS_CLASS={sent:'p-gray',opened:'p-blue',in_progress:'p-amber',completed:'p-green',cancelled:'p-gray'};
