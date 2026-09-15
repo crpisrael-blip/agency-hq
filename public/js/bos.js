@@ -532,7 +532,7 @@
       '.foot{margin-top:30px;border-top:1px solid #e3dccf;padding-top:9px;font-size:11.5px;color:#6b7a8d;display:flex;justify-content:space-between}' +
       '@media print{body{padding:20px 26px}}</style></head><body>' +
       '<div class="hdr"><div><h1>הצעה ותיחום עבודה</h1><div class="meta">גרסה <span class="ltr">' + (p.version || 1) + '</span> · תאריך: <span class="ltr">' + created.toLocaleDateString('he-IL') + '</span>' + (validStr ? ' · בתוקף עד <span class="ltr">' + validStr + '</span>' : '') + '</div></div>' +
-      '<div><div class="logo-crop"><img src="' + logoUrl + '" alt="ORT-TECH"></div><div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div></div>' +
+      '<div><div class="logo-crop"><img src="' + logoUrl + '" alt="ORT-TECH"></div><div class="biz">050-4860199 · menahemtzik1@gmail.com · ort-tech.co.il</div></div></div>' +
       '<div class="to">לכבוד: <b>' + esc(client) + '</b></div>' +
       (subject ? '<div class="subject">הנדון: ' + esc(subject) + '</div>' : '') +
       sec('מה נבנה', p.notes) +
