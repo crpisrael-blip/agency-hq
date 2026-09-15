@@ -91,7 +91,7 @@ window.SITE = {
             '<p class="fdesc">מתכננים איך העסק עובד — ואז בונים את הטכנולוגיה שמפעילה אותו. תהליכים, אוטומציות, מערכות מידע ונתונים במערכת עבודה אחת ברורה.</p>' +
             '<span class="fbadge">' + LEAF + 'עסק של מילואימניק</span>' +
           '</div>' +
-          '<div><h4>ניווט</h4><ul>' + navLinks + '<li><a href="/login">אזור אישי</a></li></ul></div>' +
+          '<div><h4>ניווט</h4><ul>' + navLinks + '<li><a href="/login">אזור אישי</a></li><li><a href="/privacy">מדיניות פרטיות</a></li></ul></div>' +
           '<div><h4>דברו איתנו</h4><ul>' +
             '<li><a href="tel:' + S.phone.replace(/[^0-9+]/g, '') + '">📞 ' + S.phone + '</a></li>' +
             '<li><a href="' + waHref + '" target="_blank" rel="noopener">💬 וואטסאפ</a></li>' +
