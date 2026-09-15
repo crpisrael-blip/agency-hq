@@ -7,7 +7,7 @@ import { buildSummary } from './run-fill';
 
 export const clientsApp = new Hono<Env>();
 
-const FIELDS = ['name', 'industry', 'size', 'contactName', 'contactRole', 'phone', 'email', 'status', 'stage', 'health', 'tags', 'notes'];
+const FIELDS = ['name', 'industry', 'size', 'contactName', 'contactRole', 'phone', 'email', 'status', 'stage', 'health', 'tags', 'notes', 'logo'];
 
 // רשימת לקוחות + סיכומים (כמה מערכות, MRR)
 clientsApp.get('/', async (c) => {

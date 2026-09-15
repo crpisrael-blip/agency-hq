@@ -39,6 +39,7 @@ export const clients = sqliteTable('clients', {
   stage: text('stage').notNull().default('lead'),        // LEGACY בלבד — לא בשימוש במודל BOS (הזדמנויות מחזיקות את שלב המכירה)
   health: text('health').notNull().default('green'),     // green | yellow | red
   website: text('website'),                              // אתר הארגון (BOS)
+  logo: text('logo'),                                     // לוגו כ-data URL (מוקטן), לשימוש בהצעות/מסמכים
   tags: text('tags'),
   notes: text('notes'),
   isSelf: integer('is_self').default(0),      // 1 = העסק שלי (ORT-TECH) — לידים שלו מנוהלים כ-CRM מלא
