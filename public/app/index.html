@@ -1165,6 +1165,7 @@ RENDER.leads=async()=>{
     '<div class="row" style="gap:8px;flex-wrap:wrap">'+
       '<button class="btn primary small" onclick="leadAddForm()" title="הזנה מהירה של פנייה שהגיעה בוואטסאפ/טלפון">➕ ליד חדש</button>'+
       '<button class="btn ghost small" onclick="whatsappSettings()" title="הודעת אישור אוטומטית בווטסאפ לכל מי שמשאיר פרטים באתר">💬 ווטסאפ אוטומטי <span id="waHdrState" class="pill p-gray">…</span></button>'+
+      '<button class="btn ghost small" onclick="integrationsSettings()" title="פתיחת לידים אוטומטית מווטסאפ נכנס ומטפסי לידים בפייסבוק">🔗 מקורות לידים</button>'+
     '</div></div><div id="leadsBody"><div class="empty">טוען…</div></div>';
   apiGet('/whatsapp/settings').then(st=>{ const el=$('waHdrState'); if(!el)return; const on=st.enabled!=='0'&&st.ready&&st.ready.ready; el.className='pill '+(on?'p-green':'p-gray'); el.textContent=on?'פעיל':'כבוי'; }).catch(()=>{});
   try{
@@ -1528,6 +1529,55 @@ async function whatsappResend(id){
     l.whatsappStatus='failed'; l.whatsappError=e.message||'';
     toast('השליחה נכשלה: '+(e.message||''),'bad'); renderLeadsList(); openLead(id);
   }
+}
+
+/* ===== מקורות לידים אוטומטיים: ווטסאפ נכנס + טפסי פייסבוק (Meta webhook) ===== */
+async function integrationsSettings(){
+  let st; try{ st=await apiGet('/integrations/settings'); }catch(e){ toast('שגיאה בטעינת ההגדרות','bad'); return; }
+  const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
+  const ltr='direction:ltr;text-align:left';
+  const ph=(set)=>set?'מוגדר — השאר ריק כדי לא לשנות':'';
+  openModal(
+    '<div class="spread"><h3 style="margin:0">🔗 מקורות לידים אוטומטיים</h3></div>'+
+    '<div class="muted" style="font-size:.88rem;margin:6px 0 14px">חיבור דרך אפליקציית Meta אחת: כל <b>הודעה נכנסת בווטסאפ</b> וכל <b>מילוי טופס לידים בפייסבוק</b> פותחים ליד אוטומטית ב"הלידים שלי". הודעה מלקוח שכבר קיים כליד פתוח — מתועדת ביומן שלו במקום לפתוח כפילות.</div>'+
+    '<div class="card" style="margin:10px 0"><b style="font-size:.92rem">🌐 כתובת ה-Webhook</b>'+
+      '<div class="hint">הדבק ב-Meta → Webhooks → Callback URL, גם למוצר WhatsApp וגם ל-Page (Facebook Login/Webhooks).</div>'+
+      '<div class="row" style="gap:8px;margin-top:6px"><input id="in_cb" readonly value="'+esc(st.callbackUrl||'')+'" style="'+inputStyle+';'+ltr+'"><button class="btn ghost small" onclick="navigator.clipboard&&navigator.clipboard.writeText($(\'in_cb\').value).then(()=>toast(\'הועתק ✓\'))">📋</button></div></div>'+
+    '<div class="f2">'+
+      '<div class="f"><label>Verify Token'+(st.meta_verify_tokenSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_verify" type="password" autocomplete="new-password" placeholder="'+ph(st.meta_verify_tokenSet)+'בחר/י מחרוזת כלשהי" style="'+inputStyle+';'+ltr+'"><div class="hint">אותה מחרוזת בדיוק שתזין ב-Meta בשדה Verify Token.</div></div>'+
+      '<div class="f"><label>App Secret (סוד)'+(st.meta_app_secretSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_secret" type="password" autocomplete="new-password" placeholder="'+ph(st.meta_app_secretSet)+'' + 'מ-Settings → Basic" style="'+inputStyle+';'+ltr+'"><div class="hint">לאימות חתימת הבקשות. מומלץ מאוד — בלעדיו כל גורם יכול לשלוח לידים מזויפים.</div></div>'+
+    '</div>'+
+    '<div class="card" style="margin:12px 0;background:#eef4ff;border-color:#b9cdf2"><div class="spread"><b style="font-size:.92rem">💬 ווטסאפ נכנס → ליד</b>'+
+      '<select id="in_wa" style="'+inputStyle+';max-width:150px;font-weight:700"><option value="1" '+(st.waInboundEnabled?'selected':'')+'>פעיל</option><option value="0" '+(!st.waInboundEnabled?'selected':'')+'>כבוי</option></select></div>'+
+      '<div class="hint" style="margin-top:6px">ב-Meta → WhatsApp → Configuration: הצב את ה-Callback URL וה-Verify Token, ואז Subscribe לשדה <code>messages</code>.</div></div>'+
+    '<div class="card" style="margin:12px 0;background:#eef7ee;border-color:#b6dcb6"><div class="spread"><b style="font-size:.92rem">📘 טפסי לידים בפייסבוק → ליד</b>'+
+      '<select id="in_fb" style="'+inputStyle+';max-width:150px;font-weight:700"><option value="1" '+(st.fbLeadsEnabled?'selected':'')+'>פעיל</option><option value="0" '+(!st.fbLeadsEnabled?'selected':'')+'>כבוי</option></select></div>'+
+      '<div class="f" style="margin-top:8px"><label>Page Access Token (סוד)'+(st.fb_page_tokenSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_page" type="password" autocomplete="new-password" placeholder="'+ph(st.fb_page_tokenSet)+'טוקן של העמוד" style="'+inputStyle+';'+ltr+'"></div>'+
+      '<div class="hint">נדרש כדי למשוך את פרטי הליד מהטופס. ב-Meta → Webhooks → Page: Subscribe לשדה <code>leadgen</code>. דורש הרשאת leads_retrieval ואישור אפליקציה כדי לצאת מ-Dev Mode.</div></div>'+
+    '<div class="card" style="margin:12px 0"><b style="font-size:.92rem">🔌 בדיקת חיבור</b>'+
+      '<div class="row" style="gap:8px;margin-top:6px"><button class="btn ghost small" onclick="integrationsCheck()">בדוק</button><span id="in_status" class="muted" style="font-size:.85rem"></span></div></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">סגור</button><button class="btn primary" onclick="integrationsSave()">💾 שמור הגדרות</button></div>'
+  , true);
+}
+async function integrationsSave(){
+  const v=(id)=>($(id)?$(id).value.trim():'');
+  const body={ meta_wa_inbound_enabled:$('in_wa').value, meta_fb_leads_enabled:$('in_fb').value };
+  if(v('in_verify')) body.meta_verify_token=v('in_verify');
+  if(v('in_secret')) body.meta_app_secret=v('in_secret');
+  if(v('in_page')) body.fb_page_token=v('in_page');
+  try{ await apiPut('/integrations/settings',body);
+    if($('in_verify'))$('in_verify').value=''; if($('in_secret'))$('in_secret').value=''; if($('in_page'))$('in_page').value='';
+    toast('ההגדרות נשמרו ✓'); }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
+async function integrationsCheck(){
+  const out=$('in_status'); out.textContent='בודק…';
+  try{ const r=await apiGet('/integrations/status');
+    const bits=[];
+    bits.push((r.verifyTokenSet?'✓':'✗')+' Verify Token');
+    bits.push((r.appSecretSet?'✓':'⚠️')+' App Secret');
+    if(r.pageTokenSet){ bits.push(r.page?('✓ עמוד: '+esc(r.page.name||'')):('✗ Page Token: '+esc(r.pageError||'לא תקין'))); }
+    out.innerHTML=bits.join(' · ');
+  }catch(e){ out.textContent='שגיאה בבדיקה'; }
 }
 
 // ============ זמינות ופגישות (קביעת שיחה מהאתר) ============
