@@ -104,6 +104,32 @@ leadsApp.get('/', async (c) => {
   return c.json(rows);
 });
 
+/**
+ * יצירת ליד ידני — פנייה שהגיעה מחוץ לאתר (וואטסאפ / טלפון / הפניה).
+ * נכנס כ"ליד שלי" (בלי systemId/clientId). אופציונלית שולח הודעת אישור בווטסאפ.
+ * POST /api/leads  { name?, phone?, note?, source?, sendWhatsApp? }
+ */
+leadsApp.post('/', async (c) => {
+  const body = await c.req.json().catch(() => ({} as any));
+  const name = body.name ? String(body.name).trim().slice(0, 120) : null;
+  const phone = body.phone ? String(body.phone).trim().slice(0, 40) : null;
+  const note = body.note ? String(body.note).trim().slice(0, 300) : null;
+  const source = body.source ? String(body.source).trim().slice(0, 40) : 'whatsapp';
+  if (!name && !phone && !note) return c.json({ error: 'empty' }, 400);
+  const leadId = uid();
+  await db(c).insert(leads).values({
+    id: leadId, systemId: null, clientId: null, source,
+    name, phone, note, status: 'new', createdAt: now(),
+  });
+  // ווטסאפ אישור — רק אם התבקש במפורש; sendLeadWelcome בודק מוכנות וטלפון תקין בעצמו
+  let whatsapp: 'sent' | 'failed' | 'skipped' | 'off' = 'off';
+  if (body.sendWhatsApp) {
+    const r = await sendLeadWelcome(c, { id: leadId, name, phone });
+    whatsapp = r.status;
+  }
+  return c.json({ ok: true, id: leadId, whatsapp });
+});
+
 // סיכום מונים — סה"כ, החודש, ופירוט לפי מערכת
 leadsApp.get('/summary', async (c) => {
   const d = db(c);

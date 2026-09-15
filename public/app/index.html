@@ -1162,7 +1162,11 @@ function leadStatusSelect(id,cur){ return '<select onchange="leadSetStatus(\''+i
 
 RENDER.leads=async()=>{
   $('view').innerHTML='<div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:8px"><div><h2>📥 לידים</h2><div class="sub">הלידים שלך — CRM מלא לניהול המכירה · לידים של מערכות לקוחות — מעקב וספירה בלבד</div></div>'+
-    '<button class="btn ghost small" onclick="whatsappSettings()" title="הודעת אישור אוטומטית בווטסאפ לכל מי שמשאיר פרטים באתר">💬 ווטסאפ אוטומטי <span id="waHdrState" class="pill p-gray">…</span></button></div><div id="leadsBody"><div class="empty">טוען…</div></div>';
+    '<div class="row" style="gap:8px;flex-wrap:wrap">'+
+      '<button class="btn primary small" onclick="leadAddForm()" title="הזנה מהירה של פנייה שהגיעה בוואטסאפ/טלפון">➕ ליד חדש</button>'+
+      '<button class="btn ghost small" onclick="whatsappSettings()" title="הודעת אישור אוטומטית בווטסאפ לכל מי שמשאיר פרטים באתר">💬 ווטסאפ אוטומטי <span id="waHdrState" class="pill p-gray">…</span></button>'+
+      '<button class="btn ghost small" onclick="integrationsSettings()" title="פתיחת לידים אוטומטית מווטסאפ נכנס ומטפסי לידים בפייסבוק">🔗 מקורות לידים</button>'+
+    '</div></div><div id="leadsBody"><div class="empty">טוען…</div></div>';
   apiGet('/whatsapp/settings').then(st=>{ const el=$('waHdrState'); if(!el)return; const on=st.enabled!=='0'&&st.ready&&st.ready.ready; el.className='pill '+(on?'p-green':'p-gray'); el.textContent=on?'פעיל':'כבוי'; }).catch(()=>{});
   try{
     const [rows,systems,cls]=await Promise.all([apiGet('/leads'),apiGet('/systems'),apiGet('/clients')]);
@@ -1174,6 +1178,34 @@ RENDER.leads=async()=>{
     renderLeadsList();
   }catch(e){ const b=$('leadsBody'); if(b)b.innerHTML='<div class="empty">שגיאה בטעינת לידים</div>'; }
 };
+
+/* ➕ הזנת ליד ידני — פנייה שהגיעה בוואטסאפ/טלפון/הפניה, נכנסת ל"הלידים שלי" */
+function leadAddForm(){
+  openModal(`<h3>➕ ליד חדש</h3>
+    <div class="hint" style="margin-bottom:10px">להזנה מהירה של פנייה שהגיעה מחוץ לאתר (וואטסאפ, טלפון, הפניה). נכנס ל"הלידים שלי" עם סטטוס "חדש".</div>
+    <div class="f2"><div class="f"><label>שם</label><input id="nl_name" placeholder="שם הפונה"></div>
+      <div class="f"><label>טלפון</label><input id="nl_phone" placeholder="05X-XXXXXXX" inputmode="tel"></div></div>
+    <div class="f"><label>מקור</label><select id="nl_source">
+      <option value="whatsapp">וואטסאפ</option><option value="phone">טלפון</option>
+      <option value="referral">הפניה</option><option value="other">אחר</option></select></div>
+    <div class="f"><label>תוכן הפנייה</label><textarea id="nl_note" rows="4" placeholder="מה הפונה כתב או ביקש…"></textarea></div>
+    <label class="row" style="gap:8px;margin:6px 0;cursor:pointer"><input type="checkbox" id="nl_wa">
+      <span>שלח לו הודעת אישור אוטומטית בווטסאפ <span class="hint">(רק אם הווטסאפ מוגדר פעיל והטלפון תקין)</span></span></label>
+    <div class="modal-actions"><button class="btn primary" onclick="saveNewLead()">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+}
+async function saveNewLead(){
+  const name=val('nl_name').trim(), phone=val('nl_phone').trim(), note=val('nl_note').trim();
+  if(!name&&!phone&&!note){ toast('מלא לפחות שם, טלפון או תוכן','bad'); return; }
+  const body={name,phone,note,source:val('nl_source'),sendWhatsApp:$('nl_wa').checked};
+  try{
+    const r=await apiPost('/leads',body);
+    closeModal();
+    toast(r.whatsapp==='sent'?'הליד נוסף ✓ · ווטסאפ נשלח':r.whatsapp==='failed'?'הליד נוסף ✓ · שליחת ווטסאפ נכשלה':'הליד נוסף ✓');
+    LEADS_MODE='mine'; LEADS_FILTER='new';
+    go('leads');
+  }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
 
 function renderLeadsList(){
   const body=$('leadsBody'); if(!body)return;
@@ -1497,6 +1529,55 @@ async function whatsappResend(id){
     l.whatsappStatus='failed'; l.whatsappError=e.message||'';
     toast('השליחה נכשלה: '+(e.message||''),'bad'); renderLeadsList(); openLead(id);
   }
+}
+
+/* ===== מקורות לידים אוטומטיים: ווטסאפ נכנס + טפסי פייסבוק (Meta webhook) ===== */
+async function integrationsSettings(){
+  let st; try{ st=await apiGet('/integrations/settings'); }catch(e){ toast('שגיאה בטעינת ההגדרות','bad'); return; }
+  const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
+  const ltr='direction:ltr;text-align:left';
+  const ph=(set)=>set?'מוגדר — השאר ריק כדי לא לשנות':'';
+  openModal(
+    '<div class="spread"><h3 style="margin:0">🔗 מקורות לידים אוטומטיים</h3></div>'+
+    '<div class="muted" style="font-size:.88rem;margin:6px 0 14px">חיבור דרך אפליקציית Meta אחת: כל <b>הודעה נכנסת בווטסאפ</b> וכל <b>מילוי טופס לידים בפייסבוק</b> פותחים ליד אוטומטית ב"הלידים שלי". הודעה מלקוח שכבר קיים כליד פתוח — מתועדת ביומן שלו במקום לפתוח כפילות.</div>'+
+    '<div class="card" style="margin:10px 0"><b style="font-size:.92rem">🌐 כתובת ה-Webhook</b>'+
+      '<div class="hint">הדבק ב-Meta → Webhooks → Callback URL, גם למוצר WhatsApp וגם ל-Page (Facebook Login/Webhooks).</div>'+
+      '<div class="row" style="gap:8px;margin-top:6px"><input id="in_cb" readonly value="'+esc(st.callbackUrl||'')+'" style="'+inputStyle+';'+ltr+'"><button class="btn ghost small" onclick="navigator.clipboard&&navigator.clipboard.writeText($(\'in_cb\').value).then(()=>toast(\'הועתק ✓\'))">📋</button></div></div>'+
+    '<div class="f2">'+
+      '<div class="f"><label>Verify Token'+(st.meta_verify_tokenSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_verify" type="password" autocomplete="new-password" placeholder="'+ph(st.meta_verify_tokenSet)+'בחר/י מחרוזת כלשהי" style="'+inputStyle+';'+ltr+'"><div class="hint">אותה מחרוזת בדיוק שתזין ב-Meta בשדה Verify Token.</div></div>'+
+      '<div class="f"><label>App Secret (סוד)'+(st.meta_app_secretSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_secret" type="password" autocomplete="new-password" placeholder="'+ph(st.meta_app_secretSet)+'' + 'מ-Settings → Basic" style="'+inputStyle+';'+ltr+'"><div class="hint">לאימות חתימת הבקשות. מומלץ מאוד — בלעדיו כל גורם יכול לשלוח לידים מזויפים.</div></div>'+
+    '</div>'+
+    '<div class="card" style="margin:12px 0;background:#eef4ff;border-color:#b9cdf2"><div class="spread"><b style="font-size:.92rem">💬 ווטסאפ נכנס → ליד</b>'+
+      '<select id="in_wa" style="'+inputStyle+';max-width:150px;font-weight:700"><option value="1" '+(st.waInboundEnabled?'selected':'')+'>פעיל</option><option value="0" '+(!st.waInboundEnabled?'selected':'')+'>כבוי</option></select></div>'+
+      '<div class="hint" style="margin-top:6px">ב-Meta → WhatsApp → Configuration: הצב את ה-Callback URL וה-Verify Token, ואז Subscribe לשדה <code>messages</code>.</div></div>'+
+    '<div class="card" style="margin:12px 0;background:#eef7ee;border-color:#b6dcb6"><div class="spread"><b style="font-size:.92rem">📘 טפסי לידים בפייסבוק → ליד</b>'+
+      '<select id="in_fb" style="'+inputStyle+';max-width:150px;font-weight:700"><option value="1" '+(st.fbLeadsEnabled?'selected':'')+'>פעיל</option><option value="0" '+(!st.fbLeadsEnabled?'selected':'')+'>כבוי</option></select></div>'+
+      '<div class="f" style="margin-top:8px"><label>Page Access Token (סוד)'+(st.fb_page_tokenSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_page" type="password" autocomplete="new-password" placeholder="'+ph(st.fb_page_tokenSet)+'טוקן של העמוד" style="'+inputStyle+';'+ltr+'"></div>'+
+      '<div class="hint">נדרש כדי למשוך את פרטי הליד מהטופס. ב-Meta → Webhooks → Page: Subscribe לשדה <code>leadgen</code>. דורש הרשאת leads_retrieval ואישור אפליקציה כדי לצאת מ-Dev Mode.</div></div>'+
+    '<div class="card" style="margin:12px 0"><b style="font-size:.92rem">🔌 בדיקת חיבור</b>'+
+      '<div class="row" style="gap:8px;margin-top:6px"><button class="btn ghost small" onclick="integrationsCheck()">בדוק</button><span id="in_status" class="muted" style="font-size:.85rem"></span></div></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">סגור</button><button class="btn primary" onclick="integrationsSave()">💾 שמור הגדרות</button></div>'
+  , true);
+}
+async function integrationsSave(){
+  const v=(id)=>($(id)?$(id).value.trim():'');
+  const body={ meta_wa_inbound_enabled:$('in_wa').value, meta_fb_leads_enabled:$('in_fb').value };
+  if(v('in_verify')) body.meta_verify_token=v('in_verify');
+  if(v('in_secret')) body.meta_app_secret=v('in_secret');
+  if(v('in_page')) body.fb_page_token=v('in_page');
+  try{ await apiPut('/integrations/settings',body);
+    if($('in_verify'))$('in_verify').value=''; if($('in_secret'))$('in_secret').value=''; if($('in_page'))$('in_page').value='';
+    toast('ההגדרות נשמרו ✓'); }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
+async function integrationsCheck(){
+  const out=$('in_status'); out.textContent='בודק…';
+  try{ const r=await apiGet('/integrations/status');
+    const bits=[];
+    bits.push((r.verifyTokenSet?'✓':'✗')+' Verify Token');
+    bits.push((r.appSecretSet?'✓':'⚠️')+' App Secret');
+    if(r.pageTokenSet){ bits.push(r.page?('✓ עמוד: '+esc(r.page.name||'')):('✗ Page Token: '+esc(r.pageError||'לא תקין'))); }
+    out.innerHTML=bits.join(' · ');
+  }catch(e){ out.textContent='שגיאה בבדיקה'; }
 }
 
 // ============ זמינות ופגישות (קביעת שיחה מהאתר) ============
@@ -2296,7 +2377,7 @@ async function saveDoc(id){
 async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await apiDel('/documents/'+id); closeModal(); toast('נמחק'); go('documents'); }
 
 // ---------- מתודולוגיה (פלייבוק) ----------
-let PB_CACHE=[], PBSECS=[], RUN=null;
+let PB_CACHE=[], PBSECS=[], RUN=null, RUNSECS=[];
 // ---------- הצעת מחיר על דף לוגו (PDF דרך הדפסה) ----------
 async function quoteForm(pre){
   pre=pre||{};
@@ -2778,6 +2859,7 @@ function drawRun(){
         <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
         <button class="btn ghost" onclick="runRenderPrint()" title="הפקת PDF על דף לוגו ORT-TECH — מוכן להדפסה או לצירוף להצעת מחיר">🖨️ הפקת PDF</button>
         ${(RUN.status==='done'&&RUN.clientId)?`<button class="btn teal" onclick="quoteFromCurrentRun()" title="צור הצעת מחיר ללקוח, מקושרת למהלך שהושלם">📄 הצעת מחיר</button>`:''}
+        <button class="btn ghost" onclick="runEditForm()" title="עריכת מבנה הטופס של המהלך הזה — כותרת, סעיפים ושאלות. התשובות שכבר מולאו נשמרות.">✏️ עריכת הטופס</button>
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
     ${!isDoc&&RUN.telegram?tgStatusCard(RUN.telegram):''}
@@ -2847,6 +2929,70 @@ async function saveRunDoc(){ grabRunInputs(); if(await saveRun()) toast('נשמ�
 async function saveRunNotes(){ grabRunInputs(); if(await saveRun()) toast('נשמר'); }
 async function finishRun(){ grabRunInputs(); if(await saveRun({status:'done'})){ RUN.status='done'; toast('הושלם ✓'); drawRun(); } }
 async function delRun(){ if(!confirm('למחוק מהלך זה?'))return; await apiDel('/playbooks/runs/'+RUN.id); toast('נמחק'); go('playbooks'); }
+
+/* ===== עריכת מבנה הטופס של מהלך שכבר הוחל על לקוח ===== */
+function runEditForm(){
+  grabRunInputs();                       // לא לאבד תשובות שהוקלדו ועוד לא נשמרו
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
+  // צילום סעיפי המהלך עם מפתח מקורי (_k) לכל פריט — כדי למפות תשובות מחדש בשמירה
+  RUNSECS=JSON.parse(RUN.sections||'[]').map((s,si)=>({
+    title:s.title||'',
+    items:(s.items||[]).map((it,ii)=>({label:it.label||'',hint:it.hint||'',_k:si+'-'+ii})),
+  }));
+  openModal(`<h3>עריכת הטופס — ${esc(RUN.title||'')}</h3>
+    <div class="f"><label>כותרת *</label><input id="re_title" value="${esc(RUN.title||'')}"></div>
+    ${isDoc
+      ? '<div class="hint" style="margin:8px 0">זהו מהלך מסוג מסמך — את גוף המסמך עורכים ישירות במסך המהלך. כאן ניתן לעדכן את הכותרת בלבד.</div>'
+      : `<div class="f"><label>סעיפים ושאלות</label><div id="reSecs"></div>
+         <button class="btn ghost small" type="button" onclick="addRunSec()">+ סעיף</button></div>
+         <div class="hint" style="margin-top:6px">תשובות שכבר מולאו נשארות צמודות לשאלה שלהן, גם בשינוי סדר או הוספה. שאלה שתמחק — התשובה שלה תימחק איתה.</div>`}
+    <div class="modal-actions"><button class="btn primary" onclick="saveRunEdit()">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+  if(!isDoc) renderRunSecs();
+}
+function renderRunSecs(){
+  $('reSecs').innerHTML=RUNSECS.map((s,si)=>`<div class="pb-sec">
+    <div class="row" style="gap:6px;margin-bottom:6px"><input value="${esc(s.title||'')}" placeholder="שם הסעיף" class="grow" oninput="RUNSECS[${si}].title=this.value">
+      <button class="btn danger small" type="button" onclick="RUNSECS.splice(${si},1);renderRunSecs()">✕ סעיף</button></div>
+    ${(s.items||[]).map((it,ii)=>`<div class="row" style="gap:6px;margin:0 14px 5px">
+      <input value="${esc(it.label||'')}" placeholder="שאלה" class="grow" oninput="RUNSECS[${si}].items[${ii}].label=this.value">
+      <input value="${esc(it.hint||'')}" placeholder="רמז" style="max-width:150px" oninput="RUNSECS[${si}].items[${ii}].hint=this.value">
+      <button class="btn danger small" type="button" onclick="RUNSECS[${si}].items.splice(${ii},1);renderRunSecs()">✕</button></div>`).join('')}
+    <button class="btn ghost small" type="button" onclick="addRunItem(${si})">+ שאלה</button>
+  </div>`).join('')||'<div class="hint">אין סעיפים עדיין</div>';
+}
+function addRunSec(){ RUNSECS.push({title:'',items:[{label:'',hint:''}]}); renderRunSecs(); }
+function addRunItem(si){ RUNSECS[si].items=RUNSECS[si].items||[]; RUNSECS[si].items.push({label:'',hint:''}); renderRunSecs(); }
+/** בונה סעיפים נקיים וממפה מחדש תשובות/סימונים/"לא רלוונטי" למיקום החדש לפי המפתח המקורי */
+function buildRunEdit(){
+  const sections=[], answers={}, checked={}, na={};
+  const oa=RUN._answers||{}, oc=RUN._checked||{}, on=RUN._na||{};
+  (RUNSECS||[]).forEach(s=>{
+    const items=(s.items||[]).filter(i=>i&&String(i.label||'').trim());
+    if(!(String(s.title||'').trim()||items.length)) return;   // סעיף ריק לגמרי מושמט
+    const nsi=sections.length;
+    const outItems=items.map((it,nii)=>{
+      const nk=nsi+'-'+nii;
+      if(it._k!=null){
+        if(oa[it._k]!==undefined) answers[nk]=oa[it._k];
+        if(oc[it._k]) checked[nk]=true;
+        if(on[it._k]) na[nk]=true;
+      }
+      const o={label:String(it.label||'').trim()};
+      const h=String(it.hint||'').trim(); if(h) o.hint=h;
+      return o;
+    });
+    sections.push({title:String(s.title||'').trim(),items:outItems});
+  });
+  return {sections,answers,checked,na};
+}
+async function saveRunEdit(){
+  const title=val('re_title'); if(!title){toast('חסרה כותרת','bad');return;}
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
+  const body=isDoc?{title}:{title,...buildRunEdit()};
+  try{ await apiPatch('/playbooks/runs/'+RUN.id,body); closeModal(); toast('נשמר ✓'); await openRun(RUN.id); }
+  catch(e){ toast('שגיאה בשמירה','bad'); }
+}
 
 /* ---------- מילוי עצמי של הלקוח בטלגרם (ערוץ שני לאותו מהלך) ---------- */
 const TG_STATUS_CLASS={sent:'p-gray',opened:'p-blue',in_progress:'p-amber',completed:'p-green',cancelled:'p-gray'};
