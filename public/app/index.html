@@ -1162,7 +1162,10 @@ function leadStatusSelect(id,cur){ return '<select onchange="leadSetStatus(\''+i
 
 RENDER.leads=async()=>{
   $('view').innerHTML='<div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:8px"><div><h2>📥 לידים</h2><div class="sub">הלידים שלך — CRM מלא לניהול המכירה · לידים של מערכות לקוחות — מעקב וספירה בלבד</div></div>'+
-    '<button class="btn ghost small" onclick="whatsappSettings()" title="הודעת אישור אוטומטית בווטסאפ לכל מי שמשאיר פרטים באתר">💬 ווטסאפ אוטומטי <span id="waHdrState" class="pill p-gray">…</span></button></div><div id="leadsBody"><div class="empty">טוען…</div></div>';
+    '<div class="row" style="gap:8px;flex-wrap:wrap">'+
+      '<button class="btn primary small" onclick="leadAddForm()" title="הזנה מהירה של פנייה שהגיעה בוואטסאפ/טלפון">➕ ליד חדש</button>'+
+      '<button class="btn ghost small" onclick="whatsappSettings()" title="הודעת אישור אוטומטית בווטסאפ לכל מי שמשאיר פרטים באתר">💬 ווטסאפ אוטומטי <span id="waHdrState" class="pill p-gray">…</span></button>'+
+    '</div></div><div id="leadsBody"><div class="empty">טוען…</div></div>';
   apiGet('/whatsapp/settings').then(st=>{ const el=$('waHdrState'); if(!el)return; const on=st.enabled!=='0'&&st.ready&&st.ready.ready; el.className='pill '+(on?'p-green':'p-gray'); el.textContent=on?'פעיל':'כבוי'; }).catch(()=>{});
   try{
     const [rows,systems,cls]=await Promise.all([apiGet('/leads'),apiGet('/systems'),apiGet('/clients')]);
@@ -1174,6 +1177,34 @@ RENDER.leads=async()=>{
     renderLeadsList();
   }catch(e){ const b=$('leadsBody'); if(b)b.innerHTML='<div class="empty">שגיאה בטעינת לידים</div>'; }
 };
+
+/* ➕ הזנת ליד ידני — פנייה שהגיעה בוואטסאפ/טלפון/הפניה, נכנסת ל"הלידים שלי" */
+function leadAddForm(){
+  openModal(`<h3>➕ ליד חדש</h3>
+    <div class="hint" style="margin-bottom:10px">להזנה מהירה של פנייה שהגיעה מחוץ לאתר (וואטסאפ, טלפון, הפניה). נכנס ל"הלידים שלי" עם סטטוס "חדש".</div>
+    <div class="f2"><div class="f"><label>שם</label><input id="nl_name" placeholder="שם הפונה"></div>
+      <div class="f"><label>טלפון</label><input id="nl_phone" placeholder="05X-XXXXXXX" inputmode="tel"></div></div>
+    <div class="f"><label>מקור</label><select id="nl_source">
+      <option value="whatsapp">וואטסאפ</option><option value="phone">טלפון</option>
+      <option value="referral">הפניה</option><option value="other">אחר</option></select></div>
+    <div class="f"><label>תוכן הפנייה</label><textarea id="nl_note" rows="4" placeholder="מה הפונה כתב או ביקש…"></textarea></div>
+    <label class="row" style="gap:8px;margin:6px 0;cursor:pointer"><input type="checkbox" id="nl_wa">
+      <span>שלח לו הודעת אישור אוטומטית בווטסאפ <span class="hint">(רק אם הווטסאפ מוגדר פעיל והטלפון תקין)</span></span></label>
+    <div class="modal-actions"><button class="btn primary" onclick="saveNewLead()">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+}
+async function saveNewLead(){
+  const name=val('nl_name').trim(), phone=val('nl_phone').trim(), note=val('nl_note').trim();
+  if(!name&&!phone&&!note){ toast('מלא לפחות שם, טלפון או תוכן','bad'); return; }
+  const body={name,phone,note,source:val('nl_source'),sendWhatsApp:$('nl_wa').checked};
+  try{
+    const r=await apiPost('/leads',body);
+    closeModal();
+    toast(r.whatsapp==='sent'?'הליד נוסף ✓ · ווטסאפ נשלח':r.whatsapp==='failed'?'הליד נוסף ✓ · שליחת ווטסאפ נכשלה':'הליד נוסף ✓');
+    LEADS_MODE='mine'; LEADS_FILTER='new';
+    go('leads');
+  }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
 
 function renderLeadsList(){
   const body=$('leadsBody'); if(!body)return;
