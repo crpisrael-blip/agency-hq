@@ -68,9 +68,10 @@ function waMessageText(m: any): string {
  * טלפון — לא נפתח ליד חדש, אלא נוסיף את ההודעה כפעילות ליומן הליד הקיים. כך שיחה מתמשכת
  * לא מייצרת ליד על כל הודעה. מחזיר את מזהה הליד ואם נוצר חדש.
  */
-async function createInboundLead(
+export async function createInboundLead(
   c: any,
   input: { name?: string | null; phone?: string | null; note?: string | null; source: string },
+  opts?: { notify?: boolean },
 ): Promise<{ leadId: string; created: boolean }> {
   const d = db(c);
   const rawPhone = input.phone ? String(input.phone).slice(0, 40) : null;
@@ -100,7 +101,8 @@ async function createInboundLead(
     id, systemId: null, clientId: null, source: input.source,
     name, phone: rawPhone, note, status: 'new', createdAt: now(),
   });
-  // התראת טלגרם למנהל (best-effort) — רק על ליד חדש
+  // התראת טלגרם למנהל (best-effort) — רק על ליד חדש; מדולג כשהמקור עצמו הטלגרם
+  if (opts?.notify === false) return { leadId: id, created: true };
   const tg = await settingsMap(c, ['telegram_bot_token', 'telegram_chat_id']);
   const token = tg['telegram_bot_token'] || c.env.TELEGRAM_BOT_TOKEN;
   const chats = tg['telegram_chat_id'] || c.env.TELEGRAM_CHAT_ID;
