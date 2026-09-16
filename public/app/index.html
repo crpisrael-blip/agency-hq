@@ -2541,6 +2541,51 @@ let COMPOSE=false;            // מצב "הרכבת תהליך" פעיל (מצי
 let PB_SELECT=new Set();      // מזהי הפורמטים שסומנו בבורר
 let KITS_CACHE=[];            // ערכות התהליך
 
+/* מהלכים פעילים — מקובצים לפי לקוח, כל קבוצה אקורדיון נפתח/נסגר (לניהול עשרות מהלכים) */
+function activeRunsHTML(activeRuns){
+  if(!activeRuns.length) return '';
+  const groups={};
+  activeRuns.forEach(r=>{
+    const key=r.clientId||'__none__';
+    (groups[key]=groups[key]||{name:r.clientName||'כללי · ללא לקוח', items:[]}).items.push(r);
+  });
+  const arr=Object.values(groups).sort((a,b)=>b.items.length-a.items.length || String(a.name).localeCompare(String(b.name),'he'));
+  const openByDefault=arr.length===1;   // לקוח בודד — נפתח מיד; אחרת הכל מכווץ
+  const rowHTML=r=>`<div class="list-item" onclick="openRun('${r.id}')">
+        <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+          <small>${r.systemName?esc(r.systemName)+' · ':''}${STAGE_LABELS[r.stage]||''}</small>
+          <div class="bar" style="width:170px;margin-top:6px"><span style="width:${r.progress}%"></span></div></div>
+        <div class="row" style="gap:8px">${tgPill(r.telegram)}<span class="li-val muted">${r.progress}%</span></div></div>`;
+  const groupsHTML=arr.map((g,i)=>{
+    const bid='rg_'+i;
+    const avg=Math.round(g.items.reduce((s,r)=>s+(r.progress||0),0)/g.items.length);
+    const caretRot=openByDefault?'rotate(0deg)':'rotate(-90deg)';
+    return `<div style="border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden">
+      <div class="spread" style="cursor:pointer;padding:10px 12px;background:#faf9f6" onclick="toggleRunGroup('${bid}',this)">
+        <div class="row" style="gap:8px;align-items:center"><span class="rg-caret" style="display:inline-block;transition:transform .15s;transform:${caretRot}">▾</span>
+          <b>👤 ${esc(g.name)}</b><span class="pill p-gray">${g.items.length}</span></div>
+        <span class="muted" style="font-size:.85rem">${avg}% ממוצע</span></div>
+      <div id="${bid}" style="display:${openByDefault?'block':'none'};padding:4px 12px 8px">
+        ${g.items.slice().sort((a,b)=>(a.progress||0)-(b.progress||0)).map(rowHTML).join('')}
+      </div></div>`;
+  }).join('');
+  return `<div class="card">
+      <div class="spread" style="margin-bottom:10px"><h3 style="margin:0">🧭 מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
+        <div class="row" style="gap:6px"><button class="btn ghost small" onclick="setRunGroups(true)">פתח הכל</button>
+          <button class="btn ghost small" onclick="setRunGroups(false)">כווץ הכל</button></div></div>
+      ${groupsHTML}</div>`;
+}
+function toggleRunGroup(id,hdr){
+  const el=document.getElementById(id); if(!el)return;
+  const open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  const c=hdr&&hdr.querySelector('.rg-caret'); if(c)c.style.transform=open?'rotate(0deg)':'rotate(-90deg)';
+}
+function setRunGroups(open){
+  document.querySelectorAll('[id^="rg_"]').forEach(el=>{ el.style.display=open?'block':'none'; });
+  document.querySelectorAll('.rg-caret').forEach(c=>{ c.style.transform=open?'rotate(0deg)':'rotate(-90deg)'; });
+}
+
 RENDER.playbooks=async()=>{
   const [list,runs,kits]=await Promise.all([apiGet('/playbooks'),apiGet('/playbooks/runs'),apiGet('/playbooks/kits').catch(()=>[])]);
   PB_CACHE=list; KITS_CACHE=kits;
@@ -2573,14 +2618,7 @@ RENDER.playbooks=async()=>{
             <button class="btn ghost small" style="white-space:nowrap" onclick="kitForm('${k.id}')">עריכה</button></div>
         </div>`;}).join('')}</div>`:'<div class="hint">אין ערכות עדיין. סמן פורמטים במצב הרכבה ולחץ "שמור כערכה", או הוסף ערכה ידנית.</div>'}
     </div>
-    ${activeRuns.length?`<div class="card">
-      <h3>מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
-      ${activeRuns.map(r=>`<div class="list-item" onclick="openRun('${r.id}')">
-        <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
-          <small>${r.clientName?esc(r.clientName):'כללי'}${r.systemName?' · '+esc(r.systemName):''} · ${STAGE_LABELS[r.stage]||''}</small>
-          <div class="bar" style="width:170px;margin-top:6px"><span style="width:${r.progress}%"></span></div></div>
-        <div class="row" style="gap:8px">${tgPill(r.telegram)}<span class="li-val muted">${r.progress}%</span></div></div>`).join('')}
-    </div>`:''}
+    ${activeRunsHTML(activeRuns)}
     <div class="grid2">
     ${stages.map(s=>`
       <div class="card">
