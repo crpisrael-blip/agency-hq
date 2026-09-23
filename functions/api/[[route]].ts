@@ -27,6 +27,8 @@ import { callsApp } from '../../src/api/calls';
 import { todayApp } from '../../src/api/today';
 import { telegramWebhook, telegramAdminApp } from '../../src/api/run-fill';
 import { whatsappAdminApp } from '../../src/api/whatsapp';
+import { salesApp } from '../../src/api/sales';
+import { businessSettingsApp } from '../../src/api/business-settings';
 
 const app = new Hono<Env>().basePath('/api');
 
@@ -75,6 +77,8 @@ app.route('/calls', callsApp);
 app.route('/today', todayApp);
 app.route('/telegram', telegramAdminApp); // הגדרת/מצב בוט המילוי (מוגן)
 app.route('/whatsapp', whatsappAdminApp); // ווטסאפ אוטומטי לליד: הגדרות / מצב / בדיקה / שליחה חוזרת (מוגן)
+app.route('/sales', salesApp); // צנרת מכירה: הצעת מחיר → הזמנה → הושלם → קבלה
+app.route('/business-settings', businessSettingsApp); // הגדרות עסק (מסך הגדרות)
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 

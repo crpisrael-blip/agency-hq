@@ -460,6 +460,7 @@ const SECONDARY = [
   ['tasks','משימות'],
   ['modules','מודולים'],
   ['health','צינור עסקאות'],
+  ['settings','⚙️ הגדרות'],
   ['dashboard','לוח בקרה (ישן)'],
 ];
 // מיפוי עמוד → קבוצת ניווט (להדגשה בתפריט הראשי)
@@ -471,6 +472,7 @@ const NAV_GROUP = {
   work:'work', projects:'work', project:'work', systems:'work', processes:'work',
   finance:'finance', engagements:'finance', cashflow:'finance', calculator:'finance',
   growth:'growth', ideas:'growth',
+  settings:'settings',
   portfolio:'customers',
 };
 function buildNav(){
@@ -2198,15 +2200,25 @@ async function quoteBuild(){
     runId, runTitle, createdAt:now.getTime()
   };
   closeModal();
-  quoteRenderPrint(q);
+  await quoteRenderPrint(q);
   try{ await apiPost('/quotes',q); toast('ההצעה נשמרה ✓');
     if(CURRENT==='sales' && window.BOS){ try{ go('sales'); }catch(_){}}
   }
   catch(e){ toast('הדף הופק אך השמירה נכשלה','bad'); }
 }
 
+// זהות העסק (מסך ⚙️ הגדרות → פרטי עסק) — נטענת פעם אחת ומשמשת את כל מסמכי ההדפסה.
+// מתאפסת אחרי שמירת הגדרות (settingsBusinessSave ב-bos.js) כדי שהדפסה הבאה תשקף שינוי.
+let BIZ_CACHE=null;
+async function ensureBiz(){
+  if(BIZ_CACHE) return BIZ_CACHE;
+  try{ BIZ_CACHE=await apiGet('/business-settings'); }catch(e){ BIZ_CACHE={}; }
+  return BIZ_CACHE;
+}
+
 // מפיק ומדפיס דף הצעה מתוך אובייקט הצעה (חדש או שמור)
-function quoteRenderPrint(q){
+async function quoteRenderPrint(q){
+  const biz=await ensureBiz();
   const items=typeof q.items==='string'?JSON.parse(q.items||'[]'):(q.items||[]);
   const vatPct=Number(q.vatPct)||0;
   const sub=Number(q.subtotal)|| items.reduce((a,x)=>a+Number(x.amt||0),0);
@@ -2217,7 +2229,7 @@ function quoteRenderPrint(q){
   const qnum=q.quoteNo||'';
   const client=q.clientName||'', title=q.title||'', terms=q.terms||'', notes=q.notes||'';
   const validStr=q.validUntil? new Date(q.validUntil+'T12:00:00').toLocaleDateString('he-IL') : '';
-  const logoUrl=location.origin+'/ort-tech-logo.png';
+  const logoUrl=location.origin+(biz.businessLogoUrl||'/ort-tech-logo.png');
   const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>הצעת מחיר '+qnum+'</title>'+
     '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'+
     '<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet"><style>'+
@@ -2246,7 +2258,7 @@ function quoteRenderPrint(q){
     '<div class="hdr">'+
       '<div><h1>הצעת מחיר</h1><div class="meta">מס\' <span class="ltr">'+qnum+'</span> · תאריך: <span class="ltr">'+created.toLocaleDateString('he-IL')+'</span></div></div>'+
       '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="ORT-TECH"></div>'+
-      '<div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div>'+
+      '<div class="biz">'+esc(biz.businessPhone||'054-2214726')+' · '+esc(biz.businessEmail||'menahemtzik1@gmail.com')+' · '+esc(biz.businessWebsite||'ort-tech.co.il')+'</div></div>'+
     '</div>'+
     '<div class="to">לכבוד: <b>'+esc(client)+'</b></div>'+
     (title?'<div class="subject">הנדון: '+esc(title)+'</div>':'')+
@@ -2263,10 +2275,10 @@ function quoteRenderPrint(q){
     (notes?'<div class="sec"><b>הערות</b>'+esc(notes).replace(/\n/g,'<br>')+'</div>':'')+
     (q.runTitle?'<div class="sec"><b>נספח מצורף</b>מצורף מסמך המתודולוגיה: '+esc(q.runTitle)+' (מסמך נפרד).</div>':'')+
     '<div class="sig">'+
-      '<div><div style="font-weight:700">בברכה,</div><div>ORT-TECH · פתרונות תפעול חכמים לעסק שלך</div></div>'+
+      '<div><div style="font-weight:700">בברכה,</div><div>'+esc(biz.businessName||'ORT-TECH')+' · פתרונות תפעול חכמים לעסק שלך</div></div>'+
       '<div class="line">חתימת הלקוח ואישור ההצעה</div>'+
     '</div>'+
-    '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+
+    '<div class="foot"><span>'+esc(biz.businessName||'ORT-TECH')+' · '+esc(biz.businessWebsite||'ort-tech.co.il')+'</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+
     '<scr'+'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr'+'ipt>'+
     '</body></html>';
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -2278,7 +2290,201 @@ function quoteRenderPrint(q){
 // ההצעות חיות במסך מכירות; אין להן עוד רשימה נפרדת במסך המתודולוגיה.
 let QUOTES_CACHE=[];
 let QUOTE_RUNS=[]; // מהלכי מתודולוגיה שהושלמו — לצירוף להצעת מחיר (הקישור מתודולוגיה↔הצעה נשמר)
-function quoteReopen(id){ const q=QUOTES_CACHE.find(x=>x.id===id); if(q) quoteRenderPrint(q); }
+async function quoteReopen(id){ const q=QUOTES_CACHE.find(x=>x.id===id); if(q) await quoteRenderPrint(q); }
+
+const PAY_METHOD_LABEL={cash:'מזומן',bank_transfer:'העברה בנקאית',credit_card:'כרטיס אשראי',check:'המחאה',other:'אחר'};
+
+// פותח דף "פתח הזמנה" על הצעת מחיר קיימת: יוצר עסקה+הזמנה בשרת ומדפיס את ההזמנה
+async function openOrderFromQuote(quoteId){
+  let res; try{ res=await apiPost('/sales/deals',{quoteId}); }catch(e){ toast('שגיאה בפתיחת ההזמנה','bad'); return; }
+  toast('הזמנה נפתחה ✓');
+  await orderRenderPrint(res.order, res.deal);
+  if(CURRENT==='sales') go('sales');
+}
+
+// מדפיס מסמך "אישור הזמנה" — אותה טכניקה בדיוק כמו quoteRenderPrint (Blob→חלון→הדפסה)
+async function orderRenderPrint(order, deal){
+  const biz=await ensureBiz();
+  const items=typeof order.items==='string'?JSON.parse(order.items||'[]'):(order.items||[]);
+  const fmt=n=>'<span class="ltr">₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:0})+'</span>';
+  const created=new Date(order.createdAt||Date.now());
+  const logoUrl=location.origin+(biz.businessLogoUrl||'/ort-tech-logo.png');
+  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>אישור הזמנה '+esc(order.orderNo)+'</title>'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet"><style>'+
+    '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
+    '.ltr{direction:ltr;unicode-bidi:isolate}'+
+    "body{font-family:'Heebo','Assistant','Arial Hebrew','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.7;background:#fff}"+
+    '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f7a5c;padding-bottom:16px;margin-bottom:24px}'+
+    '.logo-crop{display:flex;align-items:center;justify-content:flex-end}.logo-crop img{height:54px;width:auto;display:block}'+
+    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px;direction:ltr;unicode-bidi:isolate}'+
+    'h1{font-size:26px;margin-bottom:2px}.meta{color:#6b7a8d;font-size:13px}'+
+    '.to{margin:18px 0 4px;font-size:15px}.subject{font-size:16px;font-weight:700;margin-bottom:16px}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:6px}'+
+    'th{background:#f4efe6;text-align:right;padding:9px 12px;font-size:13px;border-bottom:2px solid #0f7a5c}'+
+    'td{padding:9px 12px;border-bottom:1px solid #e3dccf}'+
+    'td.amt,th.amt{text-align:left;white-space:nowrap;width:130px}'+
+    '.totals{margin-inline-start:auto;width:290px;margin-top:8px}'+
+    '.totals div{display:flex;justify-content:space-between;padding:5px 12px}'+
+    '.totals .grand{background:#0f7a5c;color:#fff;font-weight:900;font-size:16px;border-radius:8px;margin-top:5px}'+
+    '.sec{margin-top:16px;font-size:13.5px}.sec b{display:block;margin-bottom:1px}'+
+    '.foot{margin-top:34px;border-top:1px solid #e3dccf;padding-top:9px;font-size:11.5px;color:#6b7a8d;display:flex;justify-content:space-between}'+
+    '@media print{body{padding:20px 26px}}'+
+    '</style></head><body>'+
+    '<div class="hdr">'+
+      '<div><h1>אישור הזמנה</h1><div class="meta">מס\' <span class="ltr">'+esc(order.orderNo)+'</span> · תאריך: <span class="ltr">'+created.toLocaleDateString('he-IL')+'</span></div></div>'+
+      '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="'+esc(biz.businessName||'ORT-TECH')+'"></div>'+
+      '<div class="biz">'+esc(biz.businessPhone||'')+' · '+esc(biz.businessEmail||'')+' · '+esc(biz.businessWebsite||'')+'</div></div>'+
+    '</div>'+
+    '<div class="to">לכבוד: <b>'+esc(order.clientName||'')+'</b></div>'+
+    (order.title?'<div class="subject">הנדון: '+esc(order.title)+'</div>':'')+
+    '<table><thead><tr><th style="width:34px">#</th><th>תיאור</th><th class="amt">סכום</th></tr></thead><tbody>'+
+    items.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.desc)+'</td><td class="amt">'+fmt(x.amt)+'</td></tr>').join('')+
+    '</tbody></table>'+
+    '<div class="totals">'+
+      '<div><span>סכום ביניים</span><b>'+fmt(order.subtotal)+'</b></div>'+
+      (Number(order.vatPct)>0?'<div><span>מע"מ '+order.vatPct+'%</span><b>'+fmt(order.subtotal*order.vatPct/100)+'</b></div>':'')+
+      '<div class="grand"><span>סה"כ לתשלום</span><span>'+fmt(order.total)+'</span></div>'+
+    '</div>'+
+    '<div class="sec"><b>מקור</b>מבוסס על הצעת מחיר שאושרה על ידי הלקוח.</div>'+
+    (order.deliveryNotes?'<div class="sec"><b>הערות אספקה</b>'+esc(order.deliveryNotes)+'</div>':'')+
+    '<div class="foot"><span>'+esc(biz.businessName||'')+' · '+esc(biz.businessWebsite||'')+'</span><span>אישור הזמנה — לא מסמך חשבונאי</span></div>'+
+    '<scr'+'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr'+'ipt>'+
+    '</body></html>';
+  const w=window.open(URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),'_blank');
+  if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
+}
+
+// מדפיס "קבלה" (או "קבלת זיכוי") — חייב לכלול את כל השדות שהרגולטור הישראלי דורש
+async function receiptRenderPrint(receipt){
+  const isCredit=receipt.kind==='credit';
+  const fmt=n=>'<span class="ltr">₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:0})+'</span>';
+  const issue=receipt.issueDate?new Date(receipt.issueDate+'T12:00:00').toLocaleDateString('he-IL'):new Date().toLocaleDateString('he-IL');
+  const title=isCredit?'קבלת זיכוי':'קבלה';
+  const logoUrl=location.origin+(receipt.businessLogoUrl||'/ort-tech-logo.png');
+  const html='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+' '+receipt.receiptNo+'</title>'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet"><style>'+
+    '*{margin:0;padding:0;box-sizing:border-box;print-color-adjust:exact;-webkit-print-color-adjust:exact}'+
+    '.ltr{direction:ltr;unicode-bidi:isolate}'+
+    "body{font-family:'Heebo','Assistant','Arial Hebrew','Segoe UI',Arial,sans-serif;color:#16202e;padding:46px 54px;font-size:14px;line-height:1.7;background:#fff}"+
+    '.hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid '+(isCredit?'#b42323':'#0f7a5c')+';padding-bottom:16px;margin-bottom:24px}'+
+    '.logo-crop{display:flex;align-items:center;justify-content:flex-end}.logo-crop img{height:54px;width:auto;display:block}'+
+    '.biz{font-size:12.5px;color:#3d4b5e;line-height:1.55;text-align:left;margin-top:6px;direction:ltr;unicode-bidi:isolate}'+
+    'h1{font-size:26px;margin-bottom:2px'+(isCredit?';color:#b42323':'')+'}.meta{color:#6b7a8d;font-size:13px}'+
+    '.rows{margin-top:18px;border:1px solid #e3dccf;border-radius:10px;overflow:hidden}'+
+    '.rows div{display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #e3dccf;font-size:13.5px}'+
+    '.rows div:last-child{border-bottom:0}.rows span:first-child{color:#6b7a8d}.rows b{font-weight:700}'+
+    '.grand{margin-top:12px;background:'+(isCredit?'#b42323':'#0f7a5c')+';color:#fff;font-weight:900;font-size:18px;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between}'+
+    '.sec{margin-top:16px;font-size:13.5px}.sec b{display:block;margin-bottom:1px}'+
+    '.sig{margin-top:46px;display:flex;justify-content:space-between;align-items:flex-end;gap:30px}'+
+    '.sig .line{width:210px;border-top:1.5px solid #16202e;padding-top:5px;text-align:center;font-size:12.5px;color:#3d4b5e}'+
+    '.foot{margin-top:34px;border-top:1px solid #e3dccf;padding-top:9px;font-size:11.5px;color:#6b7a8d;display:flex;justify-content:space-between}'+
+    '@media print{body{padding:20px 26px}}'+
+    '</style></head><body>'+
+    '<div class="hdr">'+
+      '<div><h1>'+title+'</h1><div class="meta">מס\' <span class="ltr">'+receipt.receiptNo+'</span> · תאריך: <span class="ltr">'+esc(issue)+'</span>'+
+      (isCredit&&receipt.creditsReceiptNo?' · מזכה את קבלה מס\' <span class="ltr">'+esc(String(receipt.creditsReceiptNo))+'</span>':'')+'</div></div>'+
+      '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="'+esc(receipt.businessName||'')+'"></div></div>'+
+    '</div>'+
+    '<div class="sec"><b>מפרטי העסק</b>'+esc(receipt.businessName||'')+' · מספר עוסק '+esc(receipt.businessTaxId||'')+' · '+esc(receipt.businessAddress||'')+'</div>'+
+    (receipt.customerName?'<div class="to" style="margin-top:14px"><b>התקבל מאת:</b> '+esc(receipt.customerName)+'</div>':'')+
+    '<div class="rows">'+
+      '<div><span>אמצעי תשלום</span><b>'+esc(PAY_METHOD_LABEL[receipt.paymentMethod]||receipt.paymentMethod||'')+'</b></div>'+
+      '<div><span>תיאור השירות / המוצר</span><b>'+esc(receipt.description||'')+'</b></div>'+
+    '</div>'+
+    '<div class="grand"><span>'+(isCredit?'סכום הזיכוי':'סכום שהתקבל')+'</span><span>'+fmt(receipt.amount)+'</span></div>'+
+    (isCredit&&receipt.creditReason?'<div class="sec"><b>סיבת הזיכוי</b>'+esc(receipt.creditReason)+'</div>':'')+
+    '<div class="sig">'+
+      '<div><div style="font-weight:700">תודה,</div><div>'+esc(receipt.businessName||'')+'</div></div>'+
+      '<div class="line">'+esc(receipt.issuerName||'')+' — חתימת המנפיק</div>'+
+    '</div>'+
+    '<div class="foot"><span>'+esc(receipt.businessName||'')+'</span><span>מסמך זה מופק ממערכת ניהול פנימית</span></div>'+
+    '<scr'+'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr'+'ipt>'+
+    '</body></html>';
+  const w=window.open(URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),'_blank');
+  if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
+}
+
+async function receiptReopen(id){
+  let receipt; try{ receipt=await apiGet('/sales/receipts/single/'+id); }catch(e){ toast('שגיאה בטעינת הקבלה','bad'); return; }
+  await receiptRenderPrint(receipt);
+}
+
+// מעבר שלב "הזמנה" → "הושלם"
+async function dealMarkCompleted(dealId){
+  if(!confirm('לסמן את ההזמנה כהושלמה? השלב הבא הוא הפקת קבלה.')) return;
+  try{ await apiPatch('/sales/deals/'+dealId+'/stage',{stage:'completed'}); toast('סומן כהושלם ✓'); }
+  catch(e){ toast('שגיאה בעדכון השלב','bad'); return; }
+  if(CURRENT==='sales') go('sales');
+}
+
+// טופס הפקת קבלה על עסקה שהושלמה
+function receiptForm(deal){
+  const paidSoFar=(deal.receipts||[]).filter(r=>r.kind==='receipt').reduce((a,r)=>a+Number(r.amount||0),0)
+                  -(deal.receipts||[]).filter(r=>r.kind==='credit').reduce((a,r)=>a+Number(r.amount||0),0);
+  const remaining=Math.max(0,(Number(deal.totalAmount)||0)-paidSoFar);
+  openModal(
+    '<h3 style="margin:0 0 4px">🧾 הפקת קבלה</h3>'+
+    '<div class="muted" style="font-size:.88rem;margin-bottom:14px">'+esc(deal.clientName||'')+'</div>'+
+    '<div class="f"><label>סכום</label><input id="rc_amount" type="number" min="0" value="'+(remaining||deal.totalAmount||0)+'" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem"></div>'+
+    '<div class="f" style="margin-top:10px"><label>אמצעי תשלום</label><select id="rc_method" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem">'+
+      Object.entries(PAY_METHOD_LABEL).map(([k,l])=>'<option value="'+k+'">'+l+'</option>').join('')+'</select></div>'+
+    '<div class="f" style="margin-top:10px"><label>תיאור השירות/המוצר</label><input id="rc_desc" value="'+esc(deal.title||'')+'" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem"></div>'+
+    '<div class="f" style="margin-top:10px"><label>שם הלקוח (לא חובה)</label><input id="rc_customer" value="'+esc(deal.clientName||'')+'" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem"></div>'+
+    '<div class="f" style="margin-top:10px"><label>שם המנפיק</label><input id="rc_issuer" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem"></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn primary" onclick="receiptSubmit(\''+deal.id+'\')">🧾 הפק קבלה</button></div>'
+  , true);
+  ensureBiz().then(biz=>{ const el=$('rc_issuer'); if(el&&!el.value) el.value=biz.issuerName||''; });
+}
+async function receiptSubmit(dealId){
+  const amount=Number(val('rc_amount')||0);
+  const paymentMethod=val('rc_method');
+  const description=val('rc_desc');
+  const customerName=val('rc_customer');
+  const issuerName=val('rc_issuer');
+  if(!(amount>0)){ toast('סכום לא תקין','bad'); return; }
+  if(!description){ toast('חסר תיאור','bad'); return; }
+  if(!issuerName){ toast('חסר שם מנפיק — יש להשלים בהגדרות עסק או כאן','bad'); return; }
+  let receipt;
+  try{ receipt=await apiPost('/sales/deals/'+dealId+'/receipts',{amount,paymentMethod,description,customerName,issuerName}); }
+  catch(e){
+    const msg=e.message==='business_settings_incomplete'?'יש להשלים מספר עוסק/כתובת/שם מנפיק בהגדרות → פרטי עסק'
+      :e.message==='deal_not_completed'?'יש לסמן את ההזמנה כהושלמה לפני הפקת קבלה':'שגיאה בהפקת הקבלה';
+    toast(msg,'bad'); return;
+  }
+  closeModal();
+  toast('קבלה #'+receipt.receiptNo+' הופקה ✓');
+  await receiptRenderPrint(receipt);
+  if(CURRENT==='sales') go('sales');
+}
+
+// טופס הפקת קבלת זיכוי על קבלה קיימת
+function creditNoteForm(receipt){
+  openModal(
+    '<h3 style="margin:0 0 4px">↩️ קבלת זיכוי</h3>'+
+    '<div class="muted" style="font-size:.88rem;margin-bottom:14px">מזכה את קבלה מס\' '+receipt.receiptNo+' ('+esc(PAY_METHOD_LABEL[receipt.paymentMethod]||'')+')</div>'+
+    '<div class="f"><label>סכום לזיכוי</label><input id="cr_amount" type="number" min="0" value="'+(receipt.amount||0)+'" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem"></div>'+
+    '<div class="f" style="margin-top:10px"><label>סיבת הזיכוי (חובה)</label><textarea id="cr_reason" rows="2" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem"></textarea></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn primary" onclick="creditNoteSubmit(\''+receipt.id+'\')">↩️ הפק קבלת זיכוי</button></div>'
+  , true);
+}
+async function creditNoteSubmit(receiptId){
+  const amount=Number(val('cr_amount')||0);
+  const reason=val('cr_reason');
+  if(!(amount>0)){ toast('סכום לא תקין','bad'); return; }
+  if(!reason){ toast('חובה לציין סיבת זיכוי','bad'); return; }
+  let credit;
+  try{ credit=await apiPost('/sales/receipts/'+receiptId+'/credit',{amount,reason}); }
+  catch(e){
+    const msg=e.message==='business_settings_incomplete'?'יש להשלים מספר עוסק/כתובת בהגדרות → פרטי עסק':'שגיאה בהפקת קבלת הזיכוי';
+    toast(msg,'bad'); return;
+  }
+  closeModal();
+  toast('קבלת זיכוי #'+credit.receiptNo+' הופקה ✓');
+  await receiptRenderPrint(credit);
+  if(CURRENT==='sales') go('sales');
+}
 
 // ---- בורר הרכבת תהליך: מצב + בחירה + מטמון ערכות ----
 let COMPOSE=false;            // מצב "הרכבת תהליך" פעיל (מציג צ׳קבוקסים)

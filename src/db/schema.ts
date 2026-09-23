@@ -370,6 +370,58 @@ export const quotes = sqliteTable('quotes', {
   createdAt: integer('created_at').notNull(),
 });
 
+/** עסקה = מעטפת שמקשרת הצעת מחיר (quotes) שנפתחה להזמנה, קבלות ואירועי שלב. */
+export const salesDeals = sqliteTable('sales_deals', {
+  id: text('id').primaryKey(),
+  quoteId: text('quote_id').notNull(),
+  clientId: text('client_id'),
+  clientName: text('client_name').notNull(),
+  title: text('title'),
+  stage: text('stage').notNull().default('order'), // order | completed | receipt_issued
+  totalAmount: real('total_amount').notNull().default(0),
+  orderOpenedAt: integer('order_opened_at').notNull(),
+  completedAt: integer('completed_at'),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** מסמך הזמנה — צילום פריטי ההצעה בזמן פתיחת ההזמנה, עם מספור רץ עצמאי. */
+export const salesOrders = sqliteTable('sales_orders', {
+  id: text('id').primaryKey(),
+  dealId: text('deal_id').notNull(),
+  orderNo: text('order_no').notNull(),
+  clientName: text('client_name'),
+  title: text('title'),
+  items: text('items').notNull().default('[]'),
+  subtotal: real('subtotal').notNull().default(0),
+  vatPct: real('vat_pct').notNull().default(0),
+  total: real('total').notNull().default(0),
+  deliveryNotes: text('delivery_notes'),
+  createdAt: integer('created_at').notNull(),
+});
+
+/**
+ * קבלה ללקוח (יוצאת) — append-only. אין PATCH/DELETE ב-API. תיקון = קבלת זיכוי
+ * חדשה (kind='credit') המפנה ל-creditsReceiptId. מספור רץ אטומי — ר' src/api/doc-numbering.ts.
+ */
+export const salesReceipts = sqliteTable('sales_receipts', {
+  id: text('id').primaryKey(),
+  dealId: text('deal_id').notNull(),
+  receiptNo: integer('receipt_no').notNull(),
+  kind: text('kind').notNull().default('receipt'), // receipt | credit
+  creditsReceiptId: text('credits_receipt_id'),
+  creditReason: text('credit_reason'),
+  issueDate: text('issue_date').notNull(),
+  businessName: text('business_name').notNull(),
+  businessTaxId: text('business_tax_id').notNull(),
+  businessAddress: text('business_address').notNull(),
+  customerName: text('customer_name'),
+  amount: real('amount').notNull(),
+  paymentMethod: text('payment_method').notNull(),
+  description: text('description').notNull(),
+  issuerName: text('issuer_name').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
 // יומן פעילות לליד — תיעוד שיחות, הודעות, פגישות והערות (CRM)
 export const leadActivities = sqliteTable('lead_activities', {
   id: text('id').primaryKey(),
