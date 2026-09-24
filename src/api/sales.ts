@@ -8,7 +8,7 @@ import { withAtomicDocNumber, bumpCounterStmt, RECEIPT_COUNTER_KEY, ORDER_COUNTE
 /**
  * צנרת מכירה: הצעת מחיר (quotes, קיים) → הזמנה נפתחת (sales_deals + sales_orders)
  * → הושלם → קבלה (sales_receipts). עסקה נוצרת רק בלחיצה על "פתח הזמנה" — לא
- * בזמן יצירת ההצעה, כדי לא לגעת בזרימת ההצעה הקיימת. ר' migrations/0034 +
+ * בזמן יצירת ההצעה, כדי לא לגעת בזרימת ההצעה הקיימת. ר' migrations/0035 +
  * /root/.claude/plans/harmonic-weaving-wilkes.md לתיעוד ההחלטות.
  */
 export const salesApp = new Hono<Env>();
