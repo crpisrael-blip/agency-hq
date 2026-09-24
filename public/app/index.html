@@ -2456,7 +2456,8 @@ async function quoteBuild(){
     runId, runTitle, createdAt:now.getTime()
   };
   closeModal();
-  await quoteRenderPrint(q);
+  const w=openPrintWindow();
+  await quoteRenderPrint(q, w);
   try{ await apiPost('/quotes',q); toast('ההצעה נשמרה ✓');
     if(CURRENT==='sales' && window.BOS){ try{ go('sales'); }catch(_){}}
   }
@@ -2472,8 +2473,24 @@ async function ensureBiz(){
   return BIZ_CACHE;
 }
 
-// מפיק ומדפיס דף הצעה מתוך אובייקט הצעה (חדש או שמור)
-async function quoteRenderPrint(q){
+// פתיחת חלון ההדפסה חייבת לקרות סינכרונית, ממש בתוך מטפל הלחיצה, לפני כל await —
+// אחרת הדפדפן עלול לחסום אותה בשקט (window.open אחרי בקשת רשת כבר לא נחשב חלק
+// מהמחווה של המשתמש). לכן פותחים חלון ריק מייד, וכותבים לתוכו את התוכן בהמשך
+// (writePrintWindow) אחרי שהמידע מוכן — גם אם זה קרה כמה מאות מילישניות אחר כך.
+function openPrintWindow(){
+  const w=window.open('','_blank');
+  if(!w){ toast('הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
+  return w;
+}
+function writePrintWindow(w, html){
+  if(!w) return;
+  try{ w.document.open(); w.document.write(html); w.document.close(); }
+  catch(e){ try{ w.location.href=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})); }catch(e2){} }
+}
+
+// מפיק ומדפיס דף הצעה מתוך אובייקט הצעה (חדש או שמור). w = חלון שנפתח מראש
+// סינכרונית ע"י הקורא (openPrintWindow) — אם לא סופק, נפתח כאן כנפילה חזרה.
+async function quoteRenderPrint(q, w){
   const biz=await ensureBiz();
   const items=typeof q.items==='string'?JSON.parse(q.items||'[]'):(q.items||[]);
   const vatPct=Number(q.vatPct)||0;
@@ -2537,29 +2554,28 @@ async function quoteRenderPrint(q){
     '<div class="foot"><span>'+esc(biz.businessName||'ORT-TECH')+' · '+esc(biz.businessWebsite||'ort-tech.co.il')+'</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+
     '<scr'+'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr'+'ipt>'+
     '</body></html>';
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  const w=window.open(URL.createObjectURL(blob),'_blank');
-  if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
+  writePrintWindow(w||openPrintWindow(), html);
 }
 
 // מטמון הצעות מחיר — משמש את מסך המכירות (טאב "הצעות מחיר") ואת ההדפסה החוזרת.
 // ההצעות חיות במסך מכירות; אין להן עוד רשימה נפרדת במסך המתודולוגיה.
 let QUOTES_CACHE=[];
 let QUOTE_RUNS=[]; // מהלכי מתודולוגיה שהושלמו — לצירוף להצעת מחיר (הקישור מתודולוגיה↔הצעה נשמר)
-async function quoteReopen(id){ const q=QUOTES_CACHE.find(x=>x.id===id); if(q) await quoteRenderPrint(q); }
+async function quoteReopen(id){ const q=QUOTES_CACHE.find(x=>x.id===id); if(q){ const w=openPrintWindow(); await quoteRenderPrint(q, w); } }
 
 const PAY_METHOD_LABEL={cash:'מזומן',bank_transfer:'העברה בנקאית',credit_card:'כרטיס אשראי',check:'המחאה',other:'אחר'};
 
 // פותח דף "פתח הזמנה" על הצעת מחיר קיימת: יוצר עסקה+הזמנה בשרת ומדפיס את ההזמנה
 async function openOrderFromQuote(quoteId){
-  let res; try{ res=await apiPost('/sales/deals',{quoteId}); }catch(e){ toast('שגיאה בפתיחת ההזמנה','bad'); return; }
+  const w=openPrintWindow();
+  let res; try{ res=await apiPost('/sales/deals',{quoteId}); }catch(e){ if(w) w.close(); toast('שגיאה בפתיחת ההזמנה','bad'); return; }
   toast('הזמנה נפתחה ✓');
-  await orderRenderPrint(res.order, res.deal);
+  await orderRenderPrint(res.order, res.deal, w);
   if(CURRENT==='sales') go('sales');
 }
 
-// מדפיס מסמך "אישור הזמנה" — אותה טכניקה בדיוק כמו quoteRenderPrint (Blob→חלון→הדפסה)
-async function orderRenderPrint(order, deal){
+// מדפיס מסמך "אישור הזמנה" — אותה טכניקה בדיוק כמו quoteRenderPrint (חלון פתוח מראש → כתיבה)
+async function orderRenderPrint(order, deal, w){
   const biz=await ensureBiz();
   const items=typeof order.items==='string'?JSON.parse(order.items||'[]'):(order.items||[]);
   const fmt=n=>'<span class="ltr">₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:0})+'</span>';
@@ -2607,12 +2623,12 @@ async function orderRenderPrint(order, deal){
     '<div class="foot"><span>'+esc(biz.businessName||'')+' · '+esc(biz.businessWebsite||'')+'</span><span>אישור הזמנה — לא מסמך חשבונאי</span></div>'+
     '<scr'+'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr'+'ipt>'+
     '</body></html>';
-  const w=window.open(URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),'_blank');
-  if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
+  writePrintWindow(w||openPrintWindow(), html);
 }
 
-// מדפיס "קבלה" (או "קבלת זיכוי") — חייב לכלול את כל השדות שהרגולטור הישראלי דורש
-async function receiptRenderPrint(receipt){
+// מדפיס "קבלה" (או "קבלת זיכוי") — חייב לכלול את כל השדות שהרגולטור הישראלי דורש.
+// w = חלון שנפתח מראש סינכרונית ע"י הקורא (openPrintWindow).
+async function receiptRenderPrint(receipt, w){
   const isCredit=receipt.kind==='credit';
   const fmt=n=>'<span class="ltr">₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:0})+'</span>';
   const issue=receipt.issueDate?new Date(receipt.issueDate+'T12:00:00').toLocaleDateString('he-IL'):new Date().toLocaleDateString('he-IL');
@@ -2658,13 +2674,13 @@ async function receiptRenderPrint(receipt){
     '<div class="foot"><span>'+esc(receipt.businessName||'')+'</span><span>מסמך זה מופק ממערכת ניהול פנימית</span></div>'+
     '<scr'+'ipt>window.onload=function(){var done=false;var go=function(){if(done)return;done=true;setTimeout(function(){window.print()},250)};(document.fonts&&document.fonts.ready?document.fonts.ready.then(go):go());setTimeout(go,1500)}</scr'+'ipt>'+
     '</body></html>';
-  const w=window.open(URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),'_blank');
-  if(!w){ toast('הדף מוכן אך הדפדפן חסם את החלון — אפשר חלונות קופצים לאתר','bad'); }
+  writePrintWindow(w||openPrintWindow(), html);
 }
 
 async function receiptReopen(id){
-  let receipt; try{ receipt=await apiGet('/sales/receipts/single/'+id); }catch(e){ toast('שגיאה בטעינת הקבלה','bad'); return; }
-  await receiptRenderPrint(receipt);
+  const w=openPrintWindow();
+  let receipt; try{ receipt=await apiGet('/sales/receipts/single/'+id); }catch(e){ if(w) w.close(); toast('שגיאה בטעינת הקבלה','bad'); return; }
+  await receiptRenderPrint(receipt, w);
 }
 
 // מעבר שלב "הזמנה" → "הושלם"
@@ -2702,16 +2718,18 @@ async function receiptSubmit(dealId){
   if(!(amount>0)){ toast('סכום לא תקין','bad'); return; }
   if(!description){ toast('חסר תיאור','bad'); return; }
   if(!issuerName){ toast('חסר שם מנפיק — יש להשלים בהגדרות עסק או כאן','bad'); return; }
+  const w=openPrintWindow();
   let receipt;
   try{ receipt=await apiPost('/sales/deals/'+dealId+'/receipts',{amount,paymentMethod,description,customerName,issuerName}); }
   catch(e){
+    if(w) w.close();
     const msg=e.message==='business_settings_incomplete'?'יש להשלים מספר עוסק/כתובת/שם מנפיק בהגדרות → פרטי עסק'
       :e.message==='deal_not_completed'?'יש לסמן את ההזמנה כהושלמה לפני הפקת קבלה':'שגיאה בהפקת הקבלה';
     toast(msg,'bad'); return;
   }
   closeModal();
   toast('קבלה #'+receipt.receiptNo+' הופקה ✓');
-  await receiptRenderPrint(receipt);
+  await receiptRenderPrint(receipt, w);
   if(CURRENT==='sales') go('sales');
 }
 
@@ -2730,15 +2748,17 @@ async function creditNoteSubmit(receiptId){
   const reason=val('cr_reason');
   if(!(amount>0)){ toast('סכום לא תקין','bad'); return; }
   if(!reason){ toast('חובה לציין סיבת זיכוי','bad'); return; }
+  const w=openPrintWindow();
   let credit;
   try{ credit=await apiPost('/sales/receipts/'+receiptId+'/credit',{amount,reason}); }
   catch(e){
+    if(w) w.close();
     const msg=e.message==='business_settings_incomplete'?'יש להשלים מספר עוסק/כתובת בהגדרות → פרטי עסק':'שגיאה בהפקת קבלת הזיכוי';
     toast(msg,'bad'); return;
   }
   closeModal();
   toast('קבלת זיכוי #'+credit.receiptNo+' הופקה ✓');
-  await receiptRenderPrint(credit);
+  await receiptRenderPrint(credit, w);
   if(CURRENT==='sales') go('sales');
 }
 
