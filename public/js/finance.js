@@ -53,7 +53,10 @@
   document.head.appendChild(style);
 
   // ---------- state ----------
-  let FIN_TAB = 'control';
+  // ברירת המחדל היא 'simple' — מסך ראשי אחד פשוט (סעיפי הכנסות/הוצאות/יתרה/צפי בשפה
+  // רגילה). כל שאר הלשוניות (שליטה מתקדמת, תרחישים, רווחיות וכו') נשארות בדיוק כפי
+  // שהיו, נגישות דרך "תצוגה מתקדמת" — לא נמחק ולא שונה מהן כלום.
+  let FIN_TAB = 'simple';
   let FC_MONTHS = 12;
   let FC_SCEN = 'realistic';
   let EXP_FILTER = 'all';
@@ -128,6 +131,28 @@
 
   const C = { committed: '#0a7f6b', realistic: '#1741d6', optimistic: '#7a2fb0', income: '#0a7f5a', expense: '#b42323' };
 
+  // ---------- גרף עמודות פשוט: הכנסות מול הוצאות לפי חודש (לתצוגה הפשוטה) ----------
+  function barChart(labels, incomeVals, expenseVals) {
+    const W = 640, H = 220, padL = 48, padR = 14, padT = 14, padB = 26;
+    const max = Math.max(1, ...incomeVals, ...expenseVals);
+    const n = labels.length || 1;
+    const groupW = (W - padL - padR) / n;
+    const barW = Math.min(22, groupW * 0.32);
+    const gap = 4;
+    const yAt = (v) => padT + (1 - v / max) * (H - padT - padB);
+    const yBase = yAt(0);
+    const grid = [max, max * 0.5, 0].map((v) => `<line x1="${padL}" y1="${yAt(v)}" x2="${W - padR}" y2="${yAt(v)}" stroke="var(--line)" stroke-width="1"/><text x="${padL - 6}" y="${yAt(v) + 3}" text-anchor="end" font-size="10" fill="var(--muted)">${money1(v)}</text>`).join('');
+    const bars = labels.map((l, i) => {
+      const cx = padL + groupW * (i + 0.5);
+      const incV = incomeVals[i] || 0, expV = expenseVals[i] || 0;
+      return `<rect x="${(cx - barW - gap / 2).toFixed(1)}" y="${yAt(incV).toFixed(1)}" width="${barW.toFixed(1)}" height="${(yBase - yAt(incV)).toFixed(1)}" fill="${C.income}" rx="2"/>`
+        + `<rect x="${(cx + gap / 2).toFixed(1)}" y="${yAt(expV).toFixed(1)}" width="${barW.toFixed(1)}" height="${(yBase - yAt(expV)).toFixed(1)}" fill="${C.expense}" rx="2"/>`
+        + `<text x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${esc(l)}</text>`;
+    }).join('');
+    const legend = `<div class="fin-legend"><span><i style="background:${C.income}"></i>הכנסות</span><span><i style="background:${C.expense}"></i>הוצאות</span></div>`;
+    return `<div class="fin-scroll"><svg class="fin-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="הכנסות מול הוצאות לפי חודש">${grid}${bars}</svg></div>${legend}`;
+  }
+
   // ================= לשוניות =================
   const TABS = [
     ['control', 'שליטה'], ['income', 'הכנסות'], ['expenses', 'הוצאות'], ['history', 'היסטוריה'],
@@ -136,13 +161,22 @@
   ];
   function tabbar(active) {
     active = active || FIN_TAB;
-    return `<div class="tabs2">${TABS.map(([k, l]) => `<button class="${k === active ? 'on' : ''}" onclick="FIN.tab('${k}')">${l}</button>`).join('')}</div>`;
+    return '<button class="backbtn" onclick="FIN.tab(\'simple\')">🏠 חזרה לתצוגה הפשוטה</button>'
+      + `<div class="tabs2">${TABS.map(([k, l]) => `<button class="${k === active ? 'on' : ''}" onclick="FIN.tab('${k}')">${l}</button>`).join('')}</div>`;
   }
 
   // לשוניות המפנות למסכים ותיקים (מסך מלא). מטופלות דרך עטיפת go שמחזירה את הסרגל.
   const LEGACY_FIN = { cashflow: 1, engagements: 1, calculator: 1 };
 
   RENDER.finance = async () => {
+    // מצב פשוט (ברירת מחדל) — מסך עצמאי, בלי סרגל 11 הלשוניות, עם קישור יחיד למטה
+    // לתצוגה המתקדמת. לא עובר דרך tabbar()/finBody הרגילים בכוונה — מוצג לבד.
+    if (FIN_TAB === 'simple') {
+      V().innerHTML = '<div id="finBody"><div class="empty">טוען…</div></div>';
+      try { return await renderSimple(); }
+      catch (e) { if (FB()) FB().innerHTML = '<div class="empty">שגיאה בטעינת הנתונים. נסה שוב.</div>'; }
+      return;
+    }
     if (LEGACY_FIN[FIN_TAB]) return go(FIN_TAB); // go העטוף מזריק בחזרה את סרגל הכספים
     V().innerHTML = tabbar() + '<div id="finBody"><div class="empty">טוען…</div></div>';
     try {
@@ -269,6 +303,59 @@
       await apiPost('/tasks', { title: e.title + (e.message ? ' — ' + e.message : ''), details: e.recommendedAction || '', entityType: e.entityType, entityId: e.entityId, priority: e.severity === 'critical' ? 'urgent' : 'high', dueDate: e.dueDate || '' });
       toast('נוצרה משימה ✓');
     } catch (err) { toast('שגיאה ביצירת משימה', 'bad'); }
+  }
+
+  // ================= תצוגה פשוטה (ברירת המחדל) =================
+  // מסך אחד: כמה נכנס/יצא החודש, כמה יש בבנק עכשיו, מה הצפי, מה מגיע בקרוב ומה דורש
+  // תשומת לב — הכול משתמש בדיוק באותם מקורות נתונים כמו שאר הלשוניות (control + history),
+  // כך שהמספרים תמיד מסונכרנים איתן ואין חישוב כפול/נפרד.
+  async function renderSimple() {
+    const [d, hist] = await Promise.all([
+      apiGet('/finance/control'),
+      apiGet('/finance/expenses/history?months=6').catch(() => null),
+    ]);
+    const s = d.summary;
+    const mo = d.month;
+    const stt = d.status || { tone: 'ok', lines: [] };
+    const statusBanner = `<div class="fin-status ${stt.tone}"><span class="dot">${stt.tone === 'ok' ? '🟢' : stt.tone === 'attention' ? '🟡' : '🔴'}</span>
+      <div><b>מצב העסק</b>${stt.lines.length ? `<ul>${stt.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '<div>אין נתונים מספיקים — הוסף הכנסה/הוצאה כדי להתחיל.</div>'}</div></div>`;
+
+    const belowThreshold = s.expectedEndBalance < (d.cashPosition.threshold || 0);
+    const kpis = `<div class="kpis">
+      <div class="kpi green"><b>${m(mo ? mo.income : 0)}</b><small>הכנסות ${mo ? esc(mo.label) : 'החודש'}</small></div>
+      <div class="kpi red"><b>${m(mo ? mo.expense : 0)}</b><small>הוצאות ${mo ? esc(mo.label) : 'החודש'}</small></div>
+      <div class="kpi"><b>${m(s.currentBalance)}</b><small>יש בבנק עכשיו${s.balanceAsOf ? ` (${fmt(s.balanceAsOf)})` : ''}</small></div>
+      <div class="kpi ${belowThreshold ? 'red' : 'green'}"><b>${m(s.expectedEndBalance)}</b><small>צפי ליתרה בסוף החודש</small></div>
+    </div>`;
+
+    const hbuckets = hist ? hist.buckets : [];
+    const chart = hbuckets.length
+      ? `<div class="card"><h3 style="margin:0 0 10px">הכנסות מול הוצאות — 6 חודשים אחרונים</h3>${barChart(hbuckets.map((b) => b.label), hbuckets.map((b) => b.income), hbuckets.map((b) => b.expense))}</div>`
+      : '';
+
+    const up = d.upcoming.slice(0, 6);
+    const upHtml = up.length ? up.map((e) => `<div class="list-item"><div class="li-main"><b>${esc(e.label)}</b><small>${fmt(e.date)}</small></div>
+      <b class="li-val" style="color:${e.kind === 'income' ? 'var(--green)' : '#b42323'}">${e.kind === 'income' ? '+' : '−'}${m(e.amount)}</b></div>`).join('')
+      : '<div class="empty">אין תנועות מתוזמנות ב-30 הימים הקרובים</div>';
+
+    const alertsHtml = d.alerts.length ? d.alerts.slice(0, 5).map(excRow).join('') : '<div class="empty">אין חריגות פתוחות — הכול תקין 👌</div>';
+
+    FB().innerHTML = `
+      <div class="row" style="justify-content:flex-end;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn small" onclick="FIN.addIncome()">+ הכנסה</button>
+        <button class="btn small" onclick="FIN.addExpense()">+ הוצאה</button>
+        <button class="btn small" onclick="FIN.updateBalance()">עדכן יתרה</button>
+      </div>
+      ${statusBanner}
+      ${kpis}
+      ${chart}
+      <div class="grid2" style="align-items:start">
+        <div class="card"><div class="fin-sec-h"><h3>מה צפוי בקרוב</h3></div>${upHtml}</div>
+        <div class="card"><div class="fin-sec-h"><h3>דורש תשומת לב</h3>${d.alerts.length ? `<span class="pill p-red">${d.alerts.length}</span>` : ''}</div>${alertsHtml}</div>
+      </div>
+      <div class="row" style="justify-content:center;margin-top:6px">
+        <button class="btn ghost" onclick="FIN.tab('control')">📊 תרחישים, רווחיות ונתונים מתקדמים ←</button>
+      </div>`;
   }
 
   // ================= הכנסות =================
@@ -832,9 +919,12 @@
     Promise.resolve(ret).then(() => {
       if (CURRENT !== page || !V().firstChild) return;            // המשתמש ניווט בינתיים
       if (document.querySelector('#view > .tabs2')) return;        // כבר קיים סרגל
+      // subTabBar (עבור 'finance') יכולה להחזיר כמה אלמנטי-אח (כפתור "חזרה לפשוט" + סרגל
+      // הלשוניות) — מזריקים את כולם, לא רק את הראשון, כדי לא לאבד את סרגל הניווט עצמו.
       const holder = document.createElement('div');
       holder.innerHTML = subTabBar(group, page);
-      if (holder.firstElementChild) V().insertBefore(holder.firstElementChild, V().firstChild);
+      const anchor = V().firstChild;
+      while (holder.firstChild) V().insertBefore(holder.firstChild, anchor);
     }).catch(() => {});
     window.scrollTo(0, 0);
     return ret;

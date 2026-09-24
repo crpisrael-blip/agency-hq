@@ -8,7 +8,7 @@ const TABS: Check[] = [
   ['מכירות', async (p) => { await expect(p.locator('.tabs2 button', { hasText: 'הזדמנויות' })).toBeVisible(); }],
   ['לקוחות', async (p) => { await expect(p.getByRole('heading', { name: /^לקוחות$/ })).toBeVisible(); }],
   ['עבודה', async (p) => { await expect(p.locator('.tabs2 button', { hasText: 'פרויקטים' })).toBeVisible(); }],
-  ['כספים', async (p) => { await expect(p.locator('.tabs2 button', { hasText: 'סקירה' })).toBeVisible(); }],
+  ['כספים', async (p) => { await expect(p.getByRole('button', { name: /נתונים מתקדמים/ })).toBeVisible(); }],
   ['צמיחה', async (p) => { await expect(p.locator('.tabs2 button', { hasText: 'מרכזי רווח' })).toBeVisible(); }],
 ];
 
