@@ -3,14 +3,19 @@ import { AppShell } from '../pages/AppShell';
 
 /**
  * מרכז השליטה הפיננסי (Finance Control).
- * מוודא שמסך "כספים" נפתח בלשונית "שליטה", מציג KPIs וגרף תחזית, ושמעבר בין
- * לשוניות המשנה החדשות מרנדר תוכן אמיתי (מחובר ל-API, לא Mock).
+ * מסך "כספים" נפתח כברירת מחדל בתצוגה הפשוטה (מסך אחד: הכנסות/הוצאות/יתרה/צפי,
+ * ללא 11 הלשוניות) — ר' test.describe הנפרד למטה. הבדיקות כאן ממשיכות מבעד
+ * לקישור "תרחישים, רווחיות ונתונים מתקדמים" אל תצוגת ה-11 לשוניות הקיימת (ללא
+ * שינוי בהתנהגותה), ומוודאות שמעבר בין לשוניות המשנה מרנדר תוכן אמיתי (מחובר
+ * ל-API, לא Mock).
  */
-test.describe('כספים — מרכז שליטה', () => {
+test.describe('כספים — מרכז שליטה (תצוגה מתקדמת)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/app');
     await new AppShell(page).waitReady();
     await new AppShell(page).openTab('כספים');
+    // מהתצוגה הפשוטה (ברירת המחדל) — כניסה לתצוגה המתקדמת (11 הלשוניות)
+    await page.getByRole('button', { name: /נתונים מתקדמים/ }).click();
   });
 
   test('לשונית שליטה מציגה KPIs, מצב עסק וגרף תחזית', async ({ page }) => {
@@ -89,5 +94,47 @@ test.describe('כספים — מרכז שליטה', () => {
     await expect(app.toast(/עודכנה/)).toBeVisible();
     // היתרה הנוכחית משתקפת ב-KPI
     await expect(page.locator('.kpi.clk').filter({ hasText: 'יתרה נוכחית' })).toContainText('123,456');
+  });
+});
+
+/**
+ * תצוגה פשוטה (ברירת המחדל של "כספים"): מסך אחד עם הכנסות/הוצאות/יתרה/צפי
+ * בשפה רגילה, בלי סרגל 11 הלשוניות. קישור אחד בתחתית פותח את התצוגה המתקדמת,
+ * וממנה יש דרך חזרה. שני הכיוונים חייבים לעבוד.
+ */
+test.describe('כספים — תצוגה פשוטה', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/app');
+    await new AppShell(page).waitReady();
+    await new AppShell(page).openTab('כספים');
+  });
+
+  test('מציגה הכנסות/הוצאות/יתרה/צפי בלי סרגל לשוניות, וקישור לתצוגה מתקדמת', async ({ page }) => {
+    // אין סרגל 11 הלשוניות בתצוגה הפשוטה
+    await expect(page.locator('.tabs2')).toHaveCount(0);
+    // 4 המספרים המרכזיים
+    await expect(page.locator('.kpi', { hasText: 'יש בבנק עכשיו' })).toBeVisible();
+    await expect(page.locator('.kpi', { hasText: /הכנסות/ })).toBeVisible();
+    await expect(page.locator('.kpi', { hasText: /הוצאות/ })).toBeVisible();
+    await expect(page.locator('.kpi', { hasText: 'צפי ליתרה בסוף החודש' })).toBeVisible();
+    // באנר מצב העסק
+    await expect(page.locator('.fin-status')).toBeVisible();
+    // כפתורי פעולה מהירה
+    await expect(page.getByRole('button', { name: '+ הכנסה' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '+ הוצאה' })).toBeVisible();
+    // הקישור לתצוגה המתקדמת
+    await expect(page.getByRole('button', { name: /נתונים מתקדמים/ })).toBeVisible();
+  });
+
+  test('מעבר לתצוגה מתקדמת וחזרה לפשוטה עובד בשני הכיוונים', async ({ page }) => {
+    await page.getByRole('button', { name: /נתונים מתקדמים/ }).click();
+    // בתצוגה המתקדמת: סרגל 11 הלשוניות + קישור חזרה
+    await expect(page.locator('.tabs2 button', { hasText: 'שליטה' })).toHaveClass(/on/);
+    await expect(page.getByRole('button', { name: /חזרה לתצוגה הפשוטה/ })).toBeVisible();
+
+    await page.getByRole('button', { name: /חזרה לתצוגה הפשוטה/ }).click();
+    // חזרה לתצוגה הפשוטה: אין סרגל, הקישור למתקדם חוזר
+    await expect(page.locator('.tabs2')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /נתונים מתקדמים/ })).toBeVisible();
   });
 });
