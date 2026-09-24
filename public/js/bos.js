@@ -337,7 +337,7 @@
         </div>
         ${field('bs_logo', 'כתובת לוגו (יחסית לאתר)', s.businessLogoUrl, '/ort-tech-logo.png')}
         <div class="hint" style="margin-top:10px">מספר ההזמנה הבא: <b>${s.nextOrderNo ?? 1}</b> · מספר הקבלה הבא: <b>${s.nextReceiptNo ?? 1}</b></div>
-        <div class="spread" style="margin-top:16px"><span></span><button class="btn primary" onclick="settingsBusinessSave()">שמירה</button></div>
+        <div class="spread" style="margin-top:16px"><span></span><button class="btn primary" onclick="BOS.settingsBusinessSave()">שמירה</button></div>
       </div>`;
   }
   async function settingsBusinessSave() {
@@ -681,6 +681,7 @@
     addChange, _addChange, convertPC, delSub,
     handleLead, delQuote,
     archiveOrg, restoreOrg, deleteOrg,
+    settingsBusinessSave,
   };
 
   // אם האפליקציה כבר מוצגת ועומדים על מסך BOS — רענון לאחר טעינת המודול
