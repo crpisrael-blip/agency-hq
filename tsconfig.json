@@ -12,5 +12,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["functions/**/*.ts", "src/**/*.ts", "drizzle.config.ts"]
+  "include": ["functions/**/*.ts", "src/**/*.ts", "workers/**/*.ts", "drizzle.config.ts"]
 }

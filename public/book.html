@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>קביעת שיחה — ORT-TECH</title>
+<meta name="description" content="בחר מועד נוח לשיחת ייעוץ קצרה. טלפון או זום, לפי מה שנוח לך. אישור מיידי בוואטסאפ.">
+<meta property="og:title" content="קביעת שיחה — ORT-TECH">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+<style>
+  .bk-days{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+  .bk-day{flex:0 0 auto;min-width:96px;padding:10px 12px;border:1.5px solid var(--line-2);border-radius:12px;background:var(--bg-2);
+    color:var(--text);cursor:pointer;text-align:center;font-family:inherit;transition:border-color .15s,background .15s}
+  .bk-day .dow{font-weight:900;font-size:.95rem}.bk-day .dd{font-size:.8rem;color:var(--mute)}
+  .bk-day.on{border-color:var(--cyan);background:var(--panel)}
+  .bk-times{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .bk-time{padding:9px 16px;border:1.5px solid var(--line-2);border-radius:10px;background:var(--bg-2);color:var(--text);
+    cursor:pointer;font-family:inherit;font-weight:700;transition:border-color .15s,background .15s}
+  .bk-time.on{border-color:var(--cyan);background:var(--panel)}
+  .bk-types{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+  .bk-type{flex:1;min-width:130px;padding:12px;border:1.5px solid var(--line-2);border-radius:12px;background:var(--bg-2);
+    color:var(--text);cursor:pointer;font-family:inherit;text-align:center;font-weight:700}
+  .bk-type.on{border-color:var(--cyan);background:var(--panel)}
+  .bk-step{margin-top:18px}.bk-step.hidden{display:none}
+  .bk-lbl{font-weight:900;margin:0 0 8px;font-size:1.02rem}
+  .bk-empty{padding:22px;text-align:center;color:var(--mute)}
+  .field .field-err{color:#ff6b6b;font-size:.82rem;margin-top:6px;font-weight:600}
+  .field .field-err:empty{display:none}
+  .field input.invalid{border-color:#ff6b6b}
+</style>
+</head>
+<body data-page="book">
+<header id="site-header"></header>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="kick">נדבר?</div>
+    <h1>קביעת שיחת ייעוץ</h1>
+    <p id="bkIntro">בחר מועד שנוח לך, ואשלח לך מיד אישור בוואטסאפ. שיחה קצרה, בלי התחייבות.</p>
+  </div>
+</section>
+
+<section style="padding-top:24px">
+  <div class="wrap">
+    <div class="form-card reveal">
+      <div class="form-inner" id="bkInner">
+        <div id="bkLoading" class="bk-empty">טוען מועדים פנויים…</div>
+
+        <div id="bkFlow" style="display:none">
+          <div class="bk-step" id="stepDay">
+            <p class="bk-lbl">1 · בחר יום</p>
+            <div class="bk-days" id="bkDays"></div>
+          </div>
+
+          <div class="bk-step hidden" id="stepTime">
+            <p class="bk-lbl">2 · בחר שעה</p>
+            <div class="bk-times" id="bkTimes"></div>
+          </div>
+
+          <div class="bk-step hidden" id="stepType">
+            <p class="bk-lbl">3 · איך תעדיף להיפגש?</p>
+            <div class="bk-types" id="bkTypes"></div>
+          </div>
+
+          <div class="bk-step hidden" id="stepDetails">
+            <p class="bk-lbl">4 · הפרטים שלך</p>
+            <div class="row2">
+              <div class="field"><label>שם <b>*</b></label><input id="bkName" required autocomplete="name" placeholder="השם שלך"></div>
+              <div class="field"><label>טלפון <b>*</b></label><input id="bkPhone" required inputmode="tel" autocomplete="tel" placeholder="050-0000000"></div>
+            </div>
+            <div class="field"><label>מה תרצה שנדבר עליו? (לא חובה)</label><textarea id="bkNote" rows="2" placeholder="כמה מילים על העסק ומה מעסיק אותך…"></textarea></div>
+            <button type="button" class="btn primary" id="bkSubmit" onclick="bkConfirm()">אשר את הפגישה 🗓️</button>
+            <p class="form-note">אישור יישלח מיד בוואטסאפ · אפשר לשנות מועד בכל רגע</p>
+          </div>
+        </div>
+
+        <div id="bkNone" class="bk-empty" style="display:none">
+          אין כרגע מועדים פנויים לקביעה עצמית.<br>
+          <a class="btn primary" style="margin-top:12px;display:inline-block" href="/contact">השאירו פרטים ואחזור אליכם</a>
+        </div>
+      </div>
+
+      <div class="ok-box" id="bkOk">
+        <div class="big">✅</div>
+        <h3>הפגישה נקבעה!</h3>
+        <p id="bkOkText">נתראה בקרוב.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="site-footer"></footer>
+<script src="/site.js"></script>
+<script>
+(function(){
+  var slots=[], byDay={}, sel={day:null,slotId:null,type:null}, offer={phone:true,zoom:false};
+  function normPhone(raw){var d=(raw||'').replace(/\D/g,'');if(!d)return null;if(d.indexOf('00')===0)d=d.slice(2);
+    if(d.indexOf('972')===0){if(d.length===13&&d[3]==='0')d='972'+d.slice(4);}else if(d[0]==='0')d='972'+d.slice(1);
+    else if(d.length>=8&&d.length<=9)d='972'+d;if(d.indexOf('972')===0)return(d.length===11||d.length===12)?d:null;
+    return(d.length>=8&&d.length<=15)?d:null;}
+  function err(el,msg){var f=el.closest('.field');var e=f.querySelector('.field-err');
+    if(!e){e=document.createElement('div');e.className='field-err';f.appendChild(e);}e.textContent=msg;el.classList.add('invalid');
+    el.addEventListener('input',function c(){e.textContent='';el.classList.remove('invalid');el.removeEventListener('input',c);});el.focus();}
+  var HE_DOW=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  var HE_MON=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  function ilParts(ms){ // חלקי תאריך בשעון ישראל
+    var s=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ms));
+    var t=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(ms));
+    var dow=new Date(ms).toLocaleDateString('en-US',{timeZone:'Asia/Jerusalem',weekday:'short'});
+    return {ymd:s, time:t};
+  }
+  function heDate(ms){var d=new Date(ms);
+    var dow=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',weekday:'long'}).format(d);
+    var day=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',day:'numeric',month:'long'}).format(d);
+    return {dow:dow, day:day};}
+  function $(id){return document.getElementById(id);}
+
+  fetch('/api/book/slots').then(function(r){return r.json();}).then(function(res){
+    $('bkLoading').style.display='none';
+    if(!res.enabled || !res.slots || !res.slots.length){ $('bkNone').style.display='block'; return; }
+    offer.phone=!!res.offerPhone; offer.zoom=!!res.offerZoom;
+    slots=res.slots;
+    slots.forEach(function(s){ var k=ilParts(s.startAt).ymd; (byDay[k]=byDay[k]||[]).push(s); });
+    renderDays();
+    $('bkFlow').style.display='block';
+  }).catch(function(){ $('bkLoading').style.display='none'; $('bkNone').style.display='block'; });
+
+  function renderDays(){
+    var keys=Object.keys(byDay).sort();
+    $('bkDays').innerHTML=keys.map(function(k){
+      var first=byDay[k][0].startAt; var h=heDate(first);
+      return '<button type="button" class="bk-day" data-k="'+k+'"><div class="dow">'+h.dow+'</div><div class="dd">'+h.day+'</div></button>';
+    }).join('');
+    Array.prototype.forEach.call($('bkDays').children,function(btn){
+      btn.addEventListener('click',function(){ pickDay(btn.getAttribute('data-k'), btn); });
+    });
+  }
+  function pickDay(k, btn){
+    sel.day=k; sel.slotId=null; sel.type=null;
+    Array.prototype.forEach.call($('bkDays').children,function(b){b.classList.toggle('on',b===btn);});
+    var times=byDay[k].slice().sort(function(a,b){return a.startAt-b.startAt;});
+    $('bkTimes').innerHTML=times.map(function(s){return '<button type="button" class="bk-time" data-id="'+s.id+'" data-t="'+s.startAt+'">'+ilParts(s.startAt).time+'</button>';}).join('');
+    Array.prototype.forEach.call($('bkTimes').children,function(btn){ btn.addEventListener('click',function(){ pickTime(btn); }); });
+    show('stepTime'); hide('stepType'); hide('stepDetails');
+  }
+  function pickTime(btn){
+    sel.slotId=btn.getAttribute('data-id'); sel.slotAt=+btn.getAttribute('data-t');
+    Array.prototype.forEach.call($('bkTimes').children,function(b){b.classList.toggle('on',b===btn);});
+    var both=offer.phone&&offer.zoom;
+    if(both){
+      $('bkTypes').innerHTML=
+        '<button type="button" class="bk-type" data-v="phone">☎️ שיחת טלפון</button>'+
+        '<button type="button" class="bk-type" data-v="zoom">💻 פגישת זום</button>';
+      Array.prototype.forEach.call($('bkTypes').children,function(btn){btn.addEventListener('click',function(){pickType(btn);});});
+      sel.type=null; show('stepType'); hide('stepDetails');
+    }else{
+      sel.type=offer.zoom?'zoom':'phone'; hide('stepType'); show('stepDetails');
+    }
+  }
+  function pickType(btn){
+    sel.type=btn.getAttribute('data-v');
+    Array.prototype.forEach.call($('bkTypes').children,function(b){b.classList.toggle('on',b===btn);});
+    show('stepDetails');
+  }
+  function show(id){$(id).classList.remove('hidden');} function hide(id){$(id).classList.add('hidden');}
+
+  window.bkConfirm=function(){
+    var nameEl=$('bkName'), phoneEl=$('bkPhone');
+    var name=(nameEl.value||'').trim(), phone=(phoneEl.value||'').trim();
+    if(!sel.slotId){ alert('בחר קודם מועד'); return; }
+    if(!sel.type){ alert('בחר סוג פגישה'); return; }
+    if(!name){ err(nameEl,'צריך למלא שם'); return; }
+    if(!phone){ err(phoneEl,'צריך למלא מספר טלפון'); return; }
+    if(!normPhone(phone)){ err(phoneEl,'מספר טלפון לא תקין — לדוגמה 050-0000000'); return; }
+    var btn=$('bkSubmit'); var orig=btn.textContent; btn.disabled=true; btn.textContent='קובע…';
+    fetch('/api/book',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({slotId:sel.slotId,name:name,phone:phone,meetingType:sel.type,note:($('bkNote').value||'').slice(0,300)})})
+      .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+      .then(function(res){
+        if(!res.ok){
+          btn.disabled=false; btn.textContent=orig;
+          if(res.j&&res.j.error==='slot_taken'){ alert('אופס, המועד הזה בדיוק נתפס. בוא נבחר אחר.'); location.reload(); }
+          else alert('משהו השתבש. נסה שוב או השאר פרטים בעמוד צור קשר.');
+          return;
+        }
+        $('bkInner').style.display='none';
+        var when=res.j.datetime||'';
+        $('bkOkText').innerHTML='נקבע ל'+when+'.<br>💬 שלחנו לך אישור בוואטסאפ עם כל הפרטים.';
+        $('bkOk').style.display='block';
+        window.scrollTo({top:0,behavior:'smooth'});
+      })
+      .catch(function(){ btn.disabled=false; btn.textContent='נסה שוב'; alert('משהו השתבש. נסה שוב.'); });
+  };
+})();
+</script>
+</body>
+</html>

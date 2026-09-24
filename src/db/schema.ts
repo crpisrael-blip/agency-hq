@@ -39,6 +39,7 @@ export const clients = sqliteTable('clients', {
   stage: text('stage').notNull().default('lead'),        // LEGACY בלבד — לא בשימוש במודל BOS (הזדמנויות מחזיקות את שלב המכירה)
   health: text('health').notNull().default('green'),     // green | yellow | red
   website: text('website'),                              // אתר הארגון (BOS)
+  logo: text('logo'),                                     // לוגו כ-data URL (מוקטן), לשימוש בהצעות/מסמכים
   tags: text('tags'),
   notes: text('notes'),
   isSelf: integer('is_self').default(0),      // 1 = העסק שלי (ORT-TECH) — לידים שלו מנוהלים כ-CRM מלא
@@ -348,6 +349,37 @@ export const leads = sqliteTable('leads', {
   handledAt: integer('handled_at'),
   followUpAt: integer('follow_up_at'),   // תאריך חזרה ללקוח (follow-up)
   convertedClientId: text('converted_client_id'), // הלקוח שנוצר מהליד — מונע המרה כפולה
+  createdAt: integer('created_at').notNull(),
+});
+
+/** משבצת זמינות שאני פותח ידנית לקביעת שיחה מהאתר (פנויה עד שנתפסת) */
+export const bookingSlots = sqliteTable('booking_slots', {
+  id: text('id').primaryKey(),
+  startAt: integer('start_at').notNull(),                 // מועד תחילת הפגישה (epoch ms)
+  durationMin: integer('duration_min').notNull().default(30),
+  note: text('note'),                                     // הערה פנימית אופציונלית
+  status: text('status').notNull().default('open'),       // open | booked | closed
+  createdAt: integer('created_at').notNull(),
+});
+
+/** פגישה שנקבעה על משבצת. slotId ייחודי → אין כפל-הזמנה */
+export const bookings = sqliteTable('bookings', {
+  id: text('id').primaryKey(),
+  slotId: text('slot_id').notNull().references(() => bookingSlots.id),
+  leadId: text('lead_id').references(() => leads.id),
+  startAt: integer('start_at').notNull(),
+  durationMin: integer('duration_min').notNull().default(30),
+  name: text('name'),
+  phone: text('phone'),
+  meetingType: text('meeting_type').notNull().default('phone'), // phone | zoom
+  meetingLink: text('meeting_link'),
+  note: text('note'),
+  status: text('status').notNull().default('booked'),    // booked | cancelled | done | noshow
+  whatsappStatus: text('whatsapp_status'),               // sent | failed | skipped
+  whatsappError: text('whatsapp_error'),
+  confirmSentAt: integer('confirm_sent_at'),
+  remind24SentAt: integer('remind24_sent_at'),
+  remind1SentAt: integer('remind1_sent_at'),
   createdAt: integer('created_at').notNull(),
 });
 
@@ -763,6 +795,8 @@ export type ExpenseAllocation = typeof expenseAllocations.$inferSelect;
 export type ExpenseReceipt = typeof expenseReceipts.$inferSelect;
 export type SkillUsage = typeof skillUsage.$inferSelect;
 export type Call = typeof calls.$inferSelect;
+export type BookingSlot = typeof bookingSlots.$inferSelect;
+export type Booking = typeof bookings.$inferSelect;
 
 export type FinancialOccurrence = typeof financialOccurrences.$inferSelect;
 export type Vendor = typeof vendors.$inferSelect;

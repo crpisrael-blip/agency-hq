@@ -65,7 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_sales_receipts_credits ON sales_receipts(credits_
 -- ההגדרות החדש. מספר עוסק/כתובת/שם מנפיק לא קיימים היום בשום מקום — במכוון לא
 -- מוזנים כברירת מחדל; ה-API חוסם הנפקת קבלה עד שהם ימולאו.
 INSERT OR IGNORE INTO settings (key, value) VALUES ('business_name', 'ORT-TECH');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('business_phone', '054-2214726');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('business_phone', '050-4860199');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('business_email', 'menahemtzik1@gmail.com');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('business_website', 'ort-tech.co.il');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('business_logo_url', '/ort-tech-logo.png');

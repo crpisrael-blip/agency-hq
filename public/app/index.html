@@ -453,6 +453,7 @@ const PAGES = [
 // תפריט משני / הגדרות (כולל מסכים ותיקים שנשמרו)
 const SECONDARY = [
   ['leads','📥 לידים (CRM)'],
+  ['bookings','🗓️ זמינות ופגישות'],
   ['calls','📞 תיעוד שיחות'],
   ['documents','מסמכים'],
   ['playbooks','ספריית מתודולוגיה'],
@@ -641,12 +642,14 @@ RENDER.clients=async()=>{
   const list=await apiGet('/clients'); CACHE.clients=list;
   $('view').innerHTML=`
     <div class="spread"><div><h2>לקוחות</h2><div class="sub">${list.length} לקוחות · ${money(list.reduce((a,c)=>a+(c.mrr||0),0))} MRR כולל</div></div>
-      <div class="row"><input class="search" id="clSearch" placeholder="חיפוש…" oninput="filterList('clSearch','clRow')"><button class="btn primary" onclick="clientForm()">+ לקוח</button></div></div>
+      <div class="row"><input class="search" id="clSearch" placeholder="חיפוש לפי שם עסק או איש קשר…" oninput="filterList('clSearch','clRow')"><button class="btn primary" onclick="clientForm()">+ לקוח</button></div></div>
     <div class="card" style="padding:6px 17px">
       ${list.length?list.map(c=>{const st=CLIENT_STATUS[c.status]||[c.status,'p-gray'];return `
-        <div class="list-item clRow" data-s="${esc(c.name+' '+(c.industry||''))}" onclick="openClient('${c.id}')">
-          <div class="li-main"><b>${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</b>
-            <small>${esc(c.industry||'')} · ${c.systemsCount} מערכות · ${CLIENT_STAGE[c.stage]||c.stage}</small></div>
+        <div class="list-item clRow" data-s="${esc(c.name+' '+(c.industry||'')+' '+(c.contactName||''))}" onclick="openClient('${c.id}')">
+          <div class="row" style="gap:10px;align-items:center;min-width:0;flex:1">
+            ${c.logo?`<img src="${c.logo}" alt="" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;border:1px solid var(--line);flex-shrink:0">`:''}
+            <div class="li-main"><b>${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</b>
+              <small>${esc(c.industry||'')}${c.contactName?' · '+esc(c.contactName):''} · ${c.systemsCount} מערכות · ${CLIENT_STAGE[c.stage]||c.stage}</small></div></div>
           <div class="row" style="gap:8px"><span class="pill ${st[1]}">${st[0]}</span><b class="li-val" style="color:var(--accent-2)">${c.mrr?money(c.mrr):''}</b></div>
         </div>`;}).join(''):'<div class="empty">אין עדיין לקוחות. הוסף את הראשון!</div>'}
     </div>`;
@@ -656,10 +659,36 @@ function filterList(inputId,rowClass){
   document.querySelectorAll('.'+rowClass).forEach(r=>{ r.style.display=(r.dataset.s||'').toLowerCase().includes(q)?'':'none'; });
 }
 let CLIENT_EDIT_STAGE=null;
+let CLIENT_LOGO='';   // הלוגו של הלקוח בעריכה הנוכחית (data URL מוקטן)
+/** קורא קובץ תמונה, מקטין ל-max פיקסלים בצד ארוך, ומחזיר data URL (PNG לשקיפות) */
+function resizeImage(file,max){return new Promise((res,rej)=>{
+  const r=new FileReader();
+  r.onload=()=>{const img=new Image();
+    img.onload=()=>{let w=img.width,h=img.height;const sc=Math.min(1,max/Math.max(w,h));
+      w=Math.max(1,Math.round(w*sc));h=Math.max(1,Math.round(h*sc));
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      try{res(cv.toDataURL('image/png'));}catch(e){rej(e);}};
+    img.onerror=rej;img.src=r.result;};
+  r.onerror=rej;r.readAsDataURL(file);});}
+async function onLogoPick(inp){
+  const f=inp.files&&inp.files[0]; if(!f)return;
+  try{ CLIENT_LOGO=await resizeImage(f,256);
+    const p=$('f_logoPrev'); p.src=CLIENT_LOGO; p.style.display=''; $('f_logoClear').style.display='';
+  }catch(e){ toast('שגיאה בטעינת התמונה','bad'); }
+}
+function clearLogo(){ CLIENT_LOGO=''; const p=$('f_logoPrev'); if(p){p.src='';p.style.display='none';} const cl=$('f_logoClear'); if(cl)cl.style.display='none'; const fi=$('f_logoFile'); if(fi)fi.value=''; }
 function clientForm(c={}){
   CLIENT_EDIT_STAGE=c.stage||null;
+  CLIENT_LOGO=c.logo||'';
   openModal(`<h3>${c.id?'עריכת לקוח':'לקוח חדש'}</h3>
     <div class="f"><label>שם העסק *</label><input id="f_name" value="${esc(c.name||'')}"></div>
+    <div class="f"><label>לוגו</label>
+      <div class="row" style="gap:10px;align-items:center">
+        <img id="f_logoPrev" src="${c.logo||''}" alt="לוגו" style="width:56px;height:56px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--line);${c.logo?'':'display:none'}">
+        <input type="file" accept="image/*" id="f_logoFile" onchange="onLogoPick(this)">
+        <button type="button" class="btn ghost small" id="f_logoClear" onclick="clearLogo()" style="${c.logo?'':'display:none'}">הסרה</button>
+      </div></div>
     <div class="f2"><div class="f"><label>תחום</label><input id="f_industry" value="${esc(c.industry||'')}"></div>
       <div class="f"><label>גודל</label><select id="f_size">${opts({solo:'עצמאי',micro:'זעיר',small:'קטן',medium:'בינוני'},c.size||'solo')}</select></div></div>
     <div class="f2"><div class="f"><label>איש קשר</label><input id="f_contactName" value="${esc(c.contactName||'')}"></div>
@@ -678,7 +707,7 @@ const opts=(map,sel)=>Object.entries(map).map(([k,v])=>`<option value="${k}" ${k
 const mapLabels=(m)=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,v[0]]));
 async function saveClient(id){
   const body={name:val('f_name'),industry:val('f_industry'),size:val('f_size'),contactName:val('f_contactName'),contactRole:val('f_contactRole'),
-    phone:val('f_phone'),email:val('f_email'),status:val('f_status'),stage:val('f_stage'),health:val('f_health'),notes:val('f_notes')};
+    phone:val('f_phone'),email:val('f_email'),status:val('f_status'),stage:val('f_stage'),health:val('f_health'),notes:val('f_notes'),logo:CLIENT_LOGO||''};
   if(!body.name){toast('חסר שם','bad');return;}
   try{
     let cid=id;
@@ -779,7 +808,9 @@ async function openClient(id){
 
   $('view').innerHTML=`
     <button class="backbtn" onclick="go('customers')">← חזרה ללקוחות</button>
-    <div class="spread"><h2 style="margin:0">${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</h2><span class="pill ${st[1]}">${st[0]}</span></div>
+    <div class="spread"><div class="row" style="gap:10px;align-items:center;min-width:0">
+      ${c.logo?`<img src="${c.logo}" alt="לוגו" style="width:44px;height:44px;border-radius:10px;object-fit:contain;background:#fff;border:1px solid var(--line);flex-shrink:0">`:''}
+      <h2 style="margin:0">${HEALTH[c.health]?.[0]||''} ${esc(c.name)}</h2></div><span class="pill ${st[1]}">${st[0]}</span></div>
     <div class="sub">${esc(c.industry||'')}${c.contactName?' · '+esc(c.contactName):''}${c.phone?' · '+esc(c.phone):''}</div>
     <div class="row" style="flex-wrap:wrap;gap:6px;margin:12px 0">
       <button class="btn primary small" onclick='clientForm(${j(c)})'>✏️ עריכה</button>
@@ -1133,7 +1164,11 @@ function leadStatusSelect(id,cur){ return '<select onchange="leadSetStatus(\''+i
 
 RENDER.leads=async()=>{
   $('view').innerHTML='<div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:8px"><div><h2>📥 לידים</h2><div class="sub">הלידים שלך — CRM מלא לניהול המכירה · לידים של מערכות לקוחות — מעקב וספירה בלבד</div></div>'+
-    '<button class="btn ghost small" onclick="whatsappSettings()" title="הודעת אישור אוטומטית בווטסאפ לכל מי שמשאיר פרטים באתר">💬 ווטסאפ אוטומטי <span id="waHdrState" class="pill p-gray">…</span></button></div><div id="leadsBody"><div class="empty">טוען…</div></div>';
+    '<div class="row" style="gap:8px;flex-wrap:wrap">'+
+      '<button class="btn primary small" onclick="leadAddForm()" title="הזנה מהירה של פנייה שהגיעה בוואטסאפ/טלפון">➕ ליד חדש</button>'+
+      '<button class="btn ghost small" onclick="whatsappSettings()" title="הודעת אישור אוטומטית בווטסאפ לכל מי שמשאיר פרטים באתר">💬 ווטסאפ אוטומטי <span id="waHdrState" class="pill p-gray">…</span></button>'+
+      '<button class="btn ghost small" onclick="integrationsSettings()" title="פתיחת לידים אוטומטית מווטסאפ נכנס ומטפסי לידים בפייסבוק">🔗 מקורות לידים</button>'+
+    '</div></div><div id="leadsBody"><div class="empty">טוען…</div></div>';
   apiGet('/whatsapp/settings').then(st=>{ const el=$('waHdrState'); if(!el)return; const on=st.enabled!=='0'&&st.ready&&st.ready.ready; el.className='pill '+(on?'p-green':'p-gray'); el.textContent=on?'פעיל':'כבוי'; }).catch(()=>{});
   try{
     const [rows,systems,cls]=await Promise.all([apiGet('/leads'),apiGet('/systems'),apiGet('/clients')]);
@@ -1145,6 +1180,34 @@ RENDER.leads=async()=>{
     renderLeadsList();
   }catch(e){ const b=$('leadsBody'); if(b)b.innerHTML='<div class="empty">שגיאה בטעינת לידים</div>'; }
 };
+
+/* ➕ הזנת ליד ידני — פנייה שהגיעה בוואטסאפ/טלפון/הפניה, נכנסת ל"הלידים שלי" */
+function leadAddForm(){
+  openModal(`<h3>➕ ליד חדש</h3>
+    <div class="hint" style="margin-bottom:10px">להזנה מהירה של פנייה שהגיעה מחוץ לאתר (וואטסאפ, טלפון, הפניה). נכנס ל"הלידים שלי" עם סטטוס "חדש".</div>
+    <div class="f2"><div class="f"><label>שם</label><input id="nl_name" placeholder="שם הפונה"></div>
+      <div class="f"><label>טלפון</label><input id="nl_phone" placeholder="05X-XXXXXXX" inputmode="tel"></div></div>
+    <div class="f"><label>מקור</label><select id="nl_source">
+      <option value="whatsapp">וואטסאפ</option><option value="phone">טלפון</option>
+      <option value="referral">הפניה</option><option value="other">אחר</option></select></div>
+    <div class="f"><label>תוכן הפנייה</label><textarea id="nl_note" rows="4" placeholder="מה הפונה כתב או ביקש…"></textarea></div>
+    <label class="row" style="gap:8px;margin:6px 0;cursor:pointer"><input type="checkbox" id="nl_wa">
+      <span>שלח לו הודעת אישור אוטומטית בווטסאפ <span class="hint">(רק אם הווטסאפ מוגדר פעיל והטלפון תקין)</span></span></label>
+    <div class="modal-actions"><button class="btn primary" onclick="saveNewLead()">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+}
+async function saveNewLead(){
+  const name=val('nl_name').trim(), phone=val('nl_phone').trim(), note=val('nl_note').trim();
+  if(!name&&!phone&&!note){ toast('מלא לפחות שם, טלפון או תוכן','bad'); return; }
+  const body={name,phone,note,source:val('nl_source'),sendWhatsApp:$('nl_wa').checked};
+  try{
+    const r=await apiPost('/leads',body);
+    closeModal();
+    toast(r.whatsapp==='sent'?'הליד נוסף ✓ · ווטסאפ נשלח':r.whatsapp==='failed'?'הליד נוסף ✓ · שליחת ווטסאפ נכשלה':'הליד נוסף ✓');
+    LEADS_MODE='mine'; LEADS_FILTER='new';
+    go('leads');
+  }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
 
 function renderLeadsList(){
   const body=$('leadsBody'); if(!body)return;
@@ -1468,6 +1531,199 @@ async function whatsappResend(id){
     l.whatsappStatus='failed'; l.whatsappError=e.message||'';
     toast('השליחה נכשלה: '+(e.message||''),'bad'); renderLeadsList(); openLead(id);
   }
+}
+
+/* ===== מקורות לידים אוטומטיים: ווטסאפ נכנס + טפסי פייסבוק (Meta webhook) ===== */
+async function integrationsSettings(){
+  let st; try{ st=await apiGet('/integrations/settings'); }catch(e){ toast('שגיאה בטעינת ההגדרות','bad'); return; }
+  const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
+  const ltr='direction:ltr;text-align:left';
+  const ph=(set)=>set?'מוגדר — השאר ריק כדי לא לשנות':'';
+  openModal(
+    '<div class="spread"><h3 style="margin:0">🔗 מקורות לידים אוטומטיים</h3></div>'+
+    '<div class="muted" style="font-size:.88rem;margin:6px 0 14px">חיבור דרך אפליקציית Meta אחת: כל <b>הודעה נכנסת בווטסאפ</b> וכל <b>מילוי טופס לידים בפייסבוק</b> פותחים ליד אוטומטית ב"הלידים שלי". הודעה מלקוח שכבר קיים כליד פתוח — מתועדת ביומן שלו במקום לפתוח כפילות.</div>'+
+    '<div class="card" style="margin:10px 0"><b style="font-size:.92rem">🌐 כתובת ה-Webhook</b>'+
+      '<div class="hint">הדבק ב-Meta → Webhooks → Callback URL, גם למוצר WhatsApp וגם ל-Page (Facebook Login/Webhooks).</div>'+
+      '<div class="row" style="gap:8px;margin-top:6px"><input id="in_cb" readonly value="'+esc(st.callbackUrl||'')+'" style="'+inputStyle+';'+ltr+'"><button class="btn ghost small" onclick="navigator.clipboard&&navigator.clipboard.writeText($(\'in_cb\').value).then(()=>toast(\'הועתק ✓\'))">📋</button></div></div>'+
+    '<div class="f2">'+
+      '<div class="f"><label>Verify Token'+(st.meta_verify_tokenSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_verify" type="password" autocomplete="new-password" placeholder="'+ph(st.meta_verify_tokenSet)+'בחר/י מחרוזת כלשהי" style="'+inputStyle+';'+ltr+'"><div class="hint">אותה מחרוזת בדיוק שתזין ב-Meta בשדה Verify Token.</div></div>'+
+      '<div class="f"><label>App Secret (סוד)'+(st.meta_app_secretSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_secret" type="password" autocomplete="new-password" placeholder="'+ph(st.meta_app_secretSet)+'' + 'מ-Settings → Basic" style="'+inputStyle+';'+ltr+'"><div class="hint">לאימות חתימת הבקשות. מומלץ מאוד — בלעדיו כל גורם יכול לשלוח לידים מזויפים.</div></div>'+
+    '</div>'+
+    '<div class="card" style="margin:12px 0;background:#eef4ff;border-color:#b9cdf2"><div class="spread"><b style="font-size:.92rem">💬 ווטסאפ נכנס → ליד</b>'+
+      '<select id="in_wa" style="'+inputStyle+';max-width:150px;font-weight:700"><option value="1" '+(st.waInboundEnabled?'selected':'')+'>פעיל</option><option value="0" '+(!st.waInboundEnabled?'selected':'')+'>כבוי</option></select></div>'+
+      '<div class="hint" style="margin-top:6px">ב-Meta → WhatsApp → Configuration: הצב את ה-Callback URL וה-Verify Token, ואז Subscribe לשדה <code>messages</code>.</div></div>'+
+    '<div class="card" style="margin:12px 0;background:#eef7ee;border-color:#b6dcb6"><div class="spread"><b style="font-size:.92rem">📘 טפסי לידים בפייסבוק → ליד</b>'+
+      '<select id="in_fb" style="'+inputStyle+';max-width:150px;font-weight:700"><option value="1" '+(st.fbLeadsEnabled?'selected':'')+'>פעיל</option><option value="0" '+(!st.fbLeadsEnabled?'selected':'')+'>כבוי</option></select></div>'+
+      '<div class="f" style="margin-top:8px"><label>Page Access Token (סוד)'+(st.fb_page_tokenSet?' <span class="muted" style="font-size:.75rem">· מוגדר</span>':'')+'</label><input id="in_page" type="password" autocomplete="new-password" placeholder="'+ph(st.fb_page_tokenSet)+'טוקן של העמוד" style="'+inputStyle+';'+ltr+'"></div>'+
+      '<div class="hint">נדרש כדי למשוך את פרטי הליד מהטופס. ב-Meta → Webhooks → Page: Subscribe לשדה <code>leadgen</code>. דורש הרשאת leads_retrieval ואישור אפליקציה כדי לצאת מ-Dev Mode.</div></div>'+
+    '<div class="card" style="margin:12px 0"><b style="font-size:.92rem">🔌 בדיקת חיבור</b>'+
+      '<div class="row" style="gap:8px;margin-top:6px"><button class="btn ghost small" onclick="integrationsCheck()">בדוק</button><span id="in_status" class="muted" style="font-size:.85rem"></span></div></div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">סגור</button><button class="btn primary" onclick="integrationsSave()">💾 שמור הגדרות</button></div>'
+  , true);
+}
+async function integrationsSave(){
+  const v=(id)=>($(id)?$(id).value.trim():'');
+  const body={ meta_wa_inbound_enabled:$('in_wa').value, meta_fb_leads_enabled:$('in_fb').value };
+  if(v('in_verify')) body.meta_verify_token=v('in_verify');
+  if(v('in_secret')) body.meta_app_secret=v('in_secret');
+  if(v('in_page')) body.fb_page_token=v('in_page');
+  try{ await apiPut('/integrations/settings',body);
+    if($('in_verify'))$('in_verify').value=''; if($('in_secret'))$('in_secret').value=''; if($('in_page'))$('in_page').value='';
+    toast('ההגדרות נשמרו ✓'); }catch(e){ toast('שגיאה בשמירה','bad'); }
+}
+async function integrationsCheck(){
+  const out=$('in_status'); out.textContent='בודק…';
+  try{ const r=await apiGet('/integrations/status');
+    const bits=[];
+    bits.push((r.verifyTokenSet?'✓':'✗')+' Verify Token');
+    bits.push((r.appSecretSet?'✓':'⚠️')+' App Secret');
+    if(r.pageTokenSet){ bits.push(r.page?('✓ עמוד: '+esc(r.page.name||'')):('✗ Page Token: '+esc(r.pageError||'לא תקין'))); }
+    out.innerHTML=bits.join(' · ');
+  }catch(e){ out.textContent='שגיאה בבדיקה'; }
+}
+
+// ============ זמינות ופגישות (קביעת שיחה מהאתר) ============
+// המרת תאריך+שעה בשעון ישראל ל-epoch ms (מטפל ב-DST)
+function ilOffsetMin(atMs){
+  var pr=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jerusalem',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date(atMs)).reduce((a,p)=>{a[p.type]=p.value;return a;},{});
+  var asUTC=Date.UTC(+pr.year,+pr.month-1,+pr.day,+pr.hour,+pr.minute,+pr.second);
+  return (asUTC-atMs)/60000;
+}
+function ilToEpoch(dateStr,timeStr){
+  var d=(dateStr||'').split('-').map(Number), t=(timeStr||'').split(':').map(Number);
+  if(d.length<3||t.length<2) return NaN;
+  var guess=Date.UTC(d[0],d[1]-1,d[2],t[0],t[1]);
+  var off=ilOffsetMin(guess), epoch=guess-off*60000, off2=ilOffsetMin(epoch);
+  if(off2!==off) epoch=guess-off2*60000;
+  return epoch;
+}
+function ilFmt(ms){
+  var dow=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',weekday:'long'}).format(new Date(ms));
+  var day=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',day:'numeric',month:'long',year:'numeric'}).format(new Date(ms));
+  var time=new Intl.DateTimeFormat('he-IL',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(ms));
+  return {dow:dow,day:day,time:time,full:dow+', '+day+', '+time};
+}
+var BK_SET=null, BK_SLOTS=[], BK_BOOKINGS=[];
+const BK_STATUS={booked:['🗓️ קבועה','p-blue'],done:['✓ בוצעה','p-green'],cancelled:['בוטלה','p-gray'],noshow:['לא הגיע','p-red']};
+const BK_WA={sent:['💬 נשלח','p-green'],failed:['💬 נכשל','p-red'],skipped:['—','p-gray']};
+
+RENDER.bookings=async()=>{
+  $('view').innerHTML='<div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:8px"><div><h2>🗓️ זמינות ופגישות</h2><div class="sub">אתה פותח משבצות, הליד בוחר מהאתר, ומקבל אישור ותזכורת בווטסאפ</div></div>'+
+    '<button class="btn ghost small" onclick="bkSettings()">⚙️ הגדרות זמינות <span id="bkHdrState" class="pill p-gray">…</span></button></div>'+
+    '<div id="bkBody"><div class="empty">טוען…</div></div>';
+  try{
+    const [set,slots,bks]=await Promise.all([apiGet('/bookings/settings'),apiGet('/bookings/slots'),apiGet('/bookings')]);
+    BK_SET=set; BK_SLOTS=slots; BK_BOOKINGS=bks;
+    const hdr=$('bkHdrState'); if(hdr){hdr.className='pill '+(set.enabled?'p-green':'p-gray');hdr.textContent=set.enabled?'פעיל':'כבוי';}
+    bkRender();
+  }catch(e){ const b=$('bkBody'); if(b)b.innerHTML='<div class="empty">שגיאה בטעינה</div>'; }
+};
+
+function bkRender(){
+  const body=$('bkBody'); if(!body)return;
+  const now=Date.now();
+  const openSlots=BK_SLOTS.filter(s=>s.status==='open'&&s.startAt>now).sort((a,b)=>a.startAt-b.startAt);
+  const upcoming=BK_BOOKINGS.filter(b=>b.status==='booked'&&b.startAt>now).sort((a,b)=>a.startAt-b.startAt);
+  const past=BK_BOOKINGS.filter(b=>!(b.status==='booked'&&b.startAt>now)).sort((a,b)=>b.startAt-a.startAt);
+  const inputStyle='padding:9px 11px;border:1px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
+  body.innerHTML=
+    (!BK_SET.enabled?'<div class="hint" style="margin-bottom:12px;background:rgba(246,183,60,.14);border:1px solid rgba(246,183,60,.4);padding:10px 12px;border-radius:10px">⚠️ קביעת השיחה כבויה — העמוד /book לא יציג מועדים. הפעל ב"⚙️ הגדרות זמינות".</div>':'')+
+    '<div class="card" style="margin-bottom:14px"><b style="font-size:.95rem">➕ פתיחת משבצות</b>'+
+      '<div class="hint">בחר תאריך, הזן שעה אחת או כמה (מופרדות בפסיק, למשל 10:00, 10:30, 11:00), ואורך בדקות.</div>'+
+      '<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">'+
+        '<input type="date" id="bkDate" style="'+inputStyle+'">'+
+        '<input id="bkTimes" placeholder="10:00, 10:30, 11:00" style="'+inputStyle+';min-width:180px">'+
+        '<span class="muted" style="font-size:.85rem">אורך</span><input id="bkDur" type="number" value="30" min="5" step="5" style="'+inputStyle+';width:80px"><span class="muted" style="font-size:.85rem">דק\x27</span>'+
+        '<button class="btn teal small" onclick="bkAddSlots()">פתח משבצות</button>'+
+      '</div></div>'+
+    '<div class="f2" style="gap:16px;align-items:start"><div>'+
+      '<b style="font-size:.95rem">📅 משבצות פנויות ('+openSlots.length+')</b>'+
+      (openSlots.length? '<div style="margin-top:8px">'+bkGroupByDay(openSlots).map(g=>
+        '<div class="card" style="margin-bottom:8px;padding:10px 12px"><div class="muted" style="font-weight:700;font-size:.85rem;margin-bottom:6px">'+g.label+'</div>'+
+        '<div class="row" style="gap:6px;flex-wrap:wrap">'+g.items.map(s=>'<span class="pill p-gray" style="display:inline-flex;align-items:center;gap:6px">'+ilFmt(s.startAt).time+' <button onclick="bkDelSlot(\''+s.id+'\')" title="מחק" style="border:none;background:none;cursor:pointer;color:#b42323;font-weight:900">×</button></span>').join('')+'</div></div>').join('')+'</div>'
+        : '<div class="empty" style="margin-top:8px">אין משבצות פנויות — פתח למעלה 👆</div>')+
+    '</div><div>'+
+      '<b style="font-size:.95rem">🗓️ פגישות קרובות ('+upcoming.length+')</b>'+
+      (upcoming.length? '<div style="margin-top:8px">'+upcoming.map(bkCard).join('')+'</div>' : '<div class="empty" style="margin-top:8px">אין פגישות קבועות עדיין</div>')+
+    '</div></div>'+
+    (past.length? '<div style="margin-top:16px"><b style="font-size:.95rem">היסטוריה</b><div style="margin-top:8px">'+past.map(bkCard).join('')+'</div></div>' : '');
+}
+function bkGroupByDay(slots){
+  const g={}; slots.forEach(s=>{const f=ilFmt(s.startAt);const k=f.dow+', '+f.day;(g[k]=g[k]||[]).push(s);});
+  return Object.keys(g).map(k=>({label:k,items:g[k]}));
+}
+function bkCard(b){
+  const f=ilFmt(b.startAt); const st=b.status||'booked';
+  const wa=b.whatsappStatus?'<span class="pill '+(BK_WA[b.whatsappStatus]?BK_WA[b.whatsappStatus][1]:'p-gray')+'" title="'+esc(b.whatsappError||'')+'">'+(BK_WA[b.whatsappStatus]?BK_WA[b.whatsappStatus][0]:b.whatsappStatus)+'</span>':'';
+  const ph=(b.phone||'').replace(/\D/g,'');
+  return '<div class="card" style="margin-bottom:8px;padding:11px 13px">'+
+    '<div class="spread" style="align-items:flex-start"><div><b>'+esc(b.name||'—')+'</b> '+pill(BK_STATUS,st)+' '+wa+
+      '<div class="muted" style="font-size:.83rem;margin-top:2px">'+f.full+' · '+(b.meetingType==='zoom'?'💻 זום':'☎️ טלפון')+(b.durationMin?' · '+b.durationMin+' דק\x27':'')+'</div>'+
+      (b.note?'<div class="muted" style="font-size:.83rem;margin-top:3px">📝 '+esc(b.note)+'</div>':'')+'</div>'+
+      '<div class="row" style="gap:6px;flex:none">'+(ph?'<a class="btn teal small" href="tel:'+ph+'">📞</a><a class="btn teal small" href="https://wa.me/'+bkWa(ph)+'" target="_blank">💬</a>':'')+'</div>'+
+    '</div>'+
+    '<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">'+
+      (st==='booked'?'<button class="btn ghost small" onclick="bkSetStatus(\''+b.id+'\',\'done\')">✓ בוצעה</button><button class="btn ghost small" onclick="bkSetStatus(\''+b.id+'\',\'noshow\')">לא הגיע</button><button class="btn danger ghost small" onclick="bkCancel(\''+b.id+'\')">בטל</button>':'')+
+      '<button class="btn ghost small" onclick="bkResend(\''+b.id+'\')">📤 שלח אישור שוב</button>'+
+      (b.leadId?'<button class="btn ghost small" onclick="go(\'leads\')">↗ בלידים</button>':'')+
+    '</div></div>';
+}
+function bkWa(p){p=(p||'').replace(/\D/g,'');if(p.indexOf('972')===0)return p;if(p[0]==='0')return '972'+p.slice(1);return p;}
+
+async function bkAddSlots(){
+  const date=$('bkDate').value, times=($('bkTimes').value||'').split(',').map(t=>t.trim()).filter(Boolean);
+  const dur=Math.max(5,parseInt($('bkDur').value,10)||30);
+  if(!date||!times.length){toast('בחר תאריך והזן שעה','bad');return;}
+  const slots=[]; for(const t of times){const at=ilToEpoch(date,t); if(!Number.isFinite(at)){toast('שעה לא תקינה: '+t,'bad');return;} if(at<Date.now()){toast('המועד '+t+' כבר עבר','bad');continue;} slots.push({startAt:at,durationMin:dur});}
+  if(!slots.length)return;
+  try{ const r=await apiPost('/bookings/slots',{slots}); toast('נפתחו '+r.created+' משבצות ✓'); BK_SLOTS=await apiGet('/bookings/slots'); bkRender(); }
+  catch(e){ toast('שגיאה בפתיחה','bad'); }
+}
+async function bkDelSlot(id){ try{ await apiDel('/bookings/slots/'+id); BK_SLOTS=BK_SLOTS.filter(s=>s.id!==id); bkRender(); }catch(e){ toast(e.message==='slot_booked'?'המשבצת תפוסה — בטל את הפגישה':'שגיאה','bad'); } }
+async function bkSetStatus(id,status){ try{ await apiPatch('/bookings/'+id,{status}); const b=BK_BOOKINGS.find(x=>x.id===id); if(b)b.status=status; toast('עודכן ✓'); bkRender(); }catch(e){ toast('שגיאה','bad'); } }
+async function bkCancel(id){ if(!confirm('לבטל את הפגישה? המשבצת תשוחרר.'))return; try{ await apiPatch('/bookings/'+id,{status:'cancelled'}); const b=BK_BOOKINGS.find(x=>x.id===id); if(b)b.status='cancelled'; toast('הפגישה בוטלה'); bkRender(); }catch(e){ toast('שגיאה','bad'); } }
+async function bkResend(id){ try{ const r=await apiPost('/bookings/'+id+'/resend',{}); const b=BK_BOOKINGS.find(x=>x.id===id); if(b)b.whatsappStatus='sent'; toast('האישור נשלח ✓'); bkRender(); }catch(e){ toast('השליחה נכשלה: '+(e.message||''),'bad'); } }
+
+function bkSettings(){
+  const s=BK_SET||{}; const inputStyle='width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
+  const ltr='direction:ltr;text-align:left';
+  const chk=(id,v,lbl)=>'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700"><input type="checkbox" id="'+id+'" '+(v?'checked':'')+'> '+lbl+'</label>';
+  openModal(
+    '<h3 style="margin:0 0 4px">⚙️ הגדרות זמינות ופגישות</h3>'+
+    '<div class="muted" style="font-size:.87rem;margin-bottom:14px">כאן אתה קובע מה מוצע בעמוד קביעת השיחה שבאתר (/book) ואיך נשלחות הודעות הווטסאפ.</div>'+
+    '<div class="card" style="margin-bottom:10px">'+chk('bk_enabled',s.enabled,'הפעל קביעת שיחה באתר')+
+      '<div style="margin-top:10px"></div>'+chk('bk_phone',s.offerPhone,'להציע שיחת טלפון')+
+      '<div style="margin-top:8px"></div>'+chk('bk_zoom',s.offerZoom,'להציע פגישת זום')+
+      '<div class="f" style="margin-top:8px"><label>קישור זום קבוע (הפגישות ישתמשו בו)</label><input id="bk_zoomlink" value="'+esc(s.zoomLink||'')+'" placeholder="https://zoom.us/j/..." style="'+inputStyle+';'+ltr+'"></div>'+
+    '</div>'+
+    '<div class="f" style="margin-bottom:10px"><label>טקסט פתיחה לעמוד (לא חובה)</label><input id="bk_intro" value="'+esc(s.pageIntro||'')+'" placeholder="בחר מועד שנוח לך…" style="'+inputStyle+'"></div>'+
+    '<div class="card" style="margin-bottom:10px">'+chk('bk_reminders',s.remindersEnabled,'שלח תזכורות ווטסאפ לפני הפגישה')+
+      '<div class="f" style="margin-top:8px"><label>מתי לשלוח תזכורת — דקות לפני, מופרד בפסיק (למשל 1440,60 = יום ושעה)</label><input id="bk_offsets" value="'+esc(s.reminderOffsets||'1440,60')+'" style="'+inputStyle+';'+ltr+'"></div>'+
+      '<div class="hint">התזכורות נשלחות ע\x22י Worker נפרד (agency-hq-reminders). ראה README.</div>'+
+    '</div>'+
+    '<div class="card" style="margin-bottom:10px"><b style="font-size:.9rem">נוסח הודעות (Green API / תצוגה)</b>'+
+      '<div class="hint">משתנים: {name} {datetime} {details} {link} {date} {time}. ב-Meta הנוסח נקבע בתבנית המאושרת.</div>'+
+      '<div class="f" style="margin-top:8px"><label>הודעת אישור</label><textarea id="bk_ctext" rows="4" style="'+inputStyle+'">'+esc(s.confirmText||'')+'</textarea></div>'+
+      '<div class="f" style="margin-top:8px"><label>הודעת תזכורת</label><textarea id="bk_rtext" rows="4" style="'+inputStyle+'">'+esc(s.reminderText||'')+'</textarea></div>'+
+    '</div>'+
+    '<div class="card" style="margin-bottom:10px"><b style="font-size:.9rem">תבניות Meta (רק אם הספק הוא Meta)</b>'+
+      '<div class="hint">צור ב-WhatsApp Manager שתי תבניות עם {{1}}=שם, {{2}}=מועד, {{3}}=אופן המפגש, והזן כאן את שמותיהן.</div>'+
+      '<div class="f2" style="margin-top:8px"><div class="f"><label>תבנית אישור</label><input id="bk_ctpl" value="'+esc(s.confirmTemplate||'')+'" placeholder="booking_confirmation" style="'+inputStyle+';'+ltr+'"></div>'+
+        '<div class="f"><label>תבנית תזכורת</label><input id="bk_rtpl" value="'+esc(s.reminderTemplate||'')+'" placeholder="booking_reminder" style="'+inputStyle+';'+ltr+'"></div></div>'+
+      '<div class="f" style="margin-top:8px"><label>שפת התבניות</label><input id="bk_tlang" value="'+esc(s.templateLang||'he')+'" style="'+inputStyle+';'+ltr+';max-width:120px"></div>'+
+    '</div>'+
+    '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">סגור</button><button class="btn primary" onclick="bkSaveSettings()">💾 שמור</button></div>'
+  ,true);
+}
+async function bkSaveSettings(){
+  const v=id=>$(id)?$(id).value:''; const ck=id=>$(id)?$(id).checked:false;
+  const body={enabled:ck('bk_enabled'),offerPhone:ck('bk_phone'),offerZoom:ck('bk_zoom'),zoomLink:v('bk_zoomlink').trim(),
+    pageIntro:v('bk_intro'),remindersEnabled:ck('bk_reminders'),reminderOffsets:v('bk_offsets').trim(),
+    confirmText:v('bk_ctext'),reminderText:v('bk_rtext'),confirmTemplate:v('bk_ctpl').trim(),reminderTemplate:v('bk_rtpl').trim(),templateLang:v('bk_tlang').trim()||'he'};
+  try{ const r=await apiPut('/bookings/settings',body); BK_SET=await apiGet('/bookings/settings');
+    const hdr=$('bkHdrState'); if(hdr){hdr.className='pill '+(BK_SET.enabled?'p-green':'p-gray');hdr.textContent=BK_SET.enabled?'פעיל':'כבוי';}
+    toast('ההגדרות נשמרו ✓'); closeModal(); bkRender(); }
+  catch(e){ toast('שגיאה בשמירה','bad'); }
 }
 async function advanceSysTask(taskId,status,systemId){ try{ await apiPatch('/tasks/'+taskId,{status}); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
 async function delSysTask(taskId,systemId){ if(!confirm('למחוק משימה?'))return; try{ await apiDel('/tasks/'+taskId); loadSysTasks(systemId); }catch(e){ toast('שגיאה','bad'); } }
@@ -2123,7 +2379,7 @@ async function saveDoc(id){
 async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await apiDel('/documents/'+id); closeModal(); toast('נמחק'); go('documents'); }
 
 // ---------- מתודולוגיה (פלייבוק) ----------
-let PB_CACHE=[], PBSECS=[], RUN=null;
+let PB_CACHE=[], PBSECS=[], RUN=null, RUNSECS=[];
 // ---------- הצעת מחיר על דף לוגו (PDF דרך הדפסה) ----------
 async function quoteForm(pre){
   pre=pre||{};
@@ -2258,7 +2514,7 @@ async function quoteRenderPrint(q){
     '<div class="hdr">'+
       '<div><h1>הצעת מחיר</h1><div class="meta">מס\' <span class="ltr">'+qnum+'</span> · תאריך: <span class="ltr">'+created.toLocaleDateString('he-IL')+'</span></div></div>'+
       '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="ORT-TECH"></div>'+
-      '<div class="biz">'+esc(biz.businessPhone||'054-2214726')+' · '+esc(biz.businessEmail||'menahemtzik1@gmail.com')+' · '+esc(biz.businessWebsite||'ort-tech.co.il')+'</div></div>'+
+      '<div class="biz">'+esc(biz.businessPhone||'050-4860199')+' · '+esc(biz.businessEmail||'menahemtzik1@gmail.com')+' · '+esc(biz.businessWebsite||'ort-tech.co.il')+'</div></div>'+
     '</div>'+
     '<div class="to">לכבוד: <b>'+esc(client)+'</b></div>'+
     (title?'<div class="subject">הנדון: '+esc(title)+'</div>':'')+
@@ -2491,6 +2747,51 @@ let COMPOSE=false;            // מצב "הרכבת תהליך" פעיל (מצי
 let PB_SELECT=new Set();      // מזהי הפורמטים שסומנו בבורר
 let KITS_CACHE=[];            // ערכות התהליך
 
+/* מהלכים פעילים — מקובצים לפי לקוח, כל קבוצה אקורדיון נפתח/נסגר (לניהול עשרות מהלכים) */
+function activeRunsHTML(activeRuns){
+  if(!activeRuns.length) return '';
+  const groups={};
+  activeRuns.forEach(r=>{
+    const key=r.clientId||'__none__';
+    (groups[key]=groups[key]||{name:r.clientName||'כללי · ללא לקוח', items:[]}).items.push(r);
+  });
+  const arr=Object.values(groups).sort((a,b)=>b.items.length-a.items.length || String(a.name).localeCompare(String(b.name),'he'));
+  const openByDefault=arr.length===1;   // לקוח בודד — נפתח מיד; אחרת הכל מכווץ
+  const rowHTML=r=>`<div class="list-item" onclick="openRun('${r.id}')">
+        <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
+          <small>${r.systemName?esc(r.systemName)+' · ':''}${STAGE_LABELS[r.stage]||''}</small>
+          <div class="bar" style="width:170px;margin-top:6px"><span style="width:${r.progress}%"></span></div></div>
+        <div class="row" style="gap:8px">${tgPill(r.telegram)}<span class="li-val muted">${r.progress}%</span></div></div>`;
+  const groupsHTML=arr.map((g,i)=>{
+    const bid='rg_'+i;
+    const avg=Math.round(g.items.reduce((s,r)=>s+(r.progress||0),0)/g.items.length);
+    const caretRot=openByDefault?'rotate(0deg)':'rotate(-90deg)';
+    return `<div style="border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden">
+      <div class="spread" style="cursor:pointer;padding:10px 12px;background:#faf9f6" onclick="toggleRunGroup('${bid}',this)">
+        <div class="row" style="gap:8px;align-items:center"><span class="rg-caret" style="display:inline-block;transition:transform .15s;transform:${caretRot}">▾</span>
+          <b>👤 ${esc(g.name)}</b><span class="pill p-gray">${g.items.length}</span></div>
+        <span class="muted" style="font-size:.85rem">${avg}% ממוצע</span></div>
+      <div id="${bid}" style="display:${openByDefault?'block':'none'};padding:4px 12px 8px">
+        ${g.items.slice().sort((a,b)=>(a.progress||0)-(b.progress||0)).map(rowHTML).join('')}
+      </div></div>`;
+  }).join('');
+  return `<div class="card">
+      <div class="spread" style="margin-bottom:10px"><h3 style="margin:0">🧭 מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
+        <div class="row" style="gap:6px"><button class="btn ghost small" onclick="setRunGroups(true)">פתח הכל</button>
+          <button class="btn ghost small" onclick="setRunGroups(false)">כווץ הכל</button></div></div>
+      ${groupsHTML}</div>`;
+}
+function toggleRunGroup(id,hdr){
+  const el=document.getElementById(id); if(!el)return;
+  const open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  const c=hdr&&hdr.querySelector('.rg-caret'); if(c)c.style.transform=open?'rotate(0deg)':'rotate(-90deg)';
+}
+function setRunGroups(open){
+  document.querySelectorAll('[id^="rg_"]').forEach(el=>{ el.style.display=open?'block':'none'; });
+  document.querySelectorAll('.rg-caret').forEach(c=>{ c.style.transform=open?'rotate(0deg)':'rotate(-90deg)'; });
+}
+
 RENDER.playbooks=async()=>{
   const [list,runs,kits]=await Promise.all([apiGet('/playbooks'),apiGet('/playbooks/runs'),apiGet('/playbooks/kits').catch(()=>[])]);
   PB_CACHE=list; KITS_CACHE=kits;
@@ -2514,23 +2815,16 @@ RENDER.playbooks=async()=>{
         <button class="btn ghost small" onclick="kitForm()">+ ערכה</button></div></div>
       ${kits.length?`<div class="grid2">${kits.slice().sort((a,b)=>(a.sort||0)-(b.sort||0)).map(k=>{
         const ids=(()=>{try{return JSON.parse(k.playbookIds||'[]')}catch{return[]}})();
-        return `<div class="list-item" style="align-items:flex-start">
+        return `<div style="padding:12px 0;border-bottom:1px solid var(--line)">
           <div class="li-main"><b>🧰 ${esc(k.title)}</b>
             <small>${k.projectType?esc(k.projectType)+' · ':''}${ids.length} פורמטים${k.builtin?'':' · שלי'}</small>
             ${k.summary?`<div class="hint">${esc(k.summary)}</div>`:''}
             <div class="hint" style="margin-top:4px">${ids.map(id=>esc(pbTitle[id]||id)).join(' · ')||'ריק'}</div></div>
-          <div class="row" style="gap:6px"><button class="btn primary small" onclick="applyKitForm('${k.id}')">החל על לקוח →</button>
-            <button class="btn ghost small" onclick="kitForm('${k.id}')">עריכה</button></div>
+          <div class="row" style="gap:6px;margin-top:10px"><button class="btn primary small" style="white-space:nowrap" onclick="applyKitForm('${k.id}')">החל על לקוח →</button>
+            <button class="btn ghost small" style="white-space:nowrap" onclick="kitForm('${k.id}')">עריכה</button></div>
         </div>`;}).join('')}</div>`:'<div class="hint">אין ערכות עדיין. סמן פורמטים במצב הרכבה ולחץ "שמור כערכה", או הוסף ערכה ידנית.</div>'}
     </div>
-    ${activeRuns.length?`<div class="card">
-      <h3>מהלכים פעילים <span class="muted">(${activeRuns.length})</span></h3>
-      ${activeRuns.map(r=>`<div class="list-item" onclick="openRun('${r.id}')">
-        <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
-          <small>${r.clientName?esc(r.clientName):'כללי'}${r.systemName?' · '+esc(r.systemName):''} · ${STAGE_LABELS[r.stage]||''}</small>
-          <div class="bar" style="width:170px;margin-top:6px"><span style="width:${r.progress}%"></span></div></div>
-        <div class="row" style="gap:8px">${tgPill(r.telegram)}<span class="li-val muted">${r.progress}%</span></div></div>`).join('')}
-    </div>`:''}
+    ${activeRunsHTML(activeRuns)}
     <div class="grid2">
     ${stages.map(s=>`
       <div class="card">
@@ -2809,6 +3103,7 @@ function drawRun(){
         <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
         <button class="btn ghost" onclick="runRenderPrint()" title="הפקת PDF על דף לוגו ORT-TECH — מוכן להדפסה או לצירוף להצעת מחיר">🖨️ הפקת PDF</button>
         ${(RUN.status==='done'&&RUN.clientId)?`<button class="btn teal" onclick="quoteFromCurrentRun()" title="צור הצעת מחיר ללקוח, מקושרת למהלך שהושלם">📄 הצעת מחיר</button>`:''}
+        <button class="btn ghost" onclick="runEditForm()" title="עריכת מבנה הטופס של המהלך הזה — כותרת, סעיפים ושאלות. התשובות שכבר מולאו נשמרות.">✏️ עריכת הטופס</button>
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
     ${!isDoc&&RUN.telegram?tgStatusCard(RUN.telegram):''}
@@ -2878,6 +3173,70 @@ async function saveRunDoc(){ grabRunInputs(); if(await saveRun()) toast('נשמ�
 async function saveRunNotes(){ grabRunInputs(); if(await saveRun()) toast('נשמר'); }
 async function finishRun(){ grabRunInputs(); if(await saveRun({status:'done'})){ RUN.status='done'; toast('הושלם ✓'); drawRun(); } }
 async function delRun(){ if(!confirm('למחוק מהלך זה?'))return; await apiDel('/playbooks/runs/'+RUN.id); toast('נמחק'); go('playbooks'); }
+
+/* ===== עריכת מבנה הטופס של מהלך שכבר הוחל על לקוח ===== */
+function runEditForm(){
+  grabRunInputs();                       // לא לאבד תשובות שהוקלדו ועוד לא נשמרו
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
+  // צילום סעיפי המהלך עם מפתח מקורי (_k) לכל פריט — כדי למפות תשובות מחדש בשמירה
+  RUNSECS=JSON.parse(RUN.sections||'[]').map((s,si)=>({
+    title:s.title||'',
+    items:(s.items||[]).map((it,ii)=>({label:it.label||'',hint:it.hint||'',_k:si+'-'+ii})),
+  }));
+  openModal(`<h3>עריכת הטופס — ${esc(RUN.title||'')}</h3>
+    <div class="f"><label>כותרת *</label><input id="re_title" value="${esc(RUN.title||'')}"></div>
+    ${isDoc
+      ? '<div class="hint" style="margin:8px 0">זהו מהלך מסוג מסמך — את גוף המסמך עורכים ישירות במסך המהלך. כאן ניתן לעדכן את הכותרת בלבד.</div>'
+      : `<div class="f"><label>סעיפים ושאלות</label><div id="reSecs"></div>
+         <button class="btn ghost small" type="button" onclick="addRunSec()">+ סעיף</button></div>
+         <div class="hint" style="margin-top:6px">תשובות שכבר מולאו נשארות צמודות לשאלה שלהן, גם בשינוי סדר או הוספה. שאלה שתמחק — התשובה שלה תימחק איתה.</div>`}
+    <div class="modal-actions"><button class="btn primary" onclick="saveRunEdit()">שמירה</button>
+      <button class="btn ghost" onclick="closeModal()">ביטול</button></div>`, true);
+  if(!isDoc) renderRunSecs();
+}
+function renderRunSecs(){
+  $('reSecs').innerHTML=RUNSECS.map((s,si)=>`<div class="pb-sec">
+    <div class="row" style="gap:6px;margin-bottom:6px"><input value="${esc(s.title||'')}" placeholder="שם הסעיף" class="grow" oninput="RUNSECS[${si}].title=this.value">
+      <button class="btn danger small" type="button" onclick="RUNSECS.splice(${si},1);renderRunSecs()">✕ סעיף</button></div>
+    ${(s.items||[]).map((it,ii)=>`<div class="row" style="gap:6px;margin:0 14px 5px">
+      <input value="${esc(it.label||'')}" placeholder="שאלה" class="grow" oninput="RUNSECS[${si}].items[${ii}].label=this.value">
+      <input value="${esc(it.hint||'')}" placeholder="רמז" style="max-width:150px" oninput="RUNSECS[${si}].items[${ii}].hint=this.value">
+      <button class="btn danger small" type="button" onclick="RUNSECS[${si}].items.splice(${ii},1);renderRunSecs()">✕</button></div>`).join('')}
+    <button class="btn ghost small" type="button" onclick="addRunItem(${si})">+ שאלה</button>
+  </div>`).join('')||'<div class="hint">אין סעיפים עדיין</div>';
+}
+function addRunSec(){ RUNSECS.push({title:'',items:[{label:'',hint:''}]}); renderRunSecs(); }
+function addRunItem(si){ RUNSECS[si].items=RUNSECS[si].items||[]; RUNSECS[si].items.push({label:'',hint:''}); renderRunSecs(); }
+/** בונה סעיפים נקיים וממפה מחדש תשובות/סימונים/"לא רלוונטי" למיקום החדש לפי המפתח המקורי */
+function buildRunEdit(){
+  const sections=[], answers={}, checked={}, na={};
+  const oa=RUN._answers||{}, oc=RUN._checked||{}, on=RUN._na||{};
+  (RUNSECS||[]).forEach(s=>{
+    const items=(s.items||[]).filter(i=>i&&String(i.label||'').trim());
+    if(!(String(s.title||'').trim()||items.length)) return;   // סעיף ריק לגמרי מושמט
+    const nsi=sections.length;
+    const outItems=items.map((it,nii)=>{
+      const nk=nsi+'-'+nii;
+      if(it._k!=null){
+        if(oa[it._k]!==undefined) answers[nk]=oa[it._k];
+        if(oc[it._k]) checked[nk]=true;
+        if(on[it._k]) na[nk]=true;
+      }
+      const o={label:String(it.label||'').trim()};
+      const h=String(it.hint||'').trim(); if(h) o.hint=h;
+      return o;
+    });
+    sections.push({title:String(s.title||'').trim(),items:outItems});
+  });
+  return {sections,answers,checked,na};
+}
+async function saveRunEdit(){
+  const title=val('re_title'); if(!title){toast('חסרה כותרת','bad');return;}
+  const isDoc=RUN.kind==='template'||RUN.kind==='canvas';
+  const body=isDoc?{title}:{title,...buildRunEdit()};
+  try{ await apiPatch('/playbooks/runs/'+RUN.id,body); closeModal(); toast('נשמר ✓'); await openRun(RUN.id); }
+  catch(e){ toast('שגיאה בשמירה','bad'); }
+}
 
 /* ---------- מילוי עצמי של הלקוח בטלגרם (ערוץ שני לאותו מהלך) ---------- */
 const TG_STATUS_CLASS={sent:'p-gray',opened:'p-blue',in_progress:'p-amber',completed:'p-green',cancelled:'p-gray'};
@@ -3074,7 +3433,7 @@ function runRenderPrint(){
     '<div class="hdr">'+
       '<div><h1>'+esc(RUN.title)+'</h1><div class="meta">'+metaBits+'</div></div>'+
       '<div><div class="logo-crop"><img src="'+logoUrl+'" alt="ORT-TECH"></div>'+
-      '<div class="biz">054-2214726 · menahemtzik1@gmail.com · ort-tech.co.il</div></div>'+
+      '<div class="biz">050-4860199 · menahemtzik1@gmail.com · ort-tech.co.il</div></div>'+
     '</div>'+
     body+
     '<div class="foot"><span>ORT-TECH · ort-tech.co.il</span><span>עסק של מילואימניק · גאה לשרת, גאה לבנות</span></div>'+

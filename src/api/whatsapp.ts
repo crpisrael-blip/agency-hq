@@ -49,17 +49,11 @@ export type WhatsAppConfig = Record<CfgKey, string> & { source: Record<CfgKey, '
 export const GREEN_DEFAULT_URL = 'https://api.green-api.com';
 export const META_GRAPH_URL = 'https://graph.facebook.com/v21.0';
 
-/** קריאת ההגדרות: קודם settings (D1), אחרת env. */
-export async function loadWhatsAppConfig(c: Context<Env>): Promise<WhatsAppConfig> {
-  const keys = (Object.keys(KEYS) as CfgKey[]).map((k) => KEYS[k][0]);
-  const rows = await db(c)
-    .select()
-    .from(settings)
-    .where(inArray(settings.key, keys))
-    .all()
-    .catch(() => [] as { key: string; value: string }[]);
-  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  const env = c.env as unknown as Record<string, string | undefined>;
+/** בונה את ההגדרות ממפת settings + env — ליבה בלי Context (משמש גם את ה-Worker לתזכורות). */
+export function buildWhatsAppConfig(
+  map: Record<string, string>,
+  env: Record<string, string | undefined>,
+): WhatsAppConfig {
   const out: any = { source: {} };
   for (const k of Object.keys(KEYS) as CfgKey[]) {
     const [sKey, eKey] = KEYS[k];
@@ -69,6 +63,26 @@ export async function loadWhatsAppConfig(c: Context<Env>): Promise<WhatsAppConfi
     out.source[k] = fromSettings ? 'settings' : fromEnv ? 'env' : 'none';
   }
   return out as WhatsAppConfig;
+}
+
+/** קריאת ההגדרות ממופע drizzle כלשהו (Pages או Worker). */
+export async function loadWhatsAppConfigDb(
+  d: { select: Function },
+  env: Record<string, string | undefined>,
+): Promise<WhatsAppConfig> {
+  const keys = (Object.keys(KEYS) as CfgKey[]).map((k) => KEYS[k][0]);
+  const rows: { key: string; value: string }[] = await (d as any)
+    .select()
+    .from(settings)
+    .where(inArray(settings.key, keys))
+    .all()
+    .catch(() => []);
+  return buildWhatsAppConfig(Object.fromEntries(rows.map((r) => [r.key, r.value])), env);
+}
+
+/** קריאת ההגדרות: קודם settings (D1), אחרת env. */
+export async function loadWhatsAppConfig(c: Context<Env>): Promise<WhatsAppConfig> {
+  return loadWhatsAppConfigDb(db(c), c.env as unknown as Record<string, string | undefined>);
 }
 
 /** האם השליחה האוטומטית פעילה ומוגדרת מספיק כדי לנסות לשלוח */
@@ -153,6 +167,30 @@ export function metaSendRequest(
   return { url, headers: { Authorization: `Bearer ${cfg.metaToken}` }, body };
 }
 
+/** Meta Cloud API — תבנית מאושרת עם מספר משתני-גוף לפי הסדר ({{1}}, {{2}}, …) */
+export function metaTemplateRequest(
+  cfg: Pick<WhatsAppConfig, 'metaPhoneId' | 'metaToken'>,
+  phone: string,
+  templateName: string,
+  lang: string,
+  params: string[],
+) {
+  const url = `${META_GRAPH_URL}/${cfg.metaPhoneId}/messages`;
+  const components = params.length
+    ? [{ type: 'body', parameters: params.map((t) => ({ type: 'text', text: String(t ?? '') })) }]
+    : [];
+  return {
+    url,
+    headers: { Authorization: `Bearer ${cfg.metaToken}` },
+    body: {
+      messaging_product: 'whatsapp',
+      to: phone,
+      type: 'template',
+      template: { name: templateName, language: { code: lang || 'he' }, components },
+    },
+  };
+}
+
 async function postJson(url: string, body: unknown, headers: Record<string, string> = {}) {
   const res = await fetch(url, {
     method: 'POST',
@@ -182,6 +220,39 @@ export async function sendWhatsAppText(
     }
     if (provider === 'meta') {
       const req = metaSendRequest(cfg, phone, text, name);
+      const r = await postJson(req.url, req.body, req.headers);
+      const id = r.data?.messages?.[0]?.id;
+      if (r.ok && id) return { ok: true, id: String(id) };
+      return { ok: false, error: `meta ${r.status}: ${short(r.data?.error?.message || JSON.stringify(r.data))}` };
+    }
+    return { ok: false, error: 'unknown_provider' };
+  } catch (e) {
+    return { ok: false, error: short((e as Error)?.message || e) };
+  }
+}
+
+/**
+ * שליחה גנרית: טקסט חופשי (Green) או תבנית מאושרת (Meta). לעולם לא זורקת.
+ * ב-Green נשלח תמיד `text`. ב-Meta: אם ניתן `template` — נשלחת התבנית עם הפרמטרים;
+ * אחרת טקסט (עובד רק בתוך חלון 24 שעות). משמש גם את הודעות הפגישה (אישור/תזכורת).
+ */
+export async function sendWhatsAppMessage(
+  cfg: Pick<WhatsAppConfig, CfgKey>,
+  phone: string,
+  opts: { text: string; template?: { name: string; lang?: string; params: string[] } },
+): Promise<SendResult> {
+  try {
+    const provider = (cfg.provider || 'green').toLowerCase();
+    if (provider === 'green') {
+      const req = greenSendRequest(cfg, phone, opts.text);
+      const r = await postJson(req.url, req.body);
+      if (r.ok && r.data?.idMessage) return { ok: true, id: String(r.data.idMessage) };
+      return { ok: false, error: `green ${r.status}: ${short(r.data?.message || r.data?.error || JSON.stringify(r.data))}` };
+    }
+    if (provider === 'meta') {
+      const req = opts.template?.name
+        ? metaTemplateRequest(cfg, phone, opts.template.name, opts.template.lang || 'he', opts.template.params)
+        : { url: `${META_GRAPH_URL}/${cfg.metaPhoneId}/messages`, headers: { Authorization: `Bearer ${cfg.metaToken}` }, body: { messaging_product: 'whatsapp', to: phone, type: 'text', text: { preview_url: false, body: opts.text } } };
       const r = await postJson(req.url, req.body, req.headers);
       const id = r.data?.messages?.[0]?.id;
       if (r.ok && id) return { ok: true, id: String(id) };

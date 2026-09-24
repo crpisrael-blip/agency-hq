@@ -1,7 +1,9 @@
 import { Hono, Context } from 'hono';
 import { eq } from 'drizzle-orm';
-import { playbookRuns, telegramFillSessions, clients, settings } from '../db/schema';
+import { playbookRuns, telegramFillSessions, clients, settings, leadActivities } from '../db/schema';
 import { Env, db, uid, now, notifyTelegram } from './util';
+import { createInboundLead } from './meta-inbound';
+import { phoneFromNote } from './leads';
 
 /* =========================================================================
  * מילוי עצמי של הלקוח דרך בוט Telegram — ערוץ שני לאותו מהלך מתודולוגיה.
@@ -374,6 +376,71 @@ async function handleReply(c: Context<Env>, session: any, text: string | null, s
   await askAt(c, fresh, run, items, next, prevSection);
 }
 
+/* ---------------- שיתוף מוואטסאפ → פתיחת ליד (מהצ'אט של המנהל) ----------------
+ * הזרימה: בוואטסאפ משתפים איש קשר או הודעה אל הבוט בטלגרם, והבוט פותח ליד.
+ * שיתוף איש קשר = שם + טלפון מדויקים; שיתוף/הדבקת טקסט = תוכן הפנייה (וטלפון אם מזוהה).
+ * הודעת טקסט שמגיעה מיד אחרי איש קשר מצורפת לאותו ליד (מצביע "ליד אחרון" לכל צ'אט).
+ */
+
+/** מזהי הצ'אט של המנהל (מטבלת settings, ואם חסר — מה-env). */
+async function adminChatIds(c: Context<Env>): Promise<Set<string>> {
+  const row = (await db(c).select().from(settings).where(eq(settings.key, 'telegram_chat_id')).limit(1))[0];
+  const raw = row?.value || c.env.TELEGRAM_CHAT_ID || '';
+  return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean));
+}
+
+async function setLastLead(c: Context<Env>, chatId: string, leadId: string): Promise<void> {
+  const key = 'tg_lastlead_' + chatId;
+  const value = `${leadId}:${now()}`;
+  await db(c).insert(settings).values({ key, value })
+    .onConflictDoUpdate({ target: settings.key, set: { value } }).catch(() => {});
+}
+
+/** מחזיר את הליד האחרון שנפתח מצ'אט זה אם נוצר לאחרונה (ברירת מחדל: 15 דקות). */
+async function recentLead(c: Context<Env>, chatId: string, maxAgeMs = 15 * 60_000): Promise<string | null> {
+  const row = (await db(c).select().from(settings).where(eq(settings.key, 'tg_lastlead_' + chatId)).limit(1))[0];
+  if (!row?.value) return null;
+  const [leadId, tsStr] = row.value.split(':');
+  const ts = Number(tsStr) || 0;
+  if (!leadId || now() - ts > maxAgeMs) return null;
+  return leadId;
+}
+
+async function appendLeadNote(c: Context<Env>, leadId: string, text: string): Promise<void> {
+  await db(c).insert(leadActivities).values({
+    id: uid(), leadId, kind: 'whatsapp', text: '💬 ' + text.slice(0, 300), createdAt: now(),
+  }).catch(() => {});
+}
+
+/** שיתוף איש קשר מוואטסאפ → ליד עם שם + טלפון. */
+async function shareContactToLead(c: Context<Env>, chatId: string, contact: any): Promise<void> {
+  const token = c.env.TELEGRAM_BOT_TOKEN!;
+  const name = [contact?.first_name, contact?.last_name].filter(Boolean).join(' ').trim() || null;
+  const phone = contact?.phone_number ? String(contact.phone_number) : null;
+  const r = await createInboundLead(c, { name, phone, note: null, source: 'whatsapp' }, { notify: false });
+  await setLastLead(c, chatId, r.leadId);
+  await tgSend(token, chatId,
+    `✅ ${r.created ? 'ליד חדש נפתח' : 'הפנייה נוספה לליד קיים'}: ${name || '(ללא שם)'}${phone ? ` · ${phone}` : ''}\n` +
+    'עכשיו שלח/י את תוכן הפנייה כהודעה ואצרף אותו לליד.');
+}
+
+/** שיתוף/הדבקת טקסט → מצורף לליד האחרון, או פותח ליד חדש. */
+async function shareTextToLead(c: Context<Env>, chatId: string, text: string): Promise<void> {
+  const token = c.env.TELEGRAM_BOT_TOKEN!;
+  const recent = await recentLead(c, chatId);
+  if (recent) {
+    await appendLeadNote(c, recent, text);
+    await tgSend(token, chatId, '✓ נוסף לליד. הכל מעודכן במערכת.');
+    return;
+  }
+  const phone = phoneFromNote(text);
+  const r = await createInboundLead(c, { name: null, phone, note: text, source: 'whatsapp' }, { notify: false });
+  await setLastLead(c, chatId, r.leadId);
+  await tgSend(token, chatId,
+    `✅ ${r.created ? 'ליד חדש נפתח' : 'נוסף לליד קיים'} מהטקסט ששיתפת${phone ? ` · זוהה טלפון ${phone}` : ''}.\n` +
+    'טיפ: שתף/י גם את איש הקשר מוואטסאפ כדי לצרף מספר טלפון.');
+}
+
 /** גוף העדכון מטלגרם (message / callback_query). */
 async function processUpdate(c: Context<Env>, update: any): Promise<void> {
   const token = c.env.TELEGRAM_BOT_TOKEN;
@@ -398,9 +465,15 @@ async function processUpdate(c: Context<Env>, update: any): Promise<void> {
   const msg = update.message;
   if (!msg || !msg.chat) return;
   const chatId = String(msg.chat.id);
-  const text = String(msg.text || '').trim();
+  const text = String(msg.text || msg.caption || '').trim();
   const contact = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(' ').trim() ||
     (msg.from?.username ? '@' + msg.from.username : null);
+
+  const admins = await adminChatIds(c);
+  const isAdmin = admins.has(chatId);
+
+  // שיתוף איש קשר מוואטסאפ אל הבוט (מהמנהל) → פתיחת ליד
+  if (msg.contact && isAdmin) { await shareContactToLead(c, chatId, msg.contact); return; }
 
   // /start <token>
   if (text.startsWith('/start')) {
@@ -420,6 +493,16 @@ async function processUpdate(c: Context<Env>, update: any): Promise<void> {
 
   // הודעה רגילה → תשובה על השאלה הנוכחית
   const session = (await d.select().from(telegramFillSessions).where(eq(telegramFillSessions.chatId, chatId)).limit(1))[0];
+  const sessionActive = !!session && (session.status === 'opened' || session.status === 'in_progress');
+
+  // מנהל בלי מילוי פעיל → כל הודעת טקסט היא שיתוף לפתיחת ליד
+  if (isAdmin && !sessionActive) {
+    if (!text) { await tgSend(token, chatId, 'שתף/י הודעה או איש קשר מוואטסאפ, ואפתח ליד אוטומטית.'); return; }
+    if (text.startsWith('/')) { await tgSend(token, chatId, 'כדי לפתוח ליד — שתף/י הודעה או איש קשר מוואטסאפ אל הבוט.'); return; }
+    await shareTextToLead(c, chatId, text);
+    return;
+  }
+
   if (!session) {
     await tgSend(token, chatId, 'כדי למלא תהליך, פתחו קודם את הקישור האישי שקיבלתם מאיתנו 🙏');
     return;

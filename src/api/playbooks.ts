@@ -10,7 +10,7 @@ const STAGE_LABEL: Record<string, string> = Object.fromEntries(STAGES.map((s) =>
 export const playbooksApp = new Hono<Env>();
 
 const PB_FIELDS = ['stage', 'title', 'summary', 'kind', 'sections', 'body', 'tags', 'sort'];
-const RUN_FIELDS = ['title', 'status', 'checked', 'answers', 'na', 'doc', 'notes', 'clientId', 'systemId'];
+const RUN_FIELDS = ['title', 'status', 'checked', 'answers', 'na', 'doc', 'notes', 'clientId', 'systemId', 'sections'];
 
 const asJson = (v: any, fallback: string) =>
   v === undefined ? undefined : typeof v === 'string' ? v : JSON.stringify(v ?? JSON.parse(fallback));
@@ -321,13 +321,15 @@ playbooksApp.patch('/runs/:id', async (c) => {
   if (data.checked !== undefined) data.checked = asJson(data.checked, '{}');
   if (data.answers !== undefined) data.answers = asJson(data.answers, '{}');
   if (data.na !== undefined) data.na = asJson(data.na, '{}');
+  if (data.sections !== undefined) data.sections = asJson(data.sections, '[]');
   const cur = (await db(c).select().from(playbookRuns).where(eq(playbookRuns.id, id)).limit(1))[0];
   if (!cur) return c.json({ error: 'not_found' }, 404);
   const checkedRaw = data.checked !== undefined ? data.checked : cur.checked;
   const naRaw = data.na !== undefined ? data.na : (cur as any).na;
+  const sectionsRaw = data.sections !== undefined ? data.sections : cur.sections;
   const status = data.status || cur.status;
   // תבנית מסמך נמדדת בסימון ידני; צ׳ק־ליסט לפי הפריטים שסומנו (למעט "לא רלוונטי")
-  data.progress = cur.kind === 'template' ? (status === 'done' ? 100 : 0) : calcProgress(cur.sections, checkedRaw, naRaw);
+  data.progress = cur.kind === 'template' ? (status === 'done' ? 100 : 0) : calcProgress(sectionsRaw, checkedRaw, naRaw);
   if (data.status === 'done' || (data.progress === 100 && cur.status === 'active')) {
     data.status = data.status || 'done';
     data.completedAt = now();

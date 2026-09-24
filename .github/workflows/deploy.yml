@@ -55,3 +55,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx wrangler pages deploy public --project-name agency-hq --branch main
+
+      # Worker נפרד לתזכורות פגישה (Cron). דורש שהטוקן יכלול גם Workers Scripts:Edit.
+      # כשל כאן לא מפיל את הפריסה הראשית — התזכורות פשוט לא יתעדכנו עד שיתוקן.
+      - name: Deploy reminders worker
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        working-directory: workers/reminder
+        run: npx wrangler deploy
