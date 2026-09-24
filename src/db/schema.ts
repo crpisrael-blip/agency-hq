@@ -499,6 +499,11 @@ export const documents = sqliteTable('documents', {
   url: text('url'),
   notes: text('notes'),
   pinned: integer('pinned').notNull().default(0),
+  // קובץ מצורף (0036) — נשמר ב-R2, כאן רק מטא-דאטה + מפתח
+  fileKey: text('file_key'),
+  fileName: text('file_name'),
+  fileType: text('file_type'),
+  fileSize: integer('file_size'),
   createdAt: integer('created_at').notNull(),
 });
 

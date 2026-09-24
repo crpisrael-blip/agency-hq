@@ -36,6 +36,68 @@ documentsApp.patch('/:id', async (c) => {
 });
 
 documentsApp.delete('/:id', async (c) => {
-  await db(c).delete(documents).where(eq(documents.id, c.req.param('id')));
+  const id = c.req.param('id');
+  // מחיקת הקובץ המצורף מ-R2 (אם יש) — למניעת יתומים
+  const row = (await db(c).select().from(documents).where(eq(documents.id, id)).limit(1))[0];
+  if (row?.fileKey && c.env.RECEIPTS) { try { await c.env.RECEIPTS.delete(row.fileKey); } catch { /* best-effort */ } }
+  await db(c).delete(documents).where(eq(documents.id, id));
+  return c.json({ ok: true });
+});
+
+// ---------- קובץ מצורף למסמך — ב-R2 (אותו bucket פרטי של הקבלות, קידומת documents/) ----------
+const FILE_MAX_BYTES = 25 * 1024 * 1024; // 25MB
+
+// העלאה/החלפה של הקובץ (multipart/form-data, שדה "file")
+documentsApp.post('/:id/file', async (c) => {
+  if (!c.env.RECEIPTS) return c.json({ error: 'storage_unavailable' }, 503);
+  const id = c.req.param('id');
+  const row = (await db(c).select().from(documents).where(eq(documents.id, id)).limit(1))[0];
+  if (!row) return c.json({ error: 'not_found' }, 404);
+  let form: FormData;
+  try { form = await c.req.formData(); } catch { return c.json({ error: 'invalid_input' }, 400); }
+  const file = form.get('file');
+  if (!file || typeof file === 'string') return c.json({ error: 'no_file' }, 400);
+  const buf = await (file as File).arrayBuffer();
+  if (buf.byteLength > FILE_MAX_BYTES) return c.json({ error: 'too_large' }, 413);
+  if (buf.byteLength === 0) return c.json({ error: 'empty_file' }, 400);
+  const type = (file as File).type || 'application/octet-stream';
+  const safeName = ((file as File).name || 'file').replace(/[^\w.\-֐-׿ ]+/g, '_').slice(0, 120);
+  const key = `documents/${id}/${uid()}`;
+  await c.env.RECEIPTS.put(key, buf, { httpMetadata: { contentType: type } });
+  // מחיקת הקובץ הקודם אחרי שהחדש נשמר
+  if (row.fileKey) { try { await c.env.RECEIPTS.delete(row.fileKey); } catch { /* best-effort */ } }
+  await db(c).update(documents)
+    .set({ fileKey: key, fileName: safeName, fileType: type, fileSize: buf.byteLength } as any)
+    .where(eq(documents.id, id));
+  return c.json({ ok: true, fileName: safeName, fileType: type, fileSize: buf.byteLength });
+});
+
+// צפייה/הורדה (מוגן בטוקן מנהל — כמו כל /api). inline לתצוגה, ?download להורדה.
+documentsApp.get('/:id/file', async (c) => {
+  if (!c.env.RECEIPTS) return c.json({ error: 'storage_unavailable' }, 503);
+  const row = (await db(c).select().from(documents).where(eq(documents.id, c.req.param('id'))).limit(1))[0];
+  if (!row?.fileKey) return c.json({ error: 'not_found' }, 404);
+  const obj = await c.env.RECEIPTS.get(row.fileKey);
+  if (!obj) return c.json({ error: 'not_found' }, 404);
+  const disp = c.req.query('download') != null ? 'attachment' : 'inline';
+  const fname = encodeURIComponent(row.fileName || 'file');
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': row.fileType || 'application/octet-stream',
+      'Content-Disposition': `${disp}; filename*=UTF-8''${fname}`,
+      'Cache-Control': 'private, max-age=60',
+    },
+  });
+});
+
+// הסרת הקובץ המצורף (המסמך עצמו נשאר)
+documentsApp.delete('/:id/file', async (c) => {
+  const id = c.req.param('id');
+  const row = (await db(c).select().from(documents).where(eq(documents.id, id)).limit(1))[0];
+  if (!row) return c.json({ error: 'not_found' }, 404);
+  if (row.fileKey && c.env.RECEIPTS) { try { await c.env.RECEIPTS.delete(row.fileKey); } catch { /* best-effort */ } }
+  await db(c).update(documents)
+    .set({ fileKey: null, fileName: null, fileType: null, fileSize: null } as any)
+    .where(eq(documents.id, id));
   return c.json({ ok: true });
 });

@@ -797,7 +797,7 @@ async function openClient(id){
 
   const docsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">מסמכים ותוצרים${d.documents&&d.documents.length?` (${d.documents.length})`:''}</h3>
     <button class="btn ghost small" onclick="docForm({clientId:'${id}'})">+ מסמך</button></div>
-    ${d.documents&&d.documents.length?d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join(''):'<div class="muted">—</div>'}`);
+    ${d.documents&&d.documents.length?d.documents.map(x=>`<div class="stat-row"><span>${x.pinned?'📌 ':''}${docIcon(x.category)} ${x.url?`<a href="${esc(x.url)}" target="_blank" style="color:var(--accent-2)">${esc(x.title)} ↗</a>`:esc(x.title)}${x.fileKey?` <a href="javascript:void 0" onclick="docOpenFile('${x.id}')" title="${esc(x.fileName||'')}" style="color:var(--accent-2)">📎</a>`:''}</span><span class="tag">${docCatLabel(x.category)}</span></div>`).join(''):'<div class="muted">—</div>'}`);
 
   const callsCard=card(`<div class="spread" style="margin-bottom:6px"><h3 style="margin:0">📞 שיחות מתועדות${calls.length?` (${calls.length})`:''}</h3>
     <button class="btn ghost small" onclick="callForm({clientId:'${id}'})">+ תעד שיחה</button></div>
@@ -2353,6 +2353,7 @@ RENDER.documents=async()=>{
         ${groups[k].map(dc=>`<div class="list-item" onclick='docForm(${j(dc)})'>
           <div class="li-main"><b>${dc.pinned?'📌 ':''}${docIcon(dc.category)} ${esc(dc.title)}</b>
             <small>${docCatLabel(dc.category)}${dc.source?' · '+esc(dc.source):''}${dc.url?' · '+esc(dc.url.replace(/^https?:\/\//,'').slice(0,46)):''}</small></div>
+          ${dc.fileKey?`<button onclick="event.stopPropagation();docOpenFile('${dc.id}')" class="btn small ghost" title="${esc(dc.fileName||'')}">📎 קובץ</button>`:''}
           ${dc.url?`<a href="${esc(dc.url)}" target="_blank" onclick="event.stopPropagation()" class="btn small ghost">פתח ↗</a>`:''}
         </div>`).join('')}
       </div>`).join(''):'<div class="empty">אין עדיין מסמכים. הוסף את הראשון!</div>'}`;
@@ -2361,6 +2362,13 @@ function docForm(dc={}){
   openModal(`<h3>${dc.id?'עריכת מסמך':'מסמך / תוצר חדש'}</h3>
     <div class="f"><label>כותרת *</label><input id="f_title" value="${esc(dc.title||'')}"></div>
     <div class="f"><label>קישור (URL)</label><input id="f_url" value="${esc(dc.url||'')}" placeholder="https://…"></div>
+    <div class="f"><label>📎 קובץ (אופציונלי · עד 25MB)</label>
+      ${dc.fileKey?`<div id="f_curfile" class="row" style="gap:6px;align-items:center;margin-bottom:6px">
+        <span style="flex:1;min-width:0;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${esc(dc.fileName||'קובץ')} <small class="muted">${docSizeLabel(dc.fileSize)}</small></span>
+        <button type="button" class="btn small ghost" onclick="docOpenFile('${dc.id}')" title="צפייה">👁</button>
+        <button type="button" class="btn small ghost" onclick="docRemoveFile('${dc.id}')" title="הסרת הקובץ">🗑</button></div>`:''}
+      <input type="file" id="f_file" onchange="docFilePicked(this)" style="font-size:.85rem">
+      ${dc.fileKey?'<div class="hint">בחירת קובץ חדש תחליף את הקיים</div>':''}</div>
     <div class="f2"><div class="f"><label>קטגוריה</label><select id="f_category">${catOptions(dc.category||'doc')}</select></div>
       <div class="f"><label>מקור</label><select id="f_source">${opts({artifact:'Artifact',github:'GitHub',supabase:'Supabase',netlify:'Netlify',vercel:'Vercel',cloudflare:'Cloudflare',firebase:'Firebase',expo:'Expo',drive:'Google Drive',other:'אחר'},dc.source||'artifact')}</select></div></div>
     <div class="f"><label>לקוח (ריק = חוצה-פרויקטים)</label><select id="f_clientId">${clientOptions(dc.clientId)}</select></div>
@@ -2373,8 +2381,43 @@ function docForm(dc={}){
 async function saveDoc(id){
   const body={title:val('f_title'),url:val('f_url'),category:val('f_category'),source:val('f_source'),clientId:val('f_clientId')||null,notes:val('f_notes'),pinned:$('f_pinned').checked?1:0};
   if(!body.title){toast('חסרה כותרת','bad');return;}
-  try{ id?await apiPatch('/documents/'+id,body):await apiPost('/documents',body); closeModal(); toast('נשמר'); go('documents'); }
+  const file=$('f_file')&&$('f_file').files&&$('f_file').files[0];
+  if(file&&file.size>25*1024*1024){toast('הקובץ גדול מ-25MB','bad');return;}
+  try{
+    if(id) await apiPatch('/documents/'+id,body); else id=(await apiPost('/documents',body)).id;
+    if(file){
+      toast('מעלה קובץ…');
+      const fd=new FormData(); fd.append('file',file);
+      const res=await authFetch('/documents/'+id+'/file',{method:'POST',body:fd});
+      if(!res.ok){ const e=await res.json().catch(()=>({})); closeModal(); go('documents');
+        toast(e.error==='storage_unavailable'?'המסמך נשמר, אך אחסון הקבצים לא זמין':'המסמך נשמר, אך העלאת הקובץ נכשלה','bad'); return; }
+    }
+    closeModal(); toast('נשמר'); go('documents');
+  }
   catch(e){toast('שגיאה','bad');}
+}
+// fetch עם טוקן מנהל שאינו-JSON (העלאה/הורדת קבצים)
+function authFetch(path, opts={}){ return fetch('/api'+path,{...opts,headers:{'x-admin-token':TOKEN,...(opts.headers||{})}}); }
+function docSizeLabel(b){ b=Number(b||0); return b>=1048576?(b/1048576).toFixed(1)+'MB':Math.max(1,Math.round(b/1024))+'KB'; }
+function docFilePicked(inp){
+  const f=inp.files&&inp.files[0]; if(!f)return;
+  if(f.size>25*1024*1024){ toast('הקובץ גדול מ-25MB','bad'); inp.value=''; return; }
+  if(!val('f_title')) $('f_title').value=f.name.replace(/\.[^.]+$/,''); // כותרת אוטומטית משם הקובץ
+}
+async function docOpenFile(id){
+  const w=window.open('','_blank'); // נפתח מיד (לפני await) כדי שחוסם החלונות בנייד לא יחסום
+  try{
+    const res=await authFetch('/documents/'+id+'/file');
+    if(!res.ok){ if(w)w.close(); toast('שגיאה בפתיחת הקובץ','bad'); return; }
+    const url=URL.createObjectURL(await res.blob());
+    if(w) w.location.href=url; else window.open(url,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){ if(w)w.close(); toast('שגיאה','bad'); }
+}
+async function docRemoveFile(id){
+  if(!confirm('להסיר את הקובץ המצורף?'))return;
+  try{ await apiDel('/documents/'+id+'/file'); const el=$('f_curfile'); if(el) el.remove(); toast('הקובץ הוסר'); }
+  catch(e){ toast('שגיאה','bad'); }
 }
 async function delDoc(id){ if(!confirm('למחוק מסמך?'))return; await apiDel('/documents/'+id); closeModal(); toast('נמחק'); go('documents'); }
 
