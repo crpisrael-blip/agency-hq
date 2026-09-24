@@ -217,18 +217,60 @@
     const rows = await apiGet('/proposals');
     body.innerHTML = rows.length ? `<div class="card">${rows.map((p) => `<div class="list-item" onclick="BOS.openOpp('${p.opportunityId}')"><div class="li-main"><b>${esc(p.opportunityTitle)} · v${p.version}</b><small>${esc(p.organizationName || '')} · ${money(p.oneTimeValue)} + ${money(p.monthlyValue)}/ח׳</small></div>${hp('proposalStatus', p.status)}</div>`).join('')}</div>` : '<div class="empty">אין הצעות עדיין</div>';
   }
-  // הצעות מחיר שהופקו — צפייה/הדפסה חוזרת ל-PDF (מסתמך על מנוע ה-quotes הקיים ב-app)
+  // צנרת מכירה: הצעת מחיר → הזמנה → הושלם → קבלה. קנבן 4 עמודות המוזן ממיזוג
+  // quotes (ללא עסקה עדיין) + sales_deals (GET /sales/pipeline) — ר' src/api/sales.ts.
   async function salesQuotes(body) {
-    let rows = []; try { rows = await apiGet('/quotes'); } catch (e) {}
-    try { if (typeof QUOTES_CACHE !== 'undefined') QUOTES_CACHE = rows; } catch (e) {}
+    let rows = []; try { rows = await apiGet('/sales/pipeline'); } catch (e) {}
+    try {
+      if (typeof QUOTES_CACHE !== 'undefined') QUOTES_CACHE = rows.filter((r) => r.kind === 'quote').map((r) => ({ id: r.quoteId, clientName: r.clientName, total: r.total, createdAt: r.createdAt, quoteNo: r.quoteNo }));
+    } catch (e) {}
     const m0 = (n) => '₪' + Number(n || 0).toLocaleString('he-IL', { maximumFractionDigits: 0 });
-    body.innerHTML = `<div class="spread" style="margin-bottom:10px"><p class="hint" style="color:var(--muted);margin:0">הצעות המחיר שהפקת — צפייה, הדפסה חוזרת ל-PDF ומחיקה.</p>${typeof quoteForm === 'function' ? '<button class="btn small" onclick="quoteForm()">+ הצעת מחיר</button>' : ''}</div>` +
-      (rows.length ? `<div class="card">${rows.map((q) => `<div class="list-item">
-        <div class="li-main"><b>${esc(q.clientName || '—')}</b><small>${q.title ? esc(q.title) + ' · ' : ''}${esc(q.quoteNo || '')} · ${new Date(q.createdAt).toLocaleDateString('he-IL')}</small></div>
-        <div class="row" style="gap:6px;align-items:center"><b class="li-val" style="color:var(--accent-2)">${m0(q.total)}</b>
-          <button class="btn small ghost" onclick="quoteReopen('${q.id}')" title="פתח והדפס PDF">🖨️</button>
-          <button class="btn small ghost" onclick="BOS.delQuote('${q.id}')" title="מחק">🗑</button></div></div>`).join('')}</div>`
-        : '<div class="empty">עדיין לא הפקת הצעות מחיר.' + (typeof quoteForm === 'function' ? ' לחצו “+ הצעת מחיר” כדי להפיק את הראשונה.' : '') + '</div>');
+    const dateStr = (t) => new Date(t).toLocaleDateString('he-IL');
+
+    const quoteCol = rows.filter((r) => r.stage === 'quote');
+    const orderCol = rows.filter((r) => r.stage === 'order');
+    const completedCol = rows.filter((r) => r.stage === 'completed');
+    const issuedCol = rows.filter((r) => r.stage === 'receipt_issued');
+
+    const quoteCard = (q) => `<div class="kcard">
+      <b>${esc(q.clientName || '—')}</b><small>${esc(q.quoteNo || '')} · ${dateStr(q.createdAt)}</small>
+      <div class="row" style="justify-content:space-between;margin-top:5px"><b class="li-val" style="color:var(--accent-2)">${m0(q.total)}</b></div>
+      <div class="row" style="gap:6px;margin-top:6px">
+        <button class="btn small ghost" onclick="quoteReopen('${q.quoteId}')" title="פתח והדפס PDF">🖨️</button>
+        <button class="btn small primary" onclick="openOrderFromQuote('${q.quoteId}')" title="פתח הזמנה">🧾 פתח הזמנה</button>
+        <button class="btn small ghost" onclick="BOS.delQuote('${q.quoteId}')" title="מחק">🗑</button>
+      </div></div>`;
+
+    const orderCard = (d) => `<div class="kcard">
+      <b>${esc(d.clientName || '—')}</b><small>${dateStr(d.createdAt)}</small>
+      <div class="row" style="justify-content:space-between;margin-top:5px"><b class="li-val" style="color:var(--accent-2)">${m0(d.totalAmount)}</b></div>
+      <div class="row" style="gap:6px;margin-top:6px"><button class="btn small primary" onclick="dealMarkCompleted('${d.dealId}')" title="סמן כהושלם">✅ סמן כהושלם</button></div></div>`;
+
+    const completedCard = (d) => `<div class="kcard">
+      <b>${esc(d.clientName || '—')}</b><small>${dateStr(d.createdAt)}</small>
+      <div class="row" style="justify-content:space-between;margin-top:5px"><b class="li-val" style="color:var(--accent-2)">${m0(d.totalAmount)}</b></div>
+      <div class="row" style="gap:6px;margin-top:6px"><button class="btn small primary" onclick='receiptForm(${j(d)})' title="הפק קבלה">🧾 הפק קבלה</button></div></div>`;
+
+    const issuedCard = (d) => `<div class="kcard">
+      <b>${esc(d.clientName || '—')}</b><small>${dateStr(d.createdAt)}</small>
+      ${(d.receipts || []).map((r) => `<div class="row" style="justify-content:space-between;margin-top:5px;padding-top:5px;border-top:1px dashed var(--line)">
+        <small>${r.kind === 'credit' ? '↩️ זיכוי' : 'קבלה'} #${r.receiptNo} · ${m0(r.amount)}</small>
+        <span class="row" style="gap:4px">
+          <button class="btn small ghost" onclick="receiptReopen('${r.id}')" title="הדפסה חוזרת">🖨️</button>
+          ${r.kind === 'receipt' ? `<button class="btn small ghost" onclick='creditNoteForm(${j(r)})' title="קבלת זיכוי">↩️</button>` : ''}
+        </span></div>`).join('')}
+      <div class="row" style="gap:6px;margin-top:8px"><button class="btn small ghost" onclick='receiptForm(${j(d)})' title="קבלה נוספת">+ קבלה נוספת</button></div></div>`;
+
+    const col = (title, items, render) => `<div class="kcol"><div class="kcol-h"><span>${title}</span><span class="cnt">${items.length}</span></div>
+      ${items.map(render).join('') || '<div class="empty" style="padding:10px">—</div>'}</div>`;
+
+    body.innerHTML = `<div class="spread" style="margin-bottom:10px"><p class="hint" style="color:var(--muted);margin:0">הצעת מחיר → הזמנה → הושלם → קבלה. ${typeof quoteForm === 'function' ? '' : ''}</p>${typeof quoteForm === 'function' ? '<button class="btn small" onclick="quoteForm()">+ הצעת מחיר</button>' : ''}</div>
+      <div class="kanban">
+        ${col('הצעת מחיר', quoteCol, quoteCard)}
+        ${col('הזמנה', orderCol, orderCard)}
+        ${col('הושלם', completedCol, completedCard)}
+        ${col('קבלה הופקה', issuedCol, issuedCard)}
+      </div>`;
   }
   async function delQuote(id) { if (!confirm('למחוק את הצעת המחיר?')) return; try { await apiDel('/quotes/' + id); toast('נמחקה ✓'); } catch (e) { toast('שגיאה במחיקה', 'bad'); } TAB.sales = 'quotes'; go('sales'); }
 
@@ -263,6 +305,50 @@
     if (!(LEADS_ALL || []).find((x) => x.id === id)) await ensureLeads(true);
     if (typeof openLead === 'function' && (LEADS_ALL || []).find((x) => x.id === id)) { openLead(id); return; }
     TAB.sales = 'leads'; go('sales');
+  }
+
+  /* =========================== הגדרות =========================== */
+  // מסך הגדרות ייעודי — כרגע טאב יחיד "פרטי עסק"; קטגוריית הגדרות עתידית = שורה אחת ב-tabBar + branch.
+  RENDER.settings = async () => {
+    const active = TAB.settings || 'business';
+    V().innerHTML = tabBar('settings', [['business', 'פרטי עסק']], active) + '<div id="settingsBody"><div class="empty">טוען…</div></div>';
+    const body = document.getElementById('settingsBody');
+    if (active === 'business') return settingsBusiness(body);
+  };
+  async function settingsBusiness(body) {
+    let s = {}; try { s = await apiGet('/business-settings'); } catch (e) {}
+    const inp = 'width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.95rem;background:#fff';
+    const field = (id, label, val, ph) => `<div class="f"><label>${label}</label><input id="${id}" value="${esc(val || '')}" placeholder="${esc(ph || '')}" style="${inp}"></div>`;
+    body.innerHTML = `
+      ${!s.complete ? '<div class="card" style="border:1px solid #b42323;background:#fdecec;margin-bottom:12px"><b style="color:#b42323">⚠ קבלות לא ניתנות להפקה</b><div class="hint">יש להשלים מספר עוסק וכתובת עסק לפני שאפשר להפיק קבלה חוקית.</div></div>' : ''}
+      <div class="card">
+        <div class="f2">
+          ${field('bs_name', 'שם העסק', s.businessName, 'ORT-TECH')}
+          ${field('bs_taxid', 'מספר עוסק (ע.מ / ח.פ)', s.businessTaxId, '000000000')}
+        </div>
+        ${field('bs_address', 'כתובת העסק', s.businessAddress, 'רחוב, מספר, עיר')}
+        <div class="f2" style="margin-top:10px">
+          ${field('bs_phone', 'טלפון', s.businessPhone)}
+          ${field('bs_email', 'אימייל', s.businessEmail)}
+        </div>
+        <div class="f2" style="margin-top:10px">
+          ${field('bs_website', 'אתר', s.businessWebsite)}
+          ${field('bs_issuer', 'שם המנפיק (חתימה על קבלות)', s.issuerName)}
+        </div>
+        ${field('bs_logo', 'כתובת לוגו (יחסית לאתר)', s.businessLogoUrl, '/ort-tech-logo.png')}
+        <div class="hint" style="margin-top:10px">מספר ההזמנה הבא: <b>${s.nextOrderNo ?? 1}</b> · מספר הקבלה הבא: <b>${s.nextReceiptNo ?? 1}</b></div>
+        <div class="spread" style="margin-top:16px"><span></span><button class="btn primary" onclick="settingsBusinessSave()">שמירה</button></div>
+      </div>`;
+  }
+  async function settingsBusinessSave() {
+    const body = {
+      businessName: val('bs_name'), businessTaxId: val('bs_taxid'), businessAddress: val('bs_address'),
+      businessPhone: val('bs_phone'), businessEmail: val('bs_email'), businessWebsite: val('bs_website'),
+      issuerName: val('bs_issuer'), businessLogoUrl: val('bs_logo'),
+    };
+    try { await apiPut('/business-settings', body); try { if (typeof BIZ_CACHE !== 'undefined') BIZ_CACHE = null; } catch (e) {} toast('נשמר ✓'); }
+    catch (e) { toast('שגיאה בשמירה', 'bad'); return; }
+    TAB.settings = 'business'; go('settings');
   }
 
   /* =========================== לקוחות =========================== *
