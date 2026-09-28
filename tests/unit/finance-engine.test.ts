@@ -300,6 +300,8 @@ test('monthlyHistory מחזיר חודשים עם פירוט פריטים', () =
   assert.equal(h.buckets[2].label, '03/26');
   assert.ok(h.buckets.every((b) => b.expense === 1000));
   assert.ok(h.buckets[2].items.some((it) => it.label === 'ענן' && it.amount === 1000));
+  // מזהה השורה נחשף כדי שהתצוגה הפשוטה תוכל לפתוח עריכה של הוצאה ישנה
+  assert.ok(h.buckets[0].items.some((it) => it.cashflowId === 'x1' && it.recurring === 'monthly'));
   assert.equal(h.summary.totalExpense, 3000);
   assert.equal(h.summary.avgMonthlyExpense, 1000);
 });

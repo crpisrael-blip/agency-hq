@@ -64,6 +64,7 @@ export interface Flow {
   projectId: string | null;
   sourceType: string;
   sourceId: string | null;
+  cashflowId?: string | null; // מזהה שורת cashflow שממנה נגזרה התנועה (לעריכה מהממשק)
 }
 
 export interface FinanceData {
@@ -218,7 +219,7 @@ export function buildFlows(data: FinanceData): Flow[] {
       recurring: rec, startYm, endYm, date,
       billingDay: r.billingDay != null ? num(r.billingDay) : null,
       clientId: r.clientId || null, projectId: r.projectId || null,
-      sourceType: r.sourceType || 'manual', sourceId: r.sourceId || r.id,
+      sourceType: r.sourceType || 'manual', sourceId: r.sourceId || r.id, cashflowId: r.id,
     });
   }
 
@@ -375,7 +376,7 @@ export interface HistoryBucket {
   income: number;
   expense: number;
   net: number;
-  items: { label: string; amount: number; kind: Kind; tier: Tier; source: string }[];
+  items: { label: string; amount: number; kind: Kind; tier: Tier; source: string; recurring: Recurring; cashflowId: string | null }[];
 }
 export interface MonthlyHistory {
   months: number;
@@ -406,7 +407,7 @@ export function monthlyHistory(data: FinanceData, months: number): MonthlyHistor
       if (!val) continue;
       if (f.kind === 'income') income += val;
       else expense += val;
-      items.push({ label: f.label, amount: round2(val), kind: f.kind, tier: f.tier, source: f.sourceType });
+      items.push({ label: f.label, amount: round2(val), kind: f.kind, tier: f.tier, source: f.sourceType, recurring: f.recurring, cashflowId: f.cashflowId || null });
     }
     income = round2(income);
     expense = round2(expense);
