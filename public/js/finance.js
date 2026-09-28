@@ -62,6 +62,8 @@
   let EXP_FILTER = 'all';
   let HIST_MONTHS = 6;
   const HIST_OPEN = {};   // ym -> true  (שורות חודש פתוחות בהיסטוריה)
+  let SIMPLE_HIST = null; // היסטוריה (24 ח׳) של התצוגה הפשוטה — לדפדוף בין חודשים בלי טעינה מחדש
+  let SIMPLE_YM = null;   // החודש הנבחר בכרטיס "הוצאות לפי חודש" (null = החודש הנוכחי)
   const FC_OPEN = {};     // ym -> true  (שורות חודש פתוחות בתחזית)
 
   // fetch עם טוקן מנהל שאינו-JSON (העלאה/הורדת קבצי קבלה)
@@ -312,8 +314,9 @@
   async function renderSimple() {
     const [d, hist] = await Promise.all([
       apiGet('/finance/control'),
-      apiGet('/finance/expenses/history?months=6').catch(() => null),
+      apiGet('/finance/expenses/history?months=24').catch(() => null),
     ]);
+    SIMPLE_HIST = hist;
     const s = d.summary;
     const mo = d.month;
     const stt = d.status || { tone: 'ok', lines: [] };
@@ -328,7 +331,7 @@
       <div class="kpi ${belowThreshold ? 'red' : 'green'}"><b>${m(s.expectedEndBalance)}</b><small>צפי ליתרה בסוף החודש</small></div>
     </div>`;
 
-    const hbuckets = hist ? hist.buckets : [];
+    const hbuckets = hist ? hist.buckets.slice(-6) : [];
     const chart = hbuckets.length
       ? `<div class="card"><h3 style="margin:0 0 10px">הכנסות מול הוצאות — 6 חודשים אחרונים</h3>${barChart(hbuckets.map((b) => b.label), hbuckets.map((b) => b.income), hbuckets.map((b) => b.expense))}</div>`
       : '';
@@ -348,6 +351,7 @@
       </div>
       ${statusBanner}
       ${kpis}
+      <div class="card" id="simpleExp"></div>
       ${chart}
       <div class="grid2" style="align-items:start">
         <div class="card"><div class="fin-sec-h"><h3>מה צפוי בקרוב</h3></div>${upHtml}</div>
@@ -356,7 +360,39 @@
       <div class="row" style="justify-content:center;margin-top:6px">
         <button class="btn ghost" onclick="FIN.tab('control')">📊 תרחישים, רווחיות ונתונים מתקדמים ←</button>
       </div>`;
+    renderSimpleExpenses();
   }
+
+  // כרטיס "הוצאות לפי חודש" בתצוגה הפשוטה — בוחרים חודש (עד 24 אחורה) ורואים את כל
+  // ההוצאות שלו. הנתונים כבר נטענו (SIMPLE_HIST), כך שמעבר בין חודשים מיידי.
+  const RECUR_LABEL = { monthly: 'חודשי', yearly: 'שנתי', once: 'חד-פעמי' };
+  function renderSimpleExpenses() {
+    const box = document.getElementById('simpleExp');
+    if (!box) return;
+    const buckets = SIMPLE_HIST ? SIMPLE_HIST.buckets : [];
+    if (!buckets.length) { box.innerHTML = '<h3 style="margin:0 0 10px">🧾 הוצאות לפי חודש</h3><div class="empty">אין נתונים</div>'; return; }
+    let idx = buckets.findIndex((b) => b.ym === SIMPLE_YM);
+    if (idx < 0) idx = buckets.length - 1; // ברירת מחדל: החודש הנוכחי
+    const b = buckets[idx];
+    const items = b.items.filter((it) => it.kind === 'expense').sort((x, y) => y.amount - x.amount);
+    const opts = [...buckets].reverse().map((x) => `<option value="${x.ym}" ${x.ym === b.ym ? 'selected' : ''}>${esc(x.label)}${x.expense ? ' · ' + m(x.expense) : ''}</option>`).join('');
+    const nav = `<div class="row" style="gap:6px;align-items:center;flex-wrap:nowrap">
+      <button class="btn small ghost" ${idx === 0 ? 'disabled' : ''} onclick="FIN.simpleMonth(${idx - 1})" title="חודש קודם">→</button>
+      <select onchange="FIN.simpleMonthYm(this.value)" style="width:auto;min-width:0;padding:5px 8px;font-size:.88rem">${opts}</select>
+      <button class="btn small ghost" ${idx === buckets.length - 1 ? 'disabled' : ''} onclick="FIN.simpleMonth(${idx + 1})" title="חודש הבא">←</button>
+    </div>`;
+    const list = items.length ? items.map((it) => {
+      const clk = it.cashflowId ? ` onclick="FIN.editExpense('${esc(it.cashflowId)}')" style="cursor:pointer"` : '';
+      return `<div class="list-item"${clk}><div class="li-main"><b>${esc(it.label)}</b><small>${RECUR_LABEL[it.recurring] || ''}${it.tier === 'actual' ? ' · שולם' : ''}</small></div>
+        <b class="li-val" style="color:#b42323">${m(it.amount)}</b></div>`;
+    }).join('') : '<div class="empty">אין הוצאות בחודש זה</div>';
+    box.innerHTML = `<div class="fin-sec-h" style="flex-wrap:wrap;gap:8px"><h3>🧾 הוצאות לפי חודש</h3>${nav}</div>
+      <div class="row" style="justify-content:space-between;margin:0 0 6px;font-size:.88rem"><span style="color:var(--muted)">${items.length} הוצאות</span><b>סה"כ ${m(b.expense)}</b></div>
+      ${list}
+      <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn small ghost" onclick="FIN.tab('history')">השוואה בין חודשים →</button></div>`;
+  }
+  function simpleMonth(i) { const bs = SIMPLE_HIST ? SIMPLE_HIST.buckets : []; if (bs[i]) { SIMPLE_YM = bs[i].ym; renderSimpleExpenses(); } }
+  function simpleMonthYm(ym) { SIMPLE_YM = ym; renderSimpleExpenses(); }
 
   // ================= הכנסות =================
   async function renderIncome() {
@@ -887,7 +923,7 @@
   window.FIN = {
     scAdd, _scAdd, scRemoveAdj, scMonths, scBase, scNew, scLoad, scSave, scDelete,
     tab, explain, expFilter, fcMonths, fcScen, fcToggle,
-    histMonths, histToggle,
+    histMonths, histToggle, simpleMonth, simpleMonthYm,
     dismissExc, exceptionTask, updateBalance, _saveBalance,
     addIncome, _saveIncome, addExpense, editExpense, _saveExpense, _delExpense, _expToggle,
     _vendorToggle, _uploadReceipt, _viewReceipt, _delReceipt,
