@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { desc, eq, and } from 'drizzle-orm';
-import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules, expenseAllocations, playbookRuns, telegramFillSessions } from '../db/schema';
+import { clients, systems, engagements, tasks, profitCenters, processes, cashflow, documents, modules, expenseAllocations, playbookRuns, telegramFillSessions, runFormLinks } from '../db/schema';
 import { Env, db, uid, now, pick, num } from './util';
 import { engagementMonthly } from './engagements';
 import { buildSummary } from './run-fill';
+import { buildFormSummary } from './run-form';
 
 export const clientsApp = new Hono<Env>();
 
@@ -52,7 +53,9 @@ clientsApp.get('/:id', async (c) => {
     .orderBy(desc(playbookRuns.createdAt)).all();
   const tgRows = await d.select().from(telegramFillSessions).all();
   const tgByRun = new Map(tgRows.map((s) => [s.runId, s]));
-  const runs = runRows.map((r) => ({ ...r, telegram: buildSummary(r, tgByRun.get(r.id) || null, null) }));
+  const formRows = await d.select().from(runFormLinks).all().catch(() => [] as any[]);
+  const formByRun = new Map(formRows.map((s: any) => [s.runId, s]));
+  const runs = runRows.map((r) => ({ ...r, telegram: buildSummary(r, tgByRun.get(r.id) || null, null), form: buildFormSummary(r, formByRun.get(r.id) || null) }));
   const linkedTasks = await d.select().from(tasks)
     .where(and(eq(tasks.entityType, 'client'), eq(tasks.entityId, id)))
     .orderBy(desc(tasks.createdAt)).all();

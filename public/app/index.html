@@ -829,7 +829,7 @@ async function openClient(id){
       <div class="grow"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
         <div class="hint">${STAGE_LABELS[r.stage]||''}${r.status==='done'?' · הושלם':''}</div>
         <div class="bar" style="max-width:200px"><span style="width:${r.progress||0}%"></span></div></div>
-      <span class="row" style="gap:6px">${tgPill(r.telegram)}<span class="pill ${r.status==='done'?'p-green':r.progress?'p-amber':'p-gray'}">${r.status==='done'?'✓':(r.progress||0)+'%'}</span></span>
+      <span class="row" style="gap:6px">${fmPill(r.form)}${tgPill(r.telegram)}<span class="pill ${r.status==='done'?'p-green':r.progress?'p-amber':'p-gray'}">${r.status==='done'?'✓':(r.progress||0)+'%'}</span></span>
     </div>`).join(''):'<div class="muted">אין עדיין מהלכים. פתח את הפורמט המתאים לשלב שבו הלקוח נמצא.</div>'}`);
 
   const pcCard=card(`<h3>מרכזי רווח${d.ideas.length?` (${d.ideas.length})`:''}</h3>${d.ideas.length?d.ideas.map(i=>`<div class="stat-row"><span>${esc(i.title)}</span><span class="row" style="gap:6px">${i.potentialMonthly?`<b>${money(i.potentialMonthly)}/ח'</b>`:''}<button class="btn small" onclick="BOS.convertPC('${i.id}')">המר להזדמנות</button></span></div>`).join(''):'<div class="muted">—</div>'}`);
@@ -2959,7 +2959,7 @@ function activeRunsHTML(activeRuns){
         <div class="li-main"><b>${STAGE_EMOJI[r.stage]||''} ${esc(r.title)}</b>
           <small>${r.systemName?esc(r.systemName)+' · ':''}${STAGE_LABELS[r.stage]||''}</small>
           <div class="bar" style="width:170px;margin-top:6px"><span style="width:${r.progress}%"></span></div></div>
-        <div class="row" style="gap:8px">${tgPill(r.telegram)}<span class="li-val muted">${r.progress}%</span></div></div>`;
+        <div class="row" style="gap:8px">${fmPill(r.form)}${tgPill(r.telegram)}<span class="li-val muted">${r.progress}%</span></div></div>`;
   const groupsHTML=arr.map((g,i)=>{
     const bid='rg_'+i;
     const avg=Math.round(g.items.reduce((s,r)=>s+(r.progress||0),0)/g.items.length);
@@ -3297,13 +3297,15 @@ function drawRun(){
     <div class="spread" style="margin-top:10px"><div><h2 style="margin:0">${STAGE_EMOJI[RUN.stage]||''} ${esc(RUN.title)}</h2>
       <div class="sub">${RUN.clientName?esc(RUN.clientName):'כללי'}${RUN.systemName?' · '+esc(RUN.systemName):''} · ${STAGE_LABELS[RUN.stage]||''} · ${counter}</div></div>
       <div class="row">${RUN.status==='done'?'<span class="pill p-green">הושלם ✓</span>':`<button class="btn teal" onclick="finishRun()">סימון כהושלם</button>`}
-        ${!isDoc?`<button class="btn teal" onclick="telegramInvite()" title="שליחת התהליך ללקוח למילוי עצמי בבוט Telegram — אותן שאלות, אותם שדות">📲 שליחה ללקוח</button>`:''}
+        ${!isDoc?`<button class="btn teal" onclick="formLinkModal()" title="קישור אישי לטופס ווב — הלקוח ממלא בנייד, והתשובות נכנסות ישירות לתהליך הזה">🔗 טופס בקישור</button>`:''}
+        ${!isDoc?`<button class="btn ghost" onclick="telegramInvite()" title="שליחת התהליך ללקוח למילוי עצמי בבוט Telegram — אותן שאלות, אותם שדות">📲 טלגרם</button>`:''}
         <button class="btn primary" onclick="runFormDoc()">📄 טופס מלא</button>
         <button class="btn ghost" onclick="runRenderPrint()" title="הפקת PDF על דף לוגו ORT-TECH — מוכן להדפסה או לצירוף להצעת מחיר">🖨️ הפקת PDF</button>
         ${(RUN.status==='done'&&RUN.clientId)?`<button class="btn teal" onclick="quoteFromCurrentRun()" title="צור הצעת מחיר ללקוח, מקושרת למהלך שהושלם">📄 הצעת מחיר</button>`:''}
         <button class="btn ghost" onclick="runEditForm()" title="עריכת מבנה הטופס של המהלך הזה — כותרת, סעיפים ושאלות. התשובות שכבר מולאו נשמרות.">✏️ עריכת הטופס</button>
         <button class="btn danger" onclick="delRun()">מחיקה</button></div></div>
     <div class="bar" style="margin:6px 0 16px"><span style="width:${prog}%"></span></div>
+    ${!isDoc&&RUN.form?fmStatusCard(RUN.form):''}
     ${!isDoc&&RUN.telegram?tgStatusCard(RUN.telegram):''}
     <div class="hint" style="margin-bottom:12px">${isDoc
       ? 'מלא את המסמך במקום ה-___ . נשמר אוטומטית ביציאה מהשדה. בסיום לחץ "טופס מלא" כדי לקבל אותו מוכן לשליחה.'
@@ -3527,6 +3529,71 @@ function tgWaLink(){
 async function telegramCancel(){
   if(!confirm('לבטל את הזמנת המילוי? הקישור יפסיק לעבוד. התשובות שכבר נכנסו יישמרו.'))return;
   try{ await apiPost('/playbooks/runs/'+RUN.id+'/telegram/cancel'); await refreshRunTelegram(); closeModal(); toast('ההזמנה בוטלה'); }
+  catch(e){ toast('שגיאה','bad'); }
+}
+
+// ---------- 🔗 טופס בקישור: הלקוח ממלא בדף ווב, התשובות נכנסות לתהליך ----------
+function fmUrl(f){ return f&&f.path?location.origin+f.path:''; }
+function fmPill(f){
+  if(!f||f.status==='cancelled') return '';
+  const lbl=f.status==='in_progress'?`ממלא ${f.answered}/${f.total}`:(f.status==='completed'?'טופס ✓':f.statusLabel);
+  return `<span class="pill ${TG_STATUS_CLASS[f.status]||'p-gray'}" title="טופס בקישור · ${f.answered}/${f.total} שאלות · ${f.progress}%">🔗 ${lbl}</span>`;
+}
+function fmStatusCard(f){
+  if(f.status==='cancelled') return '';
+  const rows=[
+    ['נשלח',f.sentAt?new Date(f.sentAt).toLocaleString('he-IL'):'—'],
+    ['נפתח',f.openedAt?new Date(f.openedAt).toLocaleString('he-IL'):'טרם'],
+    ['פעילות אחרונה',f.lastActivityAt?timeAgo(f.lastActivityAt):'—'],
+    f.completedAt?['נשלח סופית',new Date(f.completedAt).toLocaleString('he-IL')]:null,
+  ].filter(Boolean);
+  return `<div class="card" style="border:1px solid #1741d6;background:#f3f6ff;margin-bottom:12px">
+    <div class="spread" style="margin-bottom:6px"><h3 style="margin:0">🔗 טופס בקישור ${fmPill(f)}</h3>
+      <div class="row" style="gap:6px">
+        <button class="btn ghost small" onclick="refreshRunTelegram()" title="רענון מצב מהשרת">↻ רענון</button>
+        <button class="btn teal small" onclick="formLinkModal()">ניהול / קישור</button></div></div>
+    <div class="bar" style="margin:2px 0 10px"><span style="width:${f.progress}%"></span></div>
+    <div class="grid2" style="gap:4px 18px">${rows.map(([k,v])=>`<div class="stat-row"><span class="muted">${k}</span><span>${v}</span></div>`).join('')}</div>
+    <div class="hint" style="margin-top:8px">התשובות מהטופס נכנסות אוטומטית לאותם שדות למטה (${f.answered}/${f.total} נענו).</div>
+  </div>`;
+}
+function formLinkModal(){
+  const f=RUN.form&&RUN.form.status!=='cancelled'?RUN.form:null;
+  const url=fmUrl(f);
+  const body=url
+    ? `<div class="f"><label>קישור אישי ללקוח</label>
+        <input id="fmLink" readonly value="${esc(url)}" style="direction:ltr;text-align:left;font-size:.8rem" onclick="this.select()"></div>
+       <div class="modal-actions" style="margin-top:4px">
+        <button class="btn primary" onclick="fmCopy()">📋 העתקת הקישור</button>
+        <button class="btn teal" onclick="fmWa()">💬 שליחה בוואטסאפ</button>
+        <a class="btn ghost" href="${esc(url)}" target="_blank">👁 תצוגה</a></div>
+       <div class="hint" style="margin-top:8px">מצב: ${f.statusLabel} · ${f.answered}/${f.total} שאלות (${f.progress}%). הטיוטות נשמרות אוטומטית; אפשר לחזור לאותו קישור.</div>
+       <div class="modal-actions" style="margin-top:14px;border-top:1px solid #eee;padding-top:10px">
+        <button class="btn ghost small" onclick="fmCreate(true)" title="הקישור הנוכחי יפסיק לעבוד; התשובות נשמרות">↻ קישור חדש</button>
+        <button class="btn danger ghost small" onclick="fmCancel()">ביטול הקישור</button></div>`
+    : `<div class="sub" style="margin:2px 0 12px">יצירת קישור אישי לטופס. הלקוח פותח אותו בנייד, רואה את כל שאלות התהליך וממלא — כל תשובה נכנסת אוטומטית לשדה המתאים כאן. מקבלים התראה בטלגרם כשהטופס נשלח.</div>
+       <div class="modal-actions"><button class="btn primary" onclick="fmCreate(false)">🔗 יצירת קישור לטופס</button></div>`;
+  openModal(`<div class="spread"><h3 style="margin:0">🔗 טופס בקישור</h3></div>
+    <div class="sub" style="margin:4px 0 12px">${esc(RUN.title)}${RUN.clientName?' · '+esc(RUN.clientName):''}</div>
+    ${body}
+    <div style="margin-top:10px"><button class="btn ghost" onclick="closeModal()">סגירה</button></div>`, true);
+}
+async function fmCreate(reset){
+  if(reset&&!confirm('ליצור קישור חדש? הקישור הקודם יפסיק לעבוד. התשובות שכבר נכנסו נשמרות.'))return;
+  grabRunInputs(); await saveRun();
+  try{ const r=await apiPost('/playbooks/runs/'+RUN.id+'/form-link'); RUN.form=r.form; toast('נוצר קישור ✓'); drawRun(); formLinkModal(); }
+  catch(e){ toast('שגיאה ביצירת הקישור','bad'); }
+}
+function fmCopy(){ const t=$('fmLink')?.value||fmUrl(RUN.form); (navigator.clipboard?.writeText(t)||Promise.reject()).then(()=>toast('הקישור הועתק ✓')).catch(()=>toast('בחר והעתק ידנית','bad')); }
+function fmWa(){
+  const c=CLIENT360?.client; const phone=(c&&RUN.clientId&&c.id===RUN.clientId)?c.phone:'';
+  const url=fmUrl(RUN.form); if(!url){ toast('אין קישור עדיין','bad'); return; }
+  const msg=`שלום! אשמח שתמלא/י את "${RUN.title}" בקישור הבא. אפשר לענות בקצרה ולחזור להשלים מתי שנוח — הטיוטה נשמרת:\n${url}`;
+  window.open(waLink(phone)+'?text='+encodeURIComponent(msg),'_blank');
+}
+async function fmCancel(){
+  if(!confirm('לבטל את הקישור? הוא יפסיק לעבוד. התשובות שכבר נכנסו יישמרו.'))return;
+  try{ await apiPost('/playbooks/runs/'+RUN.id+'/form-link/cancel'); await refreshRunTelegram(); closeModal(); toast('הקישור בוטל'); }
   catch(e){ toast('שגיאה','bad'); }
 }
 
