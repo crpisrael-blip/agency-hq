@@ -257,3 +257,8 @@ window.SITE = {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
+
+// מדידת ביקורים בעמודים הציבוריים בלבד.
+var siteAnalyticsScript = document.createElement('script');
+siteAnalyticsScript.src = '/site-analytics.js';
+document.head.appendChild(siteAnalyticsScript);

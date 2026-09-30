@@ -59,6 +59,10 @@
   .kpi.accent b{color:var(--accent-2)}
   .kpi.amber b{color:var(--amber)}
   .kpi.green b{color:var(--green)}
+  .traffic-row{display:grid;grid-template-columns:74px minmax(0,1fr) 35px;gap:10px;align-items:center;margin:9px 0;font-size:.84rem}
+  .traffic-bar{height:11px;border-radius:99px;background:var(--bg-2);overflow:hidden}
+  .traffic-bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+  .traffic-row b{font-variant-numeric:tabular-nums;text-align:left}
   /* ---- cards ---- */
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -453,6 +457,7 @@ const PAGES = [
 // תפריט משני / הגדרות (כולל מסכים ותיקים שנשמרו)
 const SECONDARY = [
   ['leads','📥 לידים (CRM)'],
+  ['siteTraffic','📊 נתוני האתר'],
   ['bookings','🗓️ זמינות ופגישות'],
   ['calls','📞 תיעוד שיחות'],
   ['documents','מסמכים'],
@@ -540,6 +545,40 @@ async function loadRefs(){
 }
 const clientOptions=(sel)=>`<option value="">— ללא —</option>`+CACHE.clients.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('');
 const systemOptions=(sel,clientId)=>`<option value="">— ללא —</option>`+CACHE.systems.filter(s=>!clientId||s.clientId===clientId).map(s=>`<option value="${s.id}" ${s.id===sel?'selected':''}>${esc(s.name)}</option>`).join('');
+
+// ---------- נתוני האתר הציבורי ----------
+let trafficDays=30;
+function chooseTrafficDays(days){trafficDays=days;RENDER.siteTraffic();}
+RENDER.siteTraffic=async()=>{
+  const d=await apiGet('/site-analytics?days='+trafficDays);
+  const counts=Object.fromEntries(d.actions.map(x=>[x.type,x.count]));
+  const leads=d.leads.reduce((sum,x)=>sum+x.count,0);
+  const names={'/':'דף הבית','/services':'פתרונות','/for-whom':'למי זה מתאים','/about':'אודות','/contact':'צור קשר','/book':'קביעת שיחה','/lp':'דף נחיתה'};
+  const sourceNames={direct:'כניסה ישירה / מקור לא ידוע',search:'מנועי חיפוש',social:'רשתות חברתיות',referral:'אתרים מפנים'};
+  const byDay=new Map(d.daily.map(x=>[x.day,x.views]));
+  const recent=[];
+  for(let offset=Math.min(trafficDays,14)-1;offset>=0;offset--){
+    const date=new Date(d.through+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-offset);
+    const day=date.toISOString().slice(0,10);recent.push({day,views:byDay.get(day)||0});
+  }
+  const max=Math.max(1,...recent.map(x=>x.views));
+  const dateLabel=day=>new Intl.DateTimeFormat('he-IL',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'));
+  $('view').innerHTML=`<h2>נתוני האתר הציבורי</h2><div class="sub">ort-tech.co.il · ${esc(dateLabel(d.since))}–${esc(dateLabel(d.through))}</div>
+    <div class="row" style="margin:0 0 15px;gap:6px;flex-wrap:wrap">${[7,30,90].map(n=>`<button class="btn small ${trafficDays===n?'primary':''}" onclick="chooseTrafficDays(${n})">${n} ימים</button>`).join('')}</div>
+    <div class="kpis">
+      <div class="kpi"><b>${d.views}</b><small>צפיות בעמודים</small></div>
+      <div class="kpi"><b>${d.visits}</b><small>ביקורים משוערים</small></div>
+      <div class="kpi"><b>${leads}</b><small>פניות מהאתר</small></div>
+      <div class="kpi"><b>${d.bookings}</b><small>שיחות שנקבעו באתר</small></div>
+    </div>
+    <div class="card"><h3>צפיות לפי יום${trafficDays>14?' · 14 הימים האחרונים':''}</h3>
+      ${recent.map(x=>`<div class="traffic-row"><span>${esc(dateLabel(x.day))}</span><div class="traffic-bar"><i style="width:${Math.round(x.views/max*100)}%"></i></div><b>${x.views}</b></div>`).join('')}</div>
+    <div class="card"><h3>עמודים נצפים</h3>${d.pages.length?d.pages.map(x=>`<div class="stat-row"><span>${esc(names[x.path]||x.path)}</span><b>${x.views}</b></div>`).join(''):'<p class="muted">אין עדיין צפיות בתקופה שנבחרה.</p>'}</div>
+    <div class="card"><h3>פעולות באתר</h3>${[['booking_click','לחיצות לקביעת שיחה'],['whatsapp_click','לחיצות לוואטסאפ'],['phone_click','לחיצות להתקשרות'],['contact_click','מעברים לצור קשר'],['form_submit','ניסיונות שליחת טופס']].map(([key,label])=>`<div class="stat-row"><span>${label}</span><b>${counts[key]||0}</b></div>`).join('')}
+      <p class="hint">לחיצה או ניסיון שליחת טופס אינם אישור שנשלחה הודעה. פניות שנקלטו מופיעות גם בלידים.</p></div>
+    <div class="card"><h3>מקורות הגעה משוערים</h3>${d.sources.length?d.sources.map(x=>`<div class="stat-row"><span>${esc(sourceNames[x.source]||x.source)}</span><b>${x.visits}</b></div>`).join(''):'<p class="muted">אין עדיין מידע על מקורות הגעה.</p>'}</div>
+    <p class="hint">המדידה מתחילה בפרסום התכונה ואינה כוללת צפיות מהעבר. ביקור נספר לפי לשונית דפדפן, ולכן אינו מספר מדויק של אנשים. מי שביקש לא להימדד אינו נכלל.</p>`;
+};
 
 // ---------- לוח בקרה ----------
 RENDER.dashboard=async()=>{
@@ -4418,4 +4457,3 @@ boot();
 <script src="/idea-bubble.js"></script>
 </body>
 </html>
-

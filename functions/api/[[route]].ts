@@ -31,6 +31,7 @@ import { salesApp } from '../../src/api/sales';
 import { businessSettingsApp } from '../../src/api/business-settings';
 import { bookingPublicApp, bookingsAdminApp } from '../../src/api/bookings';
 import { metaWebhookApp, integrationsAdminApp } from '../../src/api/meta-inbound';
+import { siteAnalyticsPublic, siteAnalyticsAdmin } from '../../src/api/site-analytics';
 
 const app = new Hono<Env>().basePath('/api');
 
@@ -51,6 +52,7 @@ app.post('/hook/lead', registerLeadPublic); // webhook ציבורי: מערכו�
 app.post('/telegram/webhook', telegramWebhook); // webhook ציבורי: בוט מילוי עצמי של הלקוח
 app.route('/book', bookingPublicApp); // ציבורי: קביעת שיחה מהאתר (הגדרות, משבצות, קביעה)
 app.route('/meta', metaWebhookApp); // ציבורי: webhook של Meta — ווטסאפ נכנס + טפסי לידים בפייסבוק
+app.route('/site-analytics', siteAnalyticsPublic);
 
 // --- מוגן: כל השאר דורש טוקן מנהל ---
 app.use('*', requireAdmin);
@@ -85,6 +87,7 @@ app.route('/sales', salesApp); // צנרת מכירה: הצעת מחיר → ה�
 app.route('/business-settings', businessSettingsApp); // הגדרות עסק (מסך הגדרות)
 app.route('/bookings', bookingsAdminApp); // קביעת שיחה: הגדרות זמינות, משבצות, ניהול פגישות (מוגן)
 app.route('/integrations', integrationsAdminApp); // אינטגרציית Meta נכנסת: הגדרות ווטסאפ-נכנס + לידים מפייסבוק (מוגן)
+app.route('/site-analytics', siteAnalyticsAdmin);
 
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 
