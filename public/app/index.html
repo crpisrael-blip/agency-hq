@@ -1519,7 +1519,7 @@ async function whatsappSettings(){
       '<div id="wa_preview" class="card" style="margin:8px 0 0;white-space:pre-wrap;background:#e7f9ee;border-color:#9fd9b4;font-size:.92rem">'+esc(st.preview||'')+'</div>'+
     '</div>'+
     '<div class="card" style="margin:12px 0"><b style="font-size:.92rem">🧪 בדיקת שליחה</b><div class="hint">שולח את ההודעה (עם ההגדרות <u>השמורות</u>) למספר שתבחר — למשל המספר שלך.</div>'+
-      '<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><input id="wa_testPhone" placeholder="054-0000000" inputmode="tel" style="'+inputStyle+';max-width:200px;'+ltr+'"><button class="btn ghost small" onclick="whatsappCheck()">🔌 בדוק חיבור</button><button class="btn teal small" onclick="whatsappTest()">📤 שלח בדיקה</button><span id="wa_testResult" class="muted" style="font-size:.85rem"></span></div></div>'+
+      '<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><input id="wa_testPhone" placeholder="054-0000000" inputmode="tel" style="'+inputStyle+';max-width:200px;'+ltr+'"><button class="btn ghost small" onclick="whatsappCheck()">🔌 בדוק חיבור</button><button class="btn ghost small" onclick="whatsappTemplates()">🔍 בדוק תבנית ב-Meta</button><button class="btn teal small" onclick="whatsappTest()">📤 שלח בדיקה</button><span id="wa_testResult" class="muted" style="font-size:.85rem"></span></div></div>'+
     '<div class="spread" style="margin-top:16px"><button class="btn ghost" onclick="closeModal()">סגור</button><button class="btn primary" onclick="whatsappSave()">💾 שמור הגדרות</button></div>'
   , true);
   window.WA_DEFAULT_TEXT=st.defaultWelcomeText||'';
@@ -1551,6 +1551,17 @@ async function whatsappCheck(){
     if(r.connected) out.innerHTML='<span class="pill p-green">מחובר ✓</span> '+esc(r.provider==='meta'?(r.name||'')+' '+(r.phone||'')+(r.templateConfigured?'':' · ⚠️ לא הוגדרה תבנית'):(r.state||''));
     else out.innerHTML='<span class="pill p-red">לא מחובר</span> '+esc(r.reason||r.state||r.detail||'');
   }catch(e){ out.textContent='שגיאה בבדיקה'; }
+}
+async function whatsappTemplates(){
+  const out=$('wa_testResult'); out.textContent='בודק מול Meta…';
+  try{
+    const r=await apiGet('/whatsapp/templates');
+    const dg=r.diagnosis||{};
+    const own=(r.wabas||[]).filter(w=>w.hasPhone);
+    const list=(own.length?own:(r.wabas||[])).flatMap(w=>w.templates).map(t=>esc(t.name)+' ('+esc(t.language)+', '+esc(t.status)+')').join(' · ');
+    out.innerHTML='<span class="pill '+(dg.ok?'p-green':'p-red')+'">'+(dg.ok?'תקין':'לא תואם')+'</span> '+esc(dg.message||'')+
+      (list?'<div class="muted" style="margin-top:4px;font-size:.8rem">תבניות בחשבון: '+list+'</div>':'');
+  }catch(e){ out.innerHTML='<span class="pill p-red">שגיאה</span> '+esc(e.message||''); }
 }
 async function whatsappTest(){
   const phone=($('wa_testPhone').value||'').trim(); const out=$('wa_testResult');

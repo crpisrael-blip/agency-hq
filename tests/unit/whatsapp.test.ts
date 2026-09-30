@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  normalizeTemplateLang,
+  normalizeTemplateLang, diagnoseTemplate, templateBodyParams,
   normalizeILPhone, renderWelcome, DEFAULT_WELCOME_TEXT, isWhatsAppReady,
   greenSendRequest, metaSendRequest, describeWelcomeResult,
 } from '../../src/api/whatsapp';
@@ -99,4 +99,23 @@ test('normalizeTemplateLang מתקן קוד שפה שהוקלד ידנית (Meta
 test('metaSendRequest שולח קוד שפה מנורמל גם כשנשמר "He"', () => {
   const r = metaSendRequest({ metaPhoneId: '1', metaToken: 't', metaTemplate: 'lead_received', metaTemplateLang: 'He' }, '972500000000', 'x', 'דנה');
   assert.equal((r.body as any).template.language.code, 'he');
+});
+
+test('templateBodyParams סופר משתנים שונים בגוף התבנית', () => {
+  assert.equal(templateBodyParams([{ type: 'BODY', text: 'שלום {{1}}, קיבלנו' }]), 1);
+  assert.equal(templateBodyParams([{ type: 'BODY', text: 'שלום' }]), 0);
+  assert.equal(templateBodyParams([{ type: 'HEADER', text: '{{1}}' }, { type: 'BODY', text: '{{1}} {{2}}' }]), 2);
+});
+
+test('diagnoseTemplate מזהה שפה שגויה, חשבון אחר, סטטוס ומספר משתנים', () => {
+  const t = (name: string, language: string, status = 'APPROVED', bodyParams = 1) => ({ name, language, status, bodyParams });
+  const own = (templates: any[]) => ({ id: 'w1', hasPhone: true, templates });
+  assert.ok(diagnoseTemplate([own([t('lead_received', 'he')])], 'lead_received', 'He').ok);
+  const lang = diagnoseTemplate([own([t('lead_received', 'en_US')])], 'lead_received', 'he');
+  assert.ok(!lang.ok && lang.message.includes('en_US'));
+  const other = diagnoseTemplate([own([]), { id: 'w2', hasPhone: false, templates: [t('lead_received', 'he')] }], 'lead_received', 'he');
+  assert.ok(!other.ok && other.message.includes('חשבון WhatsApp Business אחר'));
+  assert.ok(!diagnoseTemplate([own([t('lead_received', 'he', 'PENDING')])], 'lead_received', 'he').ok);
+  assert.ok(!diagnoseTemplate([own([t('lead_received', 'he', 'APPROVED', 0)])], 'lead_received', 'he').ok);
+  assert.ok(diagnoseTemplate([own([t('Lead_Received', 'he')])], 'lead_received', 'he').message.includes('Lead_Received'));
 });
