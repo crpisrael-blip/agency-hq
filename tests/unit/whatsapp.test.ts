@@ -5,7 +5,7 @@ import {
   normalizeILPhone, renderWelcome, DEFAULT_WELCOME_TEXT, isWhatsAppReady,
   greenSendRequest, metaSendRequest, describeWelcomeResult,
 } from '../../src/api/whatsapp';
-import { phoneFromNote, sanitizeQuickReplies, DEFAULT_QUICK_REPLIES } from '../../src/api/leads';
+import { phoneFromNote, sanitizeQuickReplies, DEFAULT_QUICK_REPLIES, leadBookingInfo } from '../../src/api/leads';
 
 test('normalizeILPhone מנרמל מספרים ישראליים לפורמט בינלאומי בלי +', () => {
   assert.equal(normalizeILPhone('054-221-4726'), '972542214726');
@@ -137,4 +137,15 @@ test('sanitizeQuickReplies מסנן תבניות ריקות ומגביל אור�
   assert.ok(out[0].id);
   assert.equal(sanitizeQuickReplies(Array.from({ length: 50 }, () => ({ title: 'a', text: 'b' }))).length, 30);
   assert.ok(DEFAULT_QUICK_REPLIES.every((q) => q.text.includes('{name}')));
+});
+
+test('leadBookingInfo מכין תאריך, שעה ואופן מפגש לתבנית אישור הפגישה', () => {
+  // 2026-10-06 07:30Z = 10:30 שעון ישראל (IDT)
+  const b = leadBookingInfo({ startAt: Date.parse('2026-10-06T07:30:00Z'), durationMin: 30, meetingType: 'phone', status: 'booked' });
+  assert.equal(b.time, '10:30');
+  assert.ok(b.date.includes('אוקטובר') && b.date.includes('6'));
+  assert.ok(b.meeting.includes('טלפון'));
+  const z = leadBookingInfo({ startAt: Date.parse('2026-10-06T07:30:00Z'), durationMin: 30, meetingType: 'zoom', meetingLink: 'https://zoom.us/j/1', status: 'booked' });
+  assert.ok(z.meeting.includes('https://zoom.us/j/1'));
+  assert.ok(DEFAULT_QUICK_REPLIES.some((q) => q.id === 'booking' && q.text.includes('{date}') && q.text.includes('{time}')));
 });
