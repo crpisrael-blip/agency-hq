@@ -143,6 +143,18 @@ export function greenSendRequest(cfg: Pick<WhatsAppConfig, 'greenInstance' | 'gr
   };
 }
 
+/**
+ * קוד שפה של תבנית Meta — רגיש לאותיות: 'he', 'en_US'. מנרמל קלט ידני ('He', ' HE ',
+ * 'en-us') לצורה ש-Meta מצפה לה; אחרת Meta מחזירה 132001 (Template name does not exist
+ * in the translation) גם כשהתבנית קיימת ומאושרת.
+ */
+export function normalizeTemplateLang(lang: string | null | undefined): string {
+  const raw = String(lang ?? '').trim().replace(/-/g, '_');
+  if (!raw) return 'he';
+  const [base, region] = raw.split('_');
+  return region ? `${base.toLowerCase()}_${region.toUpperCase()}` : base.toLowerCase();
+}
+
 /** Meta Cloud API — תבנית מאושרת (הודעה יזומה) או טקסט (רק בתוך חלון 24 שעות) */
 export function metaSendRequest(
   cfg: Pick<WhatsAppConfig, 'metaPhoneId' | 'metaToken' | 'metaTemplate' | 'metaTemplateLang'>,
@@ -159,7 +171,7 @@ export function metaSendRequest(
         type: 'template',
         template: {
           name: cfg.metaTemplate,
-          language: { code: cfg.metaTemplateLang || 'he' },
+          language: { code: normalizeTemplateLang(cfg.metaTemplateLang) },
           components: [{ type: 'body', parameters: [{ type: 'text', text: first }] }],
         },
       }
@@ -186,7 +198,7 @@ export function metaTemplateRequest(
       messaging_product: 'whatsapp',
       to: phone,
       type: 'template',
-      template: { name: templateName, language: { code: lang || 'he' }, components },
+      template: { name: templateName, language: { code: normalizeTemplateLang(lang) }, components },
     },
   };
 }
