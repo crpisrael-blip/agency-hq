@@ -193,6 +193,45 @@ leadsApp.patch('/:id', async (c) => {
   return c.json({ ok: true });
 });
 
+// --- הודעות מהירות (תבניות ווטסאפ לשליחה ידנית מכרטיס הליד) ---
+// נשמרות ב-settings כ-JSON. {name} מוחלף בשם הפרטי של הליד בזמן השליחה.
+const QUICK_KEY = 'lead_quick_replies';
+export interface QuickReply { id: string; title: string; text: string }
+export const DEFAULT_QUICK_REPLIES: QuickReply[] = [
+  { id: 'thanks', title: 'תודה על הפנייה', text: 'היי {name} 👋\nתודה שפנית ל-ORT-TECH, קיבלתי את הפרטים ואחזור אליך בהקדם.\n\nבינתיים, אשמח לכמה מילים: מה העסק עושה, ומה היית רוצה לשפר?' },
+  { id: 'noanswer', title: 'לא הצלחתי להשיג', text: 'היי {name}, ניסיתי להתקשר אליך בקשר לפנייה ל-ORT-TECH. מתי נוח לך שנדבר?' },
+  { id: 'meeting', title: 'קביעת שיחת היכרות', text: 'היי {name}, אשמח לקבוע שיחת היכרות קצרה של 15 דקות. מה נוח לך — בוקר או אחר הצהריים?' },
+  { id: 'proposal', title: 'מעקב אחרי הצעה', text: 'היי {name}, רציתי לבדוק אם הספקת לעבור על ההצעה ששלחתי. יש שאלות שאוכל לעזור בהן?' },
+  { id: 'nudge', title: 'תזכורת עדינה', text: 'היי {name}, רק מזכיר שאני כאן אם זה עדיין רלוונטי 🙂' },
+];
+
+/** מנקה ומגביל רשימת תבניות שהגיעה מהלקוח */
+export function sanitizeQuickReplies(input: unknown): QuickReply[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((x: any, i) => ({
+      id: String(x?.id || `q${Date.now().toString(36)}${i}`).slice(0, 40),
+      title: String(x?.title ?? '').trim().slice(0, 60),
+      text: String(x?.text ?? '').trim().slice(0, 1000),
+    }))
+    .filter((x) => x.title && x.text)
+    .slice(0, 30);
+}
+
+leadsApp.get('/quick-replies', async (c) => {
+  const row = (await db(c).select().from(settings).where(eq(settings.key, QUICK_KEY)).limit(1))[0];
+  if (!row) return c.json(DEFAULT_QUICK_REPLIES);
+  try { return c.json(sanitizeQuickReplies(JSON.parse(row.value))); } catch { return c.json(DEFAULT_QUICK_REPLIES); }
+});
+
+leadsApp.put('/quick-replies', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const list = sanitizeQuickReplies(body);
+  const v = JSON.stringify(list);
+  await db(c).insert(settings).values({ key: QUICK_KEY, value: v }).onConflictDoUpdate({ target: settings.key, set: { value: v } });
+  return c.json(list);
+});
+
 // --- יומן פעילות (תיעוד CRM) ---
 const ACTIVITY_KINDS = ['call', 'whatsapp', 'meeting', 'note', 'status'];
 

@@ -5,7 +5,7 @@ import {
   normalizeILPhone, renderWelcome, DEFAULT_WELCOME_TEXT, isWhatsAppReady,
   greenSendRequest, metaSendRequest, describeWelcomeResult,
 } from '../../src/api/whatsapp';
-import { phoneFromNote } from '../../src/api/leads';
+import { phoneFromNote, sanitizeQuickReplies, DEFAULT_QUICK_REPLIES } from '../../src/api/leads';
 
 test('normalizeILPhone מנרמל מספרים ישראליים לפורמט בינלאומי בלי +', () => {
   assert.equal(normalizeILPhone('054-221-4726'), '972542214726');
@@ -127,4 +127,14 @@ test('diagnoseTemplate: מספר לא שייך לחשבון שנבדק / אין 
   const denied = diagnoseTemplate([{ id: 'w9', hasPhone: false, templates: [], error: 'Missing Permission' }], 'lead_received', 'he');
   assert.ok(!denied.ok && denied.message.includes('whatsapp_business_management'));
   assert.ok(diagnoseTemplate([], 'lead_received', 'he').message.includes('WhatsApp Business Account ID'));
+});
+
+test('sanitizeQuickReplies מסנן תבניות ריקות ומגביל אורך', () => {
+  assert.deepEqual(sanitizeQuickReplies('x'), []);
+  const out = sanitizeQuickReplies([{ title: ' שלום ', text: 'היי {name}' }, { title: '', text: 'x' }, { title: 'y', text: '   ' }]);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].title, 'שלום');
+  assert.ok(out[0].id);
+  assert.equal(sanitizeQuickReplies(Array.from({ length: 50 }, () => ({ title: 'a', text: 'b' }))).length, 30);
+  assert.ok(DEFAULT_QUICK_REPLIES.every((q) => q.text.includes('{name}')));
 });
