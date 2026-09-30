@@ -119,3 +119,12 @@ test('diagnoseTemplate מזהה שפה שגויה, חשבון אחר, סטטוס
   assert.ok(!diagnoseTemplate([own([t('lead_received', 'he', 'APPROVED', 0)])], 'lead_received', 'he').ok);
   assert.ok(diagnoseTemplate([own([t('Lead_Received', 'he')])], 'lead_received', 'he').message.includes('Lead_Received'));
 });
+
+test('diagnoseTemplate: מספר לא שייך לחשבון שנבדק / אין גישה לחשבון', () => {
+  const tpl = [{ name: 'lead_received', language: 'he', status: 'APPROVED', bodyParams: 1 }];
+  const notOwn = diagnoseTemplate([{ id: 'w9', hasPhone: false, templates: tpl }], 'lead_received', 'he');
+  assert.ok(!notOwn.ok && notOwn.message.includes('בחשבונות שונים'));
+  const denied = diagnoseTemplate([{ id: 'w9', hasPhone: false, templates: [], error: 'Missing Permission' }], 'lead_received', 'he');
+  assert.ok(!denied.ok && denied.message.includes('whatsapp_business_management'));
+  assert.ok(diagnoseTemplate([], 'lead_received', 'he').message.includes('WhatsApp Business Account ID'));
+});
