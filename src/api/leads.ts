@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { Context } from 'hono';
 import { desc, eq, inArray } from 'drizzle-orm';
-import { leads, systems, clients, settings, leadActivities } from '../db/schema';
+import { leads, systems, clients, settings, leadActivities, bookings } from '../db/schema';
+import { formatIL, meetingDetails } from './bookings-core';
 import { Env, db, uid, now, todayIL, notifyTelegram } from './util';
 import { loadWhatsAppConfig, isWhatsAppReady, normalizeILPhone, sendLeadWelcome, describeWelcomeResult } from './whatsapp';
 
@@ -101,8 +102,32 @@ leadsApp.get('/', async (c) => {
   const clientId = c.req.query('clientId');
   if (systemId) rows = rows.filter((r) => r.systemId === systemId);
   if (clientId) rows = rows.filter((r) => r.clientId === clientId);
-  return c.json(rows);
+  // פגישה שהליד קבע (מיומן הפגישות) — להצגה בכרטיס ולתבנית "אישור פגישה"
+  const ids = rows.map((r) => r.id);
+  const bks = ids.length
+    ? await d.select().from(bookings).where(inArray(bookings.leadId, ids)).all().catch(() => [] as any[])
+    : [];
+  const byLead = new Map<string, any>();
+  for (const b of bks) {
+    if (!b.leadId || b.status === 'cancelled') continue;
+    const cur = byLead.get(b.leadId);
+    if (!cur || b.startAt > cur.startAt) byLead.set(b.leadId, b);
+  }
+  return c.json(rows.map((r) => {
+    const b = byLead.get(r.id);
+    return b ? { ...r, booking: leadBookingInfo(b) } : r;
+  }));
 });
+
+/** פרטי פגישה מוכנים לתצוגה ולמילוי תבנית ({date} {time} {meeting}) */
+export function leadBookingInfo(b: { startAt: number; durationMin: number; meetingType: string; meetingLink?: string | null; status: string; name?: string | null }) {
+  const f = formatIL(b.startAt);
+  return {
+    startAt: b.startAt, status: b.status, meetingType: b.meetingType, meetingLink: b.meetingLink || null,
+    date: `${f.weekday}, ${f.date}`, time: f.time, datetime: f.datetime,
+    meeting: meetingDetails({ name: b.name ?? null, startAt: b.startAt, durationMin: b.durationMin, meetingType: b.meetingType, meetingLink: b.meetingLink }),
+  };
+}
 
 /**
  * יצירת ליד ידני — פנייה שהגיעה מחוץ לאתר (וואטסאפ / טלפון / הפניה).
@@ -200,6 +225,7 @@ export interface QuickReply { id: string; title: string; text: string }
 export const DEFAULT_QUICK_REPLIES: QuickReply[] = [
   { id: 'thanks', title: 'תודה על הפנייה', text: 'היי {name} 👋\nתודה שפנית ל-ORT-TECH, קיבלתי את הפרטים ואחזור אליך בהקדם.\n\nבינתיים, אשמח לכמה מילים: מה העסק עושה, ומה היית רוצה לשפר?' },
   { id: 'noanswer', title: 'לא הצלחתי להשיג', text: 'היי {name}, ניסיתי להתקשר אליך בקשר לפנייה ל-ORT-TECH. מתי נוח לך שנדבר?' },
+  { id: 'booking', title: 'אישור פגישה שנקבעה', text: 'היי {name}, תודה שקבעת איתי שיחת היכרות 🙏\nמאשר את המועד: {date} בשעה {time}.\n{meeting}\n\nאם משהו משתנה, אפשר לכתוב לי כאן. נדבר!' },
   { id: 'meeting', title: 'קביעת שיחת היכרות', text: 'היי {name}, אשמח לקבוע שיחת היכרות קצרה של 15 דקות. מה נוח לך — בוקר או אחר הצהריים?' },
   { id: 'proposal', title: 'מעקב אחרי הצעה', text: 'היי {name}, רציתי לבדוק אם הספקת לעבור על ההצעה ששלחתי. יש שאלות שאוכל לעזור בהן?' },
   { id: 'nudge', title: 'תזכורת עדינה', text: 'היי {name}, רק מזכיר שאני כאן אם זה עדיין רלוונטי 🙂' },

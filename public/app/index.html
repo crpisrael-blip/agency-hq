@@ -1340,7 +1340,7 @@ function leadCard(l){
   return '<div class="card" style="margin-bottom:10px">'+
     '<div class="spread" style="align-items:flex-start">'+
       '<div><b style="font-size:1.05rem">'+esc(l.name||'ליד ללא שם')+'</b> '+pill(LEAD_STATUS,st)+' '+fuBadge(l)+' '+waBadge(l)+
-        '<div class="muted" style="font-size:.83rem;margin-top:2px">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+' · '+timeAgo(l.createdAt)+'</div></div>'+
+        '<div class="muted" style="font-size:.83rem;margin-top:2px">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+' · '+timeAgo(l.createdAt)+'</div>'+leadBookingLine(l)+'</div>'+
       '<div class="row" style="gap:6px;flex:none">'+
         (ph?'<a class="btn teal small" href="tel:'+ph+'" title="חייג">📞</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank" title="וואטסאפ">💬</a><button class="btn teal small" onclick="openQuickMsg(\''+l.id+'\')" title="הודעה מהירה">⚡</button>':'')+
       '</div>'+
@@ -1366,6 +1366,7 @@ function openLead(id){
     '<div class="spread"><h3 style="margin:0">'+esc(l.name||'ליד')+'</h3><span>'+pill(LEAD_STATUS,l.status||'new')+' '+fuBadge(l)+'</span></div>'+
     '<div class="muted" style="margin:6px 0 14px;font-size:.88rem">'+esc(LEAD_SOURCES[l.source]||l.source||'אתר')+' · '+esc(LEADS_SYS[l.systemId]||'')+'<br>נכנס: '+new Date(l.createdAt).toLocaleString('he-IL')+(l.handledAt?' · טופל: '+new Date(l.handledAt).toLocaleString('he-IL'):'')+'</div>'+
     (ph?'<div class="row" style="gap:8px;margin-bottom:14px"><a class="btn teal small" href="tel:'+ph+'">📞 '+ph+'</a><a class="btn teal small" href="https://wa.me/'+waNum(ph)+'" target="_blank">💬 וואטסאפ</a></div>':'')+
+    (l.booking?'<div style="margin:-6px 0 12px">'+leadBookingLine(l)+'</div>':'')+
     (ph?'<div class="card" style="margin:0 0 14px" id="qmBox"><div class="muted hint">טוען הודעות מהירות…</div></div>':'')+
     (leadIsMine(l)?'<div class="row" style="gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap"><span class="muted" style="font-size:.85rem">הודעת אישור אוטומטית:</span>'+
       (l.whatsappStatus==='sent'?'<span class="pill p-green">נשלחה '+(l.whatsappSentAt?new Date(l.whatsappSentAt).toLocaleString('he-IL',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):'')+'</span>'
@@ -1400,18 +1401,31 @@ function openLead(id){
 // ---------- ⚡ הודעות מהירות: בוחרים תבנית, מתקנים ניסוח, נפתח בווטסאפ שלך ----------
 let QM_LIST=null, QM_LEAD=null;
 async function qmLoad(force){ if(!QM_LIST||force){ try{ QM_LIST=await apiGet('/leads/quick-replies'); }catch(e){ QM_LIST=QM_LIST||[]; } } return QM_LIST; }
-function qmFill(text,l){ const first=String((l&&l.name)||'').trim().split(/\s+/)[0]||''; return String(text||'').replace(/\{name\}/g,first).replace(/היי\s+,/g,'היי,').replace(/[ \t]+\n/g,'\n'); }
+const QM_BOOKING_RE=/\{(date|time|meeting)\}/;
+function qmFill(text,l){
+  const first=String((l&&l.name)||'').trim().split(/\s+/)[0]||'';
+  const bk=(l&&l.booking)||null;
+  // בלי פגישה — משאירים "___" כדי שיהיה ברור מה להשלים ידנית
+  const v={date:bk?bk.date:'___',time:bk?bk.time:'___',meeting:bk?bk.meeting:''};
+  return String(text||'').replace(/\{name\}/g,first).replace(/\{(date|time|meeting)\}/g,(m,k)=>v[k])
+    .replace(/היי\s+,/g,'היי,').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n');
+}
+function leadBookingLine(l){
+  const b=l&&l.booking; if(!b)return '';
+  return '<div style="margin-top:6px;font-size:.86rem"><span class="pill '+(b.startAt>Date.now()?'p-blue':'p-gray')+'">🗓️ '+esc(b.datetime)+' · '+(b.meetingType==='zoom'?'זום':'טלפון')+'</span></div>';
+}
 async function renderQuickMsg(l){
   QM_LEAD=l; const box=$('qmBox'); if(!box)return;
   const list=await qmLoad();
   box.innerHTML='<div class="spread" style="margin-bottom:8px"><b style="font-size:.95rem">⚡ הודעות מהירות</b><button class="btn ghost small" onclick="qmManage()">✏️ ערוך תבניות</button></div>'+
-    (list.length?'<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">'+list.map((q,i)=>'<button class="btn ghost small" onclick="qmPick('+i+')">'+esc(q.title)+'</button>').join('')+'</div>':'<div class="muted hint">אין תבניות — לחץ "ערוך תבניות" כדי להוסיף.</div>')+
-    '<textarea id="qmText" rows="5" placeholder="בחר תבנית או כתוב הודעה חופשית…" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.93rem;line-height:1.5;background:#fff"></textarea>'+
+    (list.length?'<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">'+list.map((q,i)=>{ const isBk=QM_BOOKING_RE.test(q.text); return '<button class="btn '+(isBk&&l.booking?'teal':'ghost')+' small" onclick="qmPick('+i+')"'+(isBk?' title="'+(l.booking?'ימולא מועד הפגישה: '+esc(l.booking.datetime):'לליד הזה אין פגישה ביומן — תשלים את המועד ידנית')+'"':'')+'>'+(isBk?'🗓️ ':'')+esc(q.title)+'</button>'; }).join('')+'</div>':'<div class="muted hint">אין תבניות — לחץ "ערוך תבניות" כדי להוסיף.</div>')+
+    '<textarea id="qmText" rows="7" placeholder="בחר תבנית או כתוב הודעה חופשית…" style="width:100%;padding:9px 11px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.93rem;line-height:1.5;background:#fff"></textarea>'+
     '<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn teal" onclick="qmSend()">💬 שלח בווטסאפ</button><button class="btn ghost small" onclick="qmSaveAsTemplate()" title="שמירת הנוסח שבתיבה כתבנית חדשה">➕ שמור כתבנית</button></div>'+
-    '<div class="muted" style="font-size:.78rem;margin-top:4px">נפתח בווטסאפ שלך עם הנוסח מוכן — אפשר לתקן לפני או אחרי. <code>{name}</code> בתבנית = השם הפרטי של הליד.</div>';
+    '<div class="muted" style="font-size:.78rem;margin-top:4px">נפתח בווטסאפ שלך עם הנוסח מוכן — אפשר לתקן לפני או אחרי. בתבנית: <code>{name}</code> שם פרטי · <code>{date}</code> <code>{time}</code> <code>{meeting}</code> פרטי הפגישה שהליד קבע.</div>';
   window.QM_PICKED='';
 }
-function qmPick(i){ const q=(QM_LIST||[])[i]; if(!q)return; $('qmText').value=qmFill(q.text,QM_LEAD); window.QM_PICKED=q.title; $('qmText').focus(); }
+function qmPick(i){ const q=(QM_LIST||[])[i]; if(!q)return; $('qmText').value=qmFill(q.text,QM_LEAD); window.QM_PICKED=q.title; $('qmText').focus();
+  if(QM_BOOKING_RE.test(q.text)&&!(QM_LEAD&&QM_LEAD.booking)) toast('לליד הזה אין פגישה ביומן — השלם את המועד במקום ___','bad'); }
 function qmSend(){
   const l=QM_LEAD; if(!l)return;
   const text=(($('qmText')||{}).value||'').trim();
@@ -1445,7 +1459,7 @@ async function qmManage(){
 function qmManageRender(){
   const list=window.QM_EDIT||[];
   const inp='width:100%;padding:8px 10px;border:1.5px solid #d9d2c4;border-radius:9px;font-family:inherit;font-size:.92rem;background:#fff';
-  openModal('<h3 style="margin:0 0 4px">✏️ תבניות הודעות מהירות</h3><div class="muted" style="font-size:.85rem;margin-bottom:12px"><code>{name}</code> יוחלף בשם הפרטי של הליד.</div>'+
+  openModal('<h3 style="margin:0 0 4px">✏️ תבניות הודעות מהירות</h3><div class="muted" style="font-size:.85rem;margin-bottom:12px"><code>{name}</code> = שם פרטי · <code>{date}</code> = יום ותאריך הפגישה · <code>{time}</code> = שעה · <code>{meeting}</code> = טלפון/זום (כולל קישור)</div>'+
     list.map((q,i)=>'<div class="card" style="margin:0 0 10px">'+
       '<div class="row" style="gap:6px;margin-bottom:6px"><input value="'+esc(q.title)+'" oninput="QM_EDIT['+i+'].title=this.value" placeholder="שם התבנית" style="'+inp+';font-weight:700">'+
       '<button class="btn ghost small" '+(i===0?'disabled':'')+' onclick="qmMove('+i+',-1)" title="למעלה">↑</button><button class="btn danger small" onclick="qmDel('+i+')" title="מחיקה">🗑</button></div>'+
