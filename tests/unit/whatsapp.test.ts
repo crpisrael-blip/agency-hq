@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  normalizeTemplateLang,
   normalizeILPhone, renderWelcome, DEFAULT_WELCOME_TEXT, isWhatsAppReady,
   greenSendRequest, metaSendRequest, describeWelcomeResult,
 } from '../../src/api/whatsapp';
@@ -84,4 +85,18 @@ test('describeWelcomeResult מתאר תוצאה בעברית להתראת הטל
   assert.equal(describeWelcomeResult({ status: 'sent', detail: 'id' }), '💬 ווטסאפ אוטומטי: נשלח ✓');
   assert.ok(describeWelcomeResult({ status: 'failed', detail: 'green 401' }).includes('green 401'));
   assert.ok(describeWelcomeResult({ status: 'skipped', detail: 'bad_phone' }).includes('טלפון לא תקין'));
+});
+
+test('normalizeTemplateLang מתקן קוד שפה שהוקלד ידנית (Meta רגיש לאותיות)', () => {
+  assert.equal(normalizeTemplateLang('He'), 'he');
+  assert.equal(normalizeTemplateLang(' HE '), 'he');
+  assert.equal(normalizeTemplateLang('en-us'), 'en_US');
+  assert.equal(normalizeTemplateLang('en_US'), 'en_US');
+  assert.equal(normalizeTemplateLang(''), 'he');
+  assert.equal(normalizeTemplateLang(undefined), 'he');
+});
+
+test('metaSendRequest שולח קוד שפה מנורמל גם כשנשמר "He"', () => {
+  const r = metaSendRequest({ metaPhoneId: '1', metaToken: 't', metaTemplate: 'lead_received', metaTemplateLang: 'He' }, '972500000000', 'x', 'דנה');
+  assert.equal((r.body as any).template.language.code, 'he');
 });
