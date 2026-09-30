@@ -331,7 +331,10 @@ export async function sendLeadWelcome(
 /** תיאור קריא לעברית של תוצאת השליחה (להתראת הטלגרם למנהל) */
 export function describeWelcomeResult(r: { status: string; detail: string }): string {
   if (r.status === 'sent') return '💬 ווטסאפ אוטומטי: נשלח ✓';
-  if (r.status === 'failed') return `💬 ווטסאפ אוטומטי: נכשל (${r.detail})`;
+  if (r.status === 'failed') {
+    const hint = /#13200[01]/.test(r.detail) ? '\n↳ בהגדרות ← ווטסאפ: "🔍 בדוק תבנית ב-Meta" יראה מה לא תואם' : '';
+    return `💬 ווטסאפ אוטומטי: נכשל (${r.detail})${hint}`;
+  }
   const why: Record<string, string> = {
     disabled: 'כבוי בהגדרות',
     bad_phone: 'טלפון לא תקין',
@@ -340,6 +343,63 @@ export function describeWelcomeResult(r: { status: string; detail: string }): st
     unknown_provider: 'ספק לא מוכר',
   };
   return `💬 ווטסאפ אוטומטי: לא נשלח (${why[r.detail] || r.detail})`;
+}
+
+/* ------------------------------------------------------------------------
+ * אבחון תבנית Meta: משווה את השם/שפה שהוגדרו מול התבניות שקיימות בפועל בחשבון
+ * ה-WhatsApp Business שאליו שייך מספר השליחה. עונה על שגיאות 132001/132000.
+ * ---------------------------------------------------------------------- */
+export interface MetaTemplateInfo { name: string; language: string; status: string; bodyParams: number }
+export interface MetaWabaInfo { id: string; hasPhone: boolean; templates: MetaTemplateInfo[] }
+
+/** מספר המשתנים {{n}} בגוף התבנית */
+export function templateBodyParams(components: any[] | undefined): number {
+  const body = (components || []).find((x: any) => String(x?.type).toUpperCase() === 'BODY');
+  const m = String(body?.text || '').match(/\{\{\s*\d+\s*\}\}/g);
+  return m ? new Set(m.map((x) => x.replace(/\s/g, ''))).size : 0;
+}
+
+/** אבחנה בעברית: האם התבנית שהוגדרה תעבוד עם מספר השליחה, ואם לא — למה */
+export function diagnoseTemplate(
+  wabas: MetaWabaInfo[],
+  name: string,
+  lang: string,
+): { ok: boolean; message: string } {
+  const want = String(name || '').trim();
+  const wantLang = normalizeTemplateLang(lang);
+  if (!want) return { ok: false, message: 'לא הוגדר שם תבנית.' };
+  if (!wabas.length) return { ok: false, message: 'לא נמצא חשבון WhatsApp Business שהטוקן מורשה אליו — צריך טוקן עם הרשאת whatsapp_business_management.' };
+  const own = wabas.filter((w) => w.hasPhone);
+  const pool = own.length ? own : wabas;
+  const same = pool.flatMap((w) => w.templates.filter((t) => t.name === want));
+  if (!same.length) {
+    const elsewhere = wabas.filter((w) => !w.hasPhone).some((w) => w.templates.some((t) => t.name === want));
+    if (own.length && elsewhere) {
+      return { ok: false, message: `התבנית "${want}" קיימת, אבל בחשבון WhatsApp Business אחר — לא בחשבון שאליו שייך מספר השליחה. צריך ליצור אותה בחשבון של המספר.` };
+    }
+    const close = pool.flatMap((w) => w.templates).find((t) => t.name.toLowerCase() === want.toLowerCase());
+    if (close) return { ok: false, message: `אין תבנית בשם "${want}" — יש "${close.name}". השמות רגישים לאותיות; עדכן את שם התבנית בהגדרות.` };
+    return { ok: false, message: `אין בחשבון תבנית בשם "${want}".` };
+  }
+  const exact = same.find((t) => t.language === wantLang);
+  if (!exact) {
+    const langs = [...new Set(same.map((t) => t.language))].join(', ');
+    return { ok: false, message: `התבנית "${want}" קיימת רק בשפה: ${langs} — ולא ב-"${wantLang}". עדכן את "שפת התבנית" בהגדרות ל-${same[0].language}.` };
+  }
+  if (exact.status !== 'APPROVED') {
+    return { ok: false, message: `התבנית "${want}" (${wantLang}) נמצאת בסטטוס ${exact.status} — אפשר לשלוח רק תבנית בסטטוס APPROVED.` };
+  }
+  if (exact.bodyParams !== 1) {
+    return { ok: false, message: `בתבנית "${want}" יש ${exact.bodyParams} משתנים בגוף ההודעה, והמערכת שולחת משתנה אחד ({{1}} = השם הפרטי). צריך תבנית עם משתנה אחד בדיוק.` };
+  }
+  return { ok: true, message: `התבנית "${want}" (${wantLang}) מאושרת ותואמת ✓` };
+}
+
+async function graphGet(path: string, token: string) {
+  const r = await fetch(`${META_GRAPH_URL}/${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  const data: any = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data?.error?.message || `http_${r.status}`);
+  return data;
 }
 
 /* ------------------------------------------------------------------------
@@ -420,6 +480,38 @@ whatsappAdminApp.get('/status', async (c) => {
     });
   } catch (e) {
     return c.json({ ok: false, connected: false, provider: cfg.provider || 'green', detail: short((e as Error)?.message || e) });
+  }
+});
+
+/** אבחון תבנית: התבניות בפועל בחשבון המספר מול מה שהוגדר (Meta בלבד) */
+whatsappAdminApp.get('/templates', async (c) => {
+  const cfg = await loadWhatsAppConfig(c);
+  if (cfg.provider !== 'meta' || !cfg.metaToken || !cfg.metaPhoneId) {
+    return c.json({ ok: false, error: 'meta_not_configured' }, 400);
+  }
+  try {
+    // חשבונות ה-WABA שהטוקן מורשה אליהם (מתוך ההרשאות הגרנולריות של הטוקן)
+    const dbg = await graphGet(`debug_token?input_token=${encodeURIComponent(cfg.metaToken)}`, cfg.metaToken);
+    const ids = new Set<string>();
+    for (const sc of dbg?.data?.granular_scopes || []) {
+      if (String(sc.scope).startsWith('whatsapp_business')) for (const id of sc.target_ids || []) ids.add(String(id));
+    }
+    const wabas: MetaWabaInfo[] = [];
+    for (const id of ids) {
+      const phones = await graphGet(`${id}/phone_numbers?fields=id,display_phone_number&limit=100`, cfg.metaToken).catch(() => ({ data: [] }));
+      const tpl = await graphGet(`${id}/message_templates?fields=name,language,status,components&limit=200`, cfg.metaToken).catch(() => ({ data: [] }));
+      wabas.push({
+        id,
+        hasPhone: (phones.data || []).some((p: any) => String(p.id) === String(cfg.metaPhoneId)),
+        templates: (tpl.data || []).map((t: any) => ({
+          name: String(t.name), language: String(t.language), status: String(t.status), bodyParams: templateBodyParams(t.components),
+        })),
+      });
+    }
+    const diagnosis = diagnoseTemplate(wabas, cfg.metaTemplate, cfg.metaTemplateLang);
+    return c.json({ ok: true, configured: { name: cfg.metaTemplate, lang: normalizeTemplateLang(cfg.metaTemplateLang) }, diagnosis, wabas });
+  } catch (e) {
+    return c.json({ ok: false, error: short((e as Error)?.message || e) }, 502);
   }
 });
 
