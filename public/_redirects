@@ -5,3 +5,6 @@
 # אין כלל rewrite ל-/app.html — כדי למנוע לולאת redirect עם ה-pretty-URL של Pages.
 # קישור ישן ל-/app.html מפנה ל-/app.
 /app.html  /app    301
+
+# טופס בקישור — הלקוח ממלא מהלך מתודולוגיה (/f/<token> → public/form.html)
+/f/*       /form      200

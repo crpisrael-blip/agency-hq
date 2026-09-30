@@ -26,6 +26,7 @@ import { activitiesApp } from '../../src/api/activities';
 import { callsApp } from '../../src/api/calls';
 import { todayApp } from '../../src/api/today';
 import { telegramWebhook, telegramAdminApp } from '../../src/api/run-fill';
+import { formPublicApp } from '../../src/api/run-form';
 import { whatsappAdminApp } from '../../src/api/whatsapp';
 import { salesApp } from '../../src/api/sales';
 import { businessSettingsApp } from '../../src/api/business-settings';
@@ -50,6 +51,7 @@ app.get('/health', async (c) => {
 app.route('/auth', auth); // כניסת מנהל
 app.post('/hook/lead', registerLeadPublic); // webhook ציבורי: מערכות לקוח רושמות ליד
 app.post('/telegram/webhook', telegramWebhook); // webhook ציבורי: בוט מילוי עצמי של הלקוח
+app.route('/form', formPublicApp); // ציבורי: טופס בקישור — הלקוח ממלא מהלך מתודולוגיה (/f/<token>)
 app.route('/book', bookingPublicApp); // ציבורי: קביעת שיחה מהאתר (הגדרות, משבצות, קביעה)
 app.route('/meta', metaWebhookApp); // ציבורי: webhook של Meta — ווטסאפ נכנס + טפסי לידים בפייסבוק
 app.route('/site-analytics', siteAnalyticsPublic);

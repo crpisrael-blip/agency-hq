@@ -604,6 +604,19 @@ export const telegramFillSessions = sqliteTable('telegram_fill_sessions', {
   createdAt: integer('created_at').notNull(),
 });
 
+/** טופס בקישור (0038) — מילוי עצמי של מהלך דרך דף ווב. התשובות נשמרות במהלך עצמו. */
+export const runFormLinks = sqliteTable('run_form_links', {
+  id: text('id').primaryKey(),
+  runId: text('run_id').notNull().references(() => playbookRuns.id),
+  token: text('token').notNull(),
+  status: text('status').notNull().default('sent'), // sent|opened|in_progress|completed|cancelled
+  sentAt: integer('sent_at'),
+  openedAt: integer('opened_at'),
+  lastActivityAt: integer('last_activity_at'),
+  completedAt: integer('completed_at'),
+  createdAt: integer('created_at').notNull(),
+});
+
 // מעקב שימוש בסקילז לפי מערכת/פרויקט — מכמה מקורות (ECC, skills-il)
 export const skillUsage = sqliteTable('skill_usage', {
   id: text('id').primaryKey(),

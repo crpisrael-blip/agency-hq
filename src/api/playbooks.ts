@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { asc, desc, eq } from 'drizzle-orm';
-import { playbooks, playbookRuns, clients, systems, processKits, telegramFillSessions } from '../db/schema';
+import { playbooks, playbookRuns, clients, systems, processKits, telegramFillSessions, runFormLinks } from '../db/schema';
 import { Env, db, uid, now, pick, todayIL } from './util';
 import { STAGES, DEFAULT_PLAYBOOKS, DEFAULT_KITS } from './playbook-seed';
 import { calcProgress, createInvite, cancelInvite, runTelegramSummary, buildSummary } from './run-fill';
+import { buildFormSummary, runFormSummary, createFormLink, cancelFormLink } from './run-form';
 
 const STAGE_LABEL: Record<string, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.label]));
 
@@ -190,7 +191,10 @@ playbooksApp.patch('/:id', async (c) => {
 playbooksApp.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const runIds = (await db(c).select({ id: playbookRuns.id }).from(playbookRuns).where(eq(playbookRuns.playbookId, id)).all()).map((r) => r.id);
-  for (const rid of runIds) await db(c).delete(telegramFillSessions).where(eq(telegramFillSessions.runId, rid));
+  for (const rid of runIds) {
+    await db(c).delete(telegramFillSessions).where(eq(telegramFillSessions.runId, rid));
+    await db(c).delete(runFormLinks).where(eq(runFormLinks.runId, rid));
+  }
   await db(c).delete(playbookRuns).where(eq(playbookRuns.playbookId, id));
   await db(c).delete(playbooks).where(eq(playbooks.id, id));
   return c.json({ ok: true });
@@ -206,6 +210,8 @@ playbooksApp.get('/runs', async (c) => {
   // ברשימה מספיקים מצב/ספירה/אחוז; הקישור עצמו נטען במסך המהלך (buildSummary עם null).
   const tgRows = await d.select().from(telegramFillSessions).all();
   const tgByRun = new Map(tgRows.map((s) => [s.runId, s]));
+  const formRows = await d.select().from(runFormLinks).all().catch(() => [] as any[]);
+  const formByRun = new Map(formRows.map((s: any) => [s.runId, s]));
   const clientId = c.req.query('clientId');
   const filtered = clientId ? rows.filter((r) => r.clientId === clientId) : rows;
   return c.json(
@@ -214,6 +220,7 @@ playbooksApp.get('/runs', async (c) => {
       clientName: cls.find((cl) => cl.id === r.clientId)?.name || null,
       systemName: sys.find((s) => s.id === r.systemId)?.name || null,
       telegram: buildSummary(r, tgByRun.get(r.id) || null, null),
+      form: buildFormSummary(r, formByRun.get(r.id) || null),
     }))
   );
 });
@@ -226,7 +233,8 @@ async function loadRun(c: any, id: string) {
   const cl = r.clientId ? (await d.select().from(clients).where(eq(clients.id, r.clientId)).limit(1))[0] : null;
   const sy = r.systemId ? (await d.select().from(systems).where(eq(systems.id, r.systemId)).limit(1))[0] : null;
   const telegram = await runTelegramSummary(c, r).catch(() => null);
-  return { ...r, clientName: cl?.name || null, systemName: sy?.name || null, telegram };
+  const form = await runFormSummary(c, r).catch(() => null);
+  return { ...r, clientName: cl?.name || null, systemName: sy?.name || null, telegram, form };
 }
 
 playbooksApp.get('/runs/:id', async (c) => {
@@ -296,6 +304,20 @@ playbooksApp.post('/runs/:id/telegram/invite', async (c) => {
   return c.json({ ok: true, telegram: res.summary });
 });
 
+/** טופס בקישור: יצירת/איפוס קישור ציבורי למילוי המהלך בדף ווב (/f/<token>) */
+playbooksApp.post('/runs/:id/form-link', async (c) => {
+  const run = await loadRun(c, c.req.param('id'));
+  if (!run) return c.json({ error: 'not_found' }, 404);
+  const form = await createFormLink(c, run);
+  return c.json({ ok: true, form });
+});
+
+/** ביטול הטופס בקישור (הקישור מפסיק לעבוד). התשובות שכבר נכנסו נשמרות. */
+playbooksApp.post('/runs/:id/form-link/cancel', async (c) => {
+  const done = await cancelFormLink(c, c.req.param('id'));
+  return c.json({ ok: done });
+});
+
 /** ביטול הזמנת המילוי בטלגרם (הקישור מפסיק לעבוד). התשובות שכבר נכנסו נשמרות. */
 playbooksApp.post('/runs/:id/telegram/cancel', async (c) => {
   const done = await cancelInvite(c, c.req.param('id'));
@@ -343,6 +365,7 @@ playbooksApp.patch('/runs/:id', async (c) => {
 playbooksApp.delete('/runs/:id', async (c) => {
   const id = c.req.param('id');
   await db(c).delete(telegramFillSessions).where(eq(telegramFillSessions.runId, id));
+  await db(c).delete(runFormLinks).where(eq(runFormLinks.runId, id));
   await db(c).delete(playbookRuns).where(eq(playbookRuns.id, id));
   return c.json({ ok: true });
 });
