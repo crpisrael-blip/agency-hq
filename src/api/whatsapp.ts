@@ -40,6 +40,7 @@ const KEYS = {
   metaToken: ['whatsapp_token', 'WHATSAPP_TOKEN'],
   metaTemplate: ['whatsapp_template', 'WHATSAPP_TEMPLATE'],
   metaTemplateLang: ['whatsapp_template_lang', 'WHATSAPP_TEMPLATE_LANG'],
+  metaWabaId: ['whatsapp_waba_id', 'WHATSAPP_WABA_ID'], // אופציונלי — לאבחון תבניות בלבד
 } as const;
 type CfgKey = keyof typeof KEYS;
 const SECRET_KEYS: CfgKey[] = ['greenToken', 'metaToken'];
@@ -350,7 +351,7 @@ export function describeWelcomeResult(r: { status: string; detail: string }): st
  * ה-WhatsApp Business שאליו שייך מספר השליחה. עונה על שגיאות 132001/132000.
  * ---------------------------------------------------------------------- */
 export interface MetaTemplateInfo { name: string; language: string; status: string; bodyParams: number }
-export interface MetaWabaInfo { id: string; hasPhone: boolean; templates: MetaTemplateInfo[] }
+export interface MetaWabaInfo { id: string; hasPhone: boolean; templates: MetaTemplateInfo[]; error?: string }
 
 /** מספר המשתנים {{n}} בגוף התבנית */
 export function templateBodyParams(components: any[] | undefined): number {
@@ -368,7 +369,9 @@ export function diagnoseTemplate(
   const want = String(name || '').trim();
   const wantLang = normalizeTemplateLang(lang);
   if (!want) return { ok: false, message: 'לא הוגדר שם תבנית.' };
-  if (!wabas.length) return { ok: false, message: 'לא נמצא חשבון WhatsApp Business שהטוקן מורשה אליו — צריך טוקן עם הרשאת whatsapp_business_management.' };
+  if (!wabas.length) return { ok: false, message: 'לא הצלחתי לזהות מהטוקן את חשבון ה-WhatsApp Business. הזן בהגדרות את "WhatsApp Business Account ID" (מופיע ב-developers.facebook.com ← האפליקציה ← WhatsApp ← API Setup) ובדוק שוב.' };
+  if (wabas.every((w) => w.error)) return { ok: false, message: `Meta סירבה לקרוא את חשבון ה-WhatsApp Business (${wabas[0].error}). לרוב חסרה לטוקן הרשאת whatsapp_business_management, או שה-ID שייך לחשבון אחר.` };
+  if (!wabas.some((w) => w.hasPhone)) return { ok: false, message: `מספר השליחה (Phone number ID) לא שייך לאף אחד מהחשבונות שנבדקו (${wabas.map((w) => w.id).join(', ')}). כלומר המספר והתבנית בחשבונות שונים — צריך ליצור את התבנית בחשבון של המספר, או להחליף ל-Phone number ID ולטוקן של החשבון שבו התבנית.` };
   const own = wabas.filter((w) => w.hasPhone);
   const pool = own.length ? own : wabas;
   const same = pool.flatMap((w) => w.templates.filter((t) => t.name === want));
@@ -490,26 +493,41 @@ whatsappAdminApp.get('/templates', async (c) => {
     return c.json({ ok: false, error: 'meta_not_configured' }, 400);
   }
   try {
-    // חשבונות ה-WABA שהטוקן מורשה אליהם (מתוך ההרשאות הגרנולריות של הטוקן)
-    const dbg = await graphGet(`debug_token?input_token=${encodeURIComponent(cfg.metaToken)}`, cfg.metaToken);
+    // מאיפה לוקחים את מזהי ה-WABA לבדיקה (לפי הסדר, מאוחדים):
+    // 1. ID שהוזן ידנית בהגדרות  2. ההרשאות הגרנולריות של הטוקן  3. העסקים שהטוקן מורשה אליהם
     const ids = new Set<string>();
+    if (cfg.metaWabaId) ids.add(cfg.metaWabaId.trim());
+    const dbg = await graphGet(`debug_token?input_token=${encodeURIComponent(cfg.metaToken)}`, cfg.metaToken).catch(() => null);
+    const scopes: string[] = (dbg?.data?.scopes || []).map(String);
     for (const sc of dbg?.data?.granular_scopes || []) {
       if (String(sc.scope).startsWith('whatsapp_business')) for (const id of sc.target_ids || []) ids.add(String(id));
     }
+    if (!ids.size) {
+      const biz = await graphGet('me/businesses?fields=owned_whatsapp_business_accounts{id},client_whatsapp_business_accounts{id}&limit=50', cfg.metaToken).catch(() => null);
+      for (const b of biz?.data || []) {
+        for (const w of [...(b.owned_whatsapp_business_accounts?.data || []), ...(b.client_whatsapp_business_accounts?.data || [])]) ids.add(String(w.id));
+      }
+    }
     const wabas: MetaWabaInfo[] = [];
     for (const id of ids) {
-      const phones = await graphGet(`${id}/phone_numbers?fields=id,display_phone_number&limit=100`, cfg.metaToken).catch(() => ({ data: [] }));
-      const tpl = await graphGet(`${id}/message_templates?fields=name,language,status,components&limit=200`, cfg.metaToken).catch(() => ({ data: [] }));
+      let error = '';
+      const phones = await graphGet(`${id}/phone_numbers?fields=id,display_phone_number&limit=100`, cfg.metaToken).catch((e) => { error = short(e?.message || e); return { data: [] }; });
+      const tpl = await graphGet(`${id}/message_templates?fields=name,language,status,components&limit=200`, cfg.metaToken).catch((e) => { error = error || short(e?.message || e); return { data: [] }; });
       wabas.push({
         id,
         hasPhone: (phones.data || []).some((p: any) => String(p.id) === String(cfg.metaPhoneId)),
         templates: (tpl.data || []).map((t: any) => ({
           name: String(t.name), language: String(t.language), status: String(t.status), bodyParams: templateBodyParams(t.components),
         })),
+        ...(error ? { error } : {}),
       });
     }
     const diagnosis = diagnoseTemplate(wabas, cfg.metaTemplate, cfg.metaTemplateLang);
-    return c.json({ ok: true, configured: { name: cfg.metaTemplate, lang: normalizeTemplateLang(cfg.metaTemplateLang) }, diagnosis, wabas });
+    // פרטי טוקן לא-סודיים לאבחון (סוג, הרשאות, תוקף) — בלי הטוקן עצמו
+    const token = dbg?.data
+      ? { type: dbg.data.type || '', app: dbg.data.application || '', scopes, expiresAt: dbg.data.expires_at || 0, valid: !!dbg.data.is_valid }
+      : null;
+    return c.json({ ok: true, configured: { name: cfg.metaTemplate, lang: normalizeTemplateLang(cfg.metaTemplateLang) }, diagnosis, wabas, token });
   } catch (e) {
     return c.json({ ok: false, error: short((e as Error)?.message || e) }, 502);
   }

@@ -1512,6 +1512,7 @@ async function whatsappSettings(){
         '<div class="f"><label>שם התבנית המאושרת'+fromEnv('metaTemplate')+'</label><input id="wa_metaTemplate" value="'+esc(st.metaTemplate||'')+'" placeholder="lead_received" style="'+inputStyle+';'+ltr+'"></div>'+
         '<div class="f"><label>שפת התבנית</label><input id="wa_metaTemplateLang" value="'+esc(st.metaTemplateLang||'he')+'" placeholder="he" style="'+inputStyle+';'+ltr+'"></div>'+
       '</div>'+
+      '<div class="f" style="margin-top:8px"><label>WhatsApp Business Account ID <span class="muted">(אופציונלי — לבדיקת התבנית; מופיע ב-API Setup של האפליקציה)</span></label><input id="wa_metaWabaId" value="'+esc(st.metaWabaId||'')+'" placeholder="1234567890" inputmode="numeric" style="'+inputStyle+';'+ltr+'"></div>'+
     '</div>'+
     '<div class="f" style="margin-top:10px"><label>נוסח ההודעה — <code>{name}</code> יוחלף בשם הפרטי של הליד <span class="muted">(ב-Meta הנוסח נקבע בתבנית המאושרת; כאן משמש ל-Green API ולתצוגה)</span></label>'+
       '<textarea id="wa_welcomeText" rows="7" oninput="waPreview()" style="'+inputStyle+';line-height:1.5">'+esc(st.welcomeText||st.defaultWelcomeText||'')+'</textarea>'+
@@ -1532,7 +1533,7 @@ async function whatsappSave(){
   const v=(id)=>($(id)?$(id).value:'');
   const body={enabled:v('wa_enabled'),provider:v('wa_provider'),welcomeText:v('wa_welcomeText'),
     greenInstance:v('wa_greenInstance').trim(),greenUrl:v('wa_greenUrl').trim(),
-    metaPhoneId:v('wa_metaPhoneId').trim(),metaTemplate:v('wa_metaTemplate').trim(),metaTemplateLang:v('wa_metaTemplateLang').trim()};
+    metaPhoneId:v('wa_metaPhoneId').trim(),metaTemplate:v('wa_metaTemplate').trim(),metaTemplateLang:v('wa_metaTemplateLang').trim(),metaWabaId:v('wa_metaWabaId').trim()};
   if(v('wa_greenToken').trim()) body.greenToken=v('wa_greenToken').trim();
   if(v('wa_metaToken').trim()) body.metaToken=v('wa_metaToken').trim();
   try{
@@ -1559,8 +1560,12 @@ async function whatsappTemplates(){
     const dg=r.diagnosis||{};
     const own=(r.wabas||[]).filter(w=>w.hasPhone);
     const list=(own.length?own:(r.wabas||[])).flatMap(w=>w.templates).map(t=>esc(t.name)+' ('+esc(t.language)+', '+esc(t.status)+')').join(' · ');
+    const tk=r.token;
+    const accts=(r.wabas||[]).map(w=>esc(w.id)+(w.hasPhone?' ✓ המספר כאן':' — המספר לא כאן')+(w.error?' ('+esc(w.error)+')':'')).join(' · ');
     out.innerHTML='<span class="pill '+(dg.ok?'p-green':'p-red')+'">'+(dg.ok?'תקין':'לא תואם')+'</span> '+esc(dg.message||'')+
-      (list?'<div class="muted" style="margin-top:4px;font-size:.8rem">תבניות בחשבון: '+list+'</div>':'');
+      (accts?'<div class="muted" style="margin-top:4px;font-size:.8rem">חשבונות שנבדקו: '+accts+'</div>':'')+
+      (list?'<div class="muted" style="margin-top:4px;font-size:.8rem">תבניות בחשבון: '+list+'</div>':'')+
+      (tk?'<div class="muted" style="margin-top:4px;font-size:.8rem" dir="ltr">token: '+esc(tk.type)+' · '+esc(tk.app)+' · '+(tk.valid?'valid':'INVALID')+' · scopes: '+esc((tk.scopes||[]).join(', ')||'—')+'</div>':'');
   }catch(e){ out.innerHTML='<span class="pill p-red">שגיאה</span> '+esc(e.message||''); }
 }
 async function whatsappTest(){
