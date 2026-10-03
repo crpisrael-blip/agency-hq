@@ -63,7 +63,7 @@ header.site.scrolled{background:var(--glass);backdrop-filter:blur(16px) saturate
   border-bottom-color:var(--line);box-shadow:0 10px 30px -18px #000}
 header.site .wrap{display:flex;align-items:center;justify-content:space-between;height:74px;gap:16px}
 .brand{display:flex;align-items:center;gap:11px;flex:none}
-.brand .logo-img{height:36px;width:auto;filter:drop-shadow(0 0 1px rgba(234,246,255,.6)) drop-shadow(0 2px 12px rgba(4,216,232,.35))}
+.brand .logo-img{height:36px;width:auto}
 .brand .name{display:none}
 .nav{display:flex;align-items:center;gap:2px}
 .nav .drawer-cta{display:none}
