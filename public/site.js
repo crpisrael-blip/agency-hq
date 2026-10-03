@@ -34,7 +34,7 @@ window.SITE = {
     ['book', '/book', 'קביעת שיחה'],
     ['contact', '/contact', 'צור קשר']
   ];
-  var LOGO_DARK = '/ort-tech-logo-dark.png';
+  var LOGO = '/ort-tech-logo.svg';
   var LOGO_ALT = 'ORT-TECH — פתרונות תפעול חכמים לעסקים';
   var LEAF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-3 3-6 4.5-8 5 0 6 3.5 10 8 13 4.5-3 8-7 8-13-2-.5-5-2-8-5Z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg>';
 
@@ -48,7 +48,7 @@ window.SITE = {
     el.className = 'site';
     el.innerHTML =
       '<div class="wrap">' +
-        '<a href="/" class="brand" aria-label="' + LOGO_ALT + '"><img src="' + LOGO_DARK + '" class="logo-img" alt="' + LOGO_ALT + '" width="150" height="34"></a>' +
+        '<a href="/" class="brand" aria-label="' + LOGO_ALT + '"><img src="' + LOGO + '" class="logo-img" alt="' + LOGO_ALT + '" width="150" height="34"></a>' +
         '<nav class="nav" id="mainnav">' + links +
           '<a href="/contact" class="btn primary sm drawer-cta">שיחת ייעוץ ללא התחייבות</a>' +
         '</nav>' +
@@ -87,7 +87,7 @@ window.SITE = {
       '<div class="wrap">' +
         '<div class="cols">' +
           '<div>' +
-            '<div class="fbrand"><img src="' + LOGO_DARK + '" class="logo-img" alt="' + LOGO_ALT + '"></div>' +
+            '<div class="fbrand"><img src="' + LOGO + '" class="logo-img" alt="' + LOGO_ALT + '"></div>' +
             '<p class="fdesc">מתכננים איך העסק עובד — ואז בונים את הטכנולוגיה שמפעילה אותו. תהליכים, אוטומציות, מערכות מידע ונתונים במערכת עבודה אחת ברורה.</p>' +
             '<span class="fbadge">' + LEAF + 'עסק של מילואימניק</span>' +
           '</div>' +
