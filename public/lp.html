@@ -29,7 +29,7 @@
   a{color:inherit;text-decoration:none}
   .mono{font-family:var(--mono)}
   .cy{color:var(--cyan)}
-  .kick{font-family:var(--mono);color:var(--cyan);font-size:.82rem;letter-spacing:.5px;opacity:.9}
+  .kick{font-family:var(--mono);color:var(--cyan2);font-size:.85rem;letter-spacing:.5px}
   .btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-family:inherit;font-weight:800;
     padding:14px 26px;border-radius:10px;font-size:1.02rem;transition:transform .15s,box-shadow .15s,background .15s}
   .btn.primary{background:linear-gradient(135deg,var(--cyan),#4aa8ff);color:#031523;box-shadow:0 8px 26px var(--glow)}
@@ -41,7 +41,7 @@
   header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
   .brand{display:flex;align-items:center;gap:11px;font-weight:900;font-size:1.2rem;letter-spacing:.5px}
   .brand .logo-img{height:32px;width:auto}
-  .brand small{font-family:var(--mono);font-weight:600;color:var(--muted);font-size:.68rem;letter-spacing:0}
+  .brand small{font-family:var(--mono);font-weight:600;color:var(--muted);font-size:.75rem;letter-spacing:0}
   header .btn{padding:9px 18px;font-size:.88rem}
   @media(max-width:600px){.brand small{display:none}}
 
@@ -61,7 +61,7 @@
   .bp-frame::before,.bp-frame::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--cyan);opacity:.5}
   .bp-frame::before{top:-1px;right:-1px;border-left:none;border-bottom:none;border-radius:0 14px 0 0}
   .bp-frame::after{bottom:-1px;left:-1px;border-right:none;border-top:none;border-radius:0 0 0 14px}
-  .bp-cap{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.72rem;color:var(--muted);padding:2px 8px 10px}
+  .bp-cap{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.8rem;color:var(--muted);padding:2px 8px 10px}
   .bp-cap b{color:var(--cyan)}
   .diagram-wrap{overflow-x:auto;overflow-y:hidden}
   svg.engine{display:block;width:100%;min-width:660px;height:auto}
@@ -71,7 +71,7 @@
   .in .node-box{border-color:rgba(92,200,255,.55);box-shadow:0 0 22px rgba(92,200,255,.18)}
   .node-box .ni{font-size:1.5rem;line-height:1}
   .node-box .nt{font-weight:800;font-size:.98rem}
-  .node-box .ns{font-family:var(--mono);font-size:.62rem;color:var(--cyan);opacity:.85}
+  .node-box .ns{font-family:var(--mono);font-size:.72rem;color:var(--cyan2)}
   .io-tag{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.72rem}
   .wire{fill:none;stroke:var(--cyan);stroke-width:2;stroke-dasharray:6 5;
     stroke-dashoffset:400;transition:stroke-dashoffset 1.4s ease}
@@ -81,7 +81,7 @@
   .in .gear{animation:spin 14s linear infinite;transform-origin:center;transform-box:fill-box}
   @keyframes spin{to{transform:rotate(360deg)}}
   .dim{stroke:var(--line2);stroke-width:1;stroke-dasharray:3 3}
-  .dim-t{fill:var(--muted);font-family:var(--mono);font-size:11px}
+  .dim-t{fill:var(--muted);font-family:var(--mono);font-size:13px}
 
   .trust{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:26px}
   .stat{border:1px solid var(--line);border-radius:10px;padding:12px 20px;background:rgba(12,26,51,.4);min-width:120px}
@@ -100,7 +100,7 @@
   .card{background:linear-gradient(160deg,rgba(12,26,51,.7),rgba(8,16,32,.5));border:1px solid var(--line);border-radius:14px;
     padding:24px 22px;position:relative;transition:border-color .2s,transform .2s}
   .card:hover{border-color:var(--cyan);transform:translateY(-3px)}
-  .card .tag{font-family:var(--mono);font-size:.7rem;color:var(--cyan);opacity:.8}
+  .card .tag{font-family:var(--mono);font-size:.78rem;color:var(--cyan2)}
   .card .ico{font-size:1.7rem;margin:6px 0 10px}
   .card h3{font-size:1.2rem;font-weight:800;margin-bottom:7px}
   .card p{color:var(--muted);font-size:.97rem}
@@ -115,7 +115,7 @@
   .pstep:last-child{border-bottom:none}
   .pstep .n{flex:none;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--cyan);color:var(--cyan);
     display:grid;place-items:center;font-family:var(--mono);font-weight:800;font-size:1.05rem;background:rgba(92,200,255,.06)}
-  .pstep h4{font-size:1.12rem;font-weight:800}
+  .pstep h3{font-size:1.12rem;font-weight:800}
   .pstep p{color:var(--muted);font-size:.96rem;margin-top:3px}
 
   .stack{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
@@ -123,7 +123,7 @@
 
   .form-card{background:linear-gradient(180deg,rgba(12,26,51,.85),rgba(8,16,32,.7));border:1px solid var(--line2);border-radius:18px;
     padding:34px;max-width:660px;margin:0 auto;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.4)}
-  .form-card .stamp{position:absolute;top:16px;left:20px;font-family:var(--mono);font-size:.68rem;color:var(--cyan);opacity:.7;text-align:left}
+  .form-card .stamp{position:absolute;top:16px;left:20px;font-family:var(--mono);font-size:.75rem;color:var(--cyan2);text-align:left}
   .form-card h2{font-size:clamp(1.5rem,3.5vw,2.05rem);font-weight:900;text-align:center}
   .form-card .sub{color:var(--muted);text-align:center;margin:10px 0 26px}
   .field{margin-bottom:15px}
@@ -221,9 +221,9 @@
       <p>ההבדל בין תוכנה שמתאבקת אבק — לבין פתרון שהעסק לא יכול בלעדיו.</p>
     </div>
     <div class="grid g3">
-      <div class="card reveal"><span class="cn mono">01</span><div class="tag mono">// DIAGNOSE</div><div class="ico">🔍</div><h3>אבחון ומיפוי</h3><p>מבינים את הבעיה לפני שפותרים. ממפים את התהליך בפועל — מי, מה, מתי, ומה נופל בין הכיסאות — ומזהים צווארי בקבוק והזדמנויות.</p></div>
-      <div class="card reveal"><span class="cn mono">02</span><div class="tag mono">// DESIGN</div><div class="ico">📐</div><h3>תכנון פתרון</h3><p>בוחרים את הפתרון הפשוט ביותר שנותן ערך. לפעמים זה שינוי תהליך, לפעמים אוטומציה, ורק כשצריך — מערכת מותאמת.</p></div>
-      <div class="card reveal"><span class="cn mono">03</span><div class="tag mono">// DELIVER</div><div class="ico">🚀</div><h3>בנייה וליווי</h3><p>הפתרון לא נגמר בהטמעה — ליווי, מדידה ושיפור מתמשך. המטרה: שהעסק ירוץ לבד ולא יהיה תלוי בספק.</p></div>
+      <div class="card reveal"><span class="cn mono" aria-hidden="true">01</span><div class="tag mono">// DIAGNOSE</div><div class="ico">🔍</div><h3>אבחון ומיפוי</h3><p>מבינים את הבעיה לפני שפותרים. ממפים את התהליך בפועל — מי, מה, מתי, ומה נופל בין הכיסאות — ומזהים צווארי בקבוק והזדמנויות.</p></div>
+      <div class="card reveal"><span class="cn mono" aria-hidden="true">02</span><div class="tag mono">// DESIGN</div><div class="ico">📐</div><h3>תכנון פתרון</h3><p>בוחרים את הפתרון הפשוט ביותר שנותן ערך. לפעמים זה שינוי תהליך, לפעמים אוטומציה, ורק כשצריך — מערכת מותאמת.</p></div>
+      <div class="card reveal"><span class="cn mono" aria-hidden="true">03</span><div class="tag mono">// DELIVER</div><div class="ico">🚀</div><h3>בנייה וליווי</h3><p>הפתרון לא נגמר בהטמעה — ליווי, מדידה ושיפור מתמשך. המטרה: שהעסק ירוץ לבד ולא יהיה תלוי בספק.</p></div>
     </div>
   </div>
 </section>
@@ -275,10 +275,10 @@
       <p>מתודולוגיה מסודרת, שקופה, עם תוצר בכל שלב — בלי הפתעות.</p>
     </div>
     <div class="pipe">
-      <div class="pstep reveal"><div class="n">01</div><div><h4>היכרות ואבחון</h4><p>נבין את העסק, נמפה את התהליכים בפועל, ונזהה איפה בדיוק דולף זמן וכסף.</p></div></div>
-      <div class="pstep reveal"><div class="n">02</div><div><h4>אבחון והזדמנויות</h4><p>ממצאים, צווארי בקבוק, כפילויות וסיכונים — והזדמנויות שאפשר לנצל.</p></div></div>
-      <div class="pstep reveal"><div class="n">03</div><div><h4>תכנון ובנייה</h4><p>בוחרים את הפתרון הנכון ובונים בהתאמה אישית — מהיר, מאובטח, זמין מכל מכשיר.</p></div></div>
-      <div class="pstep reveal"><div class="n">04</div><div><h4>מסירה, ליווי ושיפור</h4><p>הדרכה לצוות, ליווי לאורך זמן, ומדידה מתמשכת — שיפורים ככל שהעסק גדל.</p></div></div>
+      <div class="pstep reveal"><div class="n">01</div><div><h3>היכרות ואבחון</h3><p>נבין את העסק, נמפה את התהליכים בפועל, ונזהה איפה בדיוק דולף זמן וכסף.</p></div></div>
+      <div class="pstep reveal"><div class="n">02</div><div><h3>אבחון והזדמנויות</h3><p>ממצאים, צווארי בקבוק, כפילויות וסיכונים — והזדמנויות שאפשר לנצל.</p></div></div>
+      <div class="pstep reveal"><div class="n">03</div><div><h3>תכנון ובנייה</h3><p>בוחרים את הפתרון הנכון ובונים בהתאמה אישית — מהיר, מאובטח, זמין מכל מכשיר.</p></div></div>
+      <div class="pstep reveal"><div class="n">04</div><div><h3>מסירה, ליווי ושיפור</h3><p>הדרכה לצוות, ליווי לאורך זמן, ומדידה מתמשכת — שיפורים ככל שהעסק גדל.</p></div></div>
     </div>
   </div>
 </section>

@@ -23,7 +23,7 @@ main{padding-block:26px 90px}
 h1{font-size:clamp(1.6rem,6.5vw,2.3rem);line-height:1.2;margin:4px 0 8px;overflow-wrap:anywhere}
 .lead{color:var(--muted);margin:0 0 6px}
 .progress{height:7px;background:#e4e0d6;border-radius:9px;overflow:hidden;margin:18px 0 6px}
-.progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.progress span{display:block;height:100%;width:100%;background:var(--accent);transform:scaleX(0);transform-origin:right;transition:transform .25s}
 .pmeta{font-size:.85rem;color:var(--muted);margin-bottom:6px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,4vw,28px);margin:18px 0;min-width:0}
 .card h2{font-size:1.25rem;line-height:1.3;margin:0 0 14px;overflow-wrap:anywhere}
@@ -58,7 +58,7 @@ textarea:focus{outline:3px solid #d5defa;border-color:var(--accent)}
   if(!token){gone();return;}
   function answers(){var o={};app.querySelectorAll('textarea[data-key]').forEach(function(t){o[t.dataset.key]=t.value});return o}
   function progress(){var all=app.querySelectorAll('textarea[data-key]'),n=0;all.forEach(function(t){if(t.value.trim())n++});
-    document.getElementById('bar').style.width=(all.length?Math.round(n/all.length*100):0)+'%';
+    document.getElementById('bar').style.transform='scaleX('+(all.length?n/all.length:0)+')';
     document.getElementById('pmeta').textContent=n+' מתוך '+all.length+' שאלות נענו';}
   function setStatus(txt,cls){var s=document.getElementById('status');s.className='status'+(cls?' '+cls:'');s.textContent=txt}
   function save(final){

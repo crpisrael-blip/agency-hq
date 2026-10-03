@@ -91,8 +91,8 @@ window.SITE = {
             '<p class="fdesc">מתכננים איך העסק עובד — ואז בונים את הטכנולוגיה שמפעילה אותו. תהליכים, אוטומציות, מערכות מידע ונתונים במערכת עבודה אחת ברורה.</p>' +
             '<span class="fbadge">' + LEAF + 'עסק של מילואימניק</span>' +
           '</div>' +
-          '<div><h4>ניווט</h4><ul>' + navLinks + '<li><a href="/login">אזור אישי</a></li><li><a href="/privacy">מדיניות פרטיות</a></li></ul></div>' +
-          '<div><h4>דברו איתנו</h4><ul>' +
+          '<div><h2>ניווט</h2><ul>' + navLinks + '<li><a href="/login">אזור אישי</a></li><li><a href="/privacy">מדיניות פרטיות</a></li></ul></div>' +
+          '<div><h2>דברו איתנו</h2><ul>' +
             '<li><a href="tel:' + S.phone.replace(/[^0-9+]/g, '') + '">📞 ' + S.phone + '</a></li>' +
             '<li><a href="' + waHref + '" target="_blank" rel="noopener">💬 וואטסאפ</a></li>' +
             '<li><a href="mailto:' + S.email + '">✉️ ' + S.email + '</a></li>' +
@@ -234,7 +234,7 @@ window.SITE = {
     var prog = progressSel ? root.querySelector(progressSel) : null;
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function run() {
-      if (prog && !reduce) prog.style[vertical ? 'height' : 'width'] = (vertical ? 'calc(100% - 52px)' : '84%');
+      if (prog && !reduce) prog.style.transform = 'none';
       items.forEach(function (it, i) {
         if (reduce) { it.classList.add('on'); return; }
         setTimeout(function () { it.classList.add('on'); }, 180 + i * 260);
